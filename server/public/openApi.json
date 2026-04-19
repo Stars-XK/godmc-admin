@@ -1,136 +1,6 @@
 {
   "openapi": "3.0.0",
   "paths": {
-    "/login": {
-      "post": {
-        "operationId": "MainController_login",
-        "summary": "用户登录",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "根目录"
-        ],
-        "security": [
-          {
-            "Authorization": []
-          }
-        ]
-      }
-    },
-    "/logout": {
-      "post": {
-        "operationId": "MainController_logout",
-        "summary": "退出登录",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "根目录"
-        ],
-        "security": [
-          {
-            "Authorization": []
-          }
-        ]
-      }
-    },
-    "/register": {
-      "post": {
-        "operationId": "MainController_register",
-        "summary": "用户注册",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "根目录"
-        ],
-        "security": [
-          {
-            "Authorization": []
-          }
-        ]
-      }
-    },
-    "/registerUser": {
-      "get": {
-        "operationId": "MainController_registerUser",
-        "summary": "账号自助-是否开启用户注册功能",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "根目录"
-        ],
-        "security": [
-          {
-            "Authorization": []
-          }
-        ]
-      }
-    },
-    "/captchaImage": {
-      "get": {
-        "operationId": "MainController_captchaImage",
-        "summary": "获取验证图片",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "根目录"
-        ],
-        "security": [
-          {
-            "Authorization": []
-          }
-        ]
-      }
-    },
     "/getInfo": {
       "get": {
         "operationId": "MainController_getInfo",
@@ -342,6 +212,136 @@
         },
         "tags": [
           "通用-文件上传"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ]
+      }
+    },
+    "/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "summary": "用户登录",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth模块"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ]
+      }
+    },
+    "/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "summary": "退出登录",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth模块"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ]
+      }
+    },
+    "/register": {
+      "post": {
+        "operationId": "AuthController_register",
+        "summary": "用户注册",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth模块"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ]
+      }
+    },
+    "/registerUser": {
+      "get": {
+        "operationId": "AuthController_registerUser",
+        "summary": "账号自助-是否开启用户注册功能",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth模块"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ]
+      }
+    },
+    "/captchaImage": {
+      "get": {
+        "operationId": "AuthController_captchaImage",
+        "summary": "获取验证图片",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth模块"
         ],
         "security": [
           {
@@ -4406,6 +4406,33 @@
       }
     },
     "schemas": {
+      "FileUploadDto": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary"
+          }
+        },
+        "required": [
+          "file"
+        ]
+      },
+      "ChunkMergeFileDto": {
+        "type": "object",
+        "properties": {
+          "uploadId": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "uploadId",
+          "fileName"
+        ]
+      },
       "LoginDto": {
         "type": "object",
         "properties": {
@@ -4448,33 +4475,6 @@
           "userName",
           "password",
           "uuid"
-        ]
-      },
-      "FileUploadDto": {
-        "type": "object",
-        "properties": {
-          "file": {
-            "type": "string",
-            "format": "binary"
-          }
-        },
-        "required": [
-          "file"
-        ]
-      },
-      "ChunkMergeFileDto": {
-        "type": "object",
-        "properties": {
-          "uploadId": {
-            "type": "string"
-          },
-          "fileName": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "uploadId",
-          "fileName"
         ]
       },
       "CreateConfigDto": {

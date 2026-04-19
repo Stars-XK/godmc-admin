@@ -8,12 +8,12 @@ const configFileNameObj = {
   production: 'prod',
 };
 
-const env = process.env.NODE_ENV;
+const env = process.env.NODE_ENV || 'development';
 
 console.log(env);
 
 export default () => {
-  const config = yaml.load(readFileSync(join(__dirname, `./${configFileNameObj[env]}.yml`), 'utf8')) as Record<string, any>;
+  const config = yaml.load(readFileSync(join(__dirname, `./config/${configFileNameObj[env]}.yml`), 'utf8')) as Record<string, any>;
   
   if (process.env.DB_TYPE) config.db.mysql.type = process.env.DB_TYPE;
   if (process.env.DB_HOST) config.db.mysql.host = process.env.DB_HOST;

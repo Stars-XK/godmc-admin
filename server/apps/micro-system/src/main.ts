@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(MicroSystemModule);
-  const configService = app.get(ConfigService);
+  const configService = app.get<ConfigService>(ConfigService);
 
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.TCP,
