@@ -7,7 +7,9 @@
   "compilerOptions": {
     "webpack": true,
     "tsConfigPath": "tsconfig.build.json",
-    "assets": ["**/*.yml"],
+    "assets": [
+      "**/*.yml"
+    ],
     "watchAssets": true,
     "deleteOutDir": true
   },
@@ -19,6 +21,15 @@
       "sourceRoot": "apps/api-gateway/src",
       "compilerOptions": {
         "tsConfigPath": "tsconfig.build.json"
+      }
+    },
+    "micro-auth": {
+      "type": "application",
+      "root": "apps/micro-auth",
+      "entryFile": "main",
+      "sourceRoot": "apps/micro-auth/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/micro-auth/tsconfig.app.json"
       }
     }
   }
