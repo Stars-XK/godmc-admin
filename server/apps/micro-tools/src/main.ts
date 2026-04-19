@@ -9,7 +9,7 @@ async function bootstrap() {
       transport: Transport.TCP,
       options: {
         host: '0.0.0.0',
-        port: 3005,
+        port: parseInt(process.env.MICRO_TOOLS_PORT || '3005', 10),
       },
     },
   );
