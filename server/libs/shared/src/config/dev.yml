@@ -30,25 +30,25 @@ db:
   mysql:
     type: 'mysql'
     host: '139.224.26.134'
-    username: 'root'
-    password: 'yehuozhili'
-    database: 'nest-admin'
+    username: 'dma'
+    password: 'QzwTwHR3YT85AbNf'
+    database: 'dma'
     port: 3306
     charset: 'utf8mb4'
     logger: 'file'
     logging: true
     multipleStatements: true
     dropSchema: false
-    synchronize: true
+    synchronize: false
     supportBigNumbers: true
     bigNumberStrings: true
 
 # redis 配置
 redis:
   host: 'localhost'
-  password: '*********'
+  password: '123456'
   port: 6379
-  db: 2
+  db: 0
   keyPrefix: ''
 
 # jwt 配置
