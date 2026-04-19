@@ -102,14 +102,17 @@ function setLayout() {
 
 <style lang='scss' scoped>
 .navbar {
-  height: 50px;
+  height: 60px;
   overflow: hidden;
   position: relative;
-  background: #fff;
-  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid #F1F5F9;
+  z-index: 10;
 
   .hamburger-container {
-    line-height: 46px;
+    line-height: 56px;
     height: 100%;
     float: left;
     cursor: pointer;
@@ -123,6 +126,7 @@ function setLayout() {
 
   .breadcrumb-container {
     float: left;
+    line-height: 60px;
   }
 
   .topmenu-container {
@@ -138,51 +142,61 @@ function setLayout() {
   .right-menu {
     float: right;
     height: 100%;
-    line-height: 50px;
+    line-height: 60px;
     display: flex;
+    align-items: center;
 
     &:focus {
       outline: none;
     }
 
     .right-menu-item {
-      display: inline-block;
-      padding: 0 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 12px;
       height: 100%;
       font-size: 18px;
-      color: #5a5e66;
-      vertical-align: text-bottom;
+      color: #64748B;
+      transition: all 0.3s;
 
       &.hover-effect {
         cursor: pointer;
-        transition: background 0.3s;
-
         &:hover {
-          background: rgba(0, 0, 0, 0.025);
+          background: #F8FAFC;
+          color: #0F172A;
         }
       }
     }
 
     .avatar-container {
-      margin-right: 40px;
+      margin-right: 30px;
 
       .avatar-wrapper {
-        margin-top: 5px;
+        display: flex;
+        align-items: center;
         position: relative;
+        padding: 0 8px;
+        height: 100%;
 
         .user-avatar {
           cursor: pointer;
-          width: 40px;
-          height: 40px;
-          border-radius: 10px;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          border: 2px solid #E2E8F0;
+          transition: border-color 0.3s;
+          
+          &:hover {
+            border-color: #818CF8;
+          }
         }
 
         i {
           cursor: pointer;
-          position: absolute;
-          right: -20px;
-          top: 25px;
-          font-size: 12px;
+          margin-left: 8px;
+          font-size: 14px;
+          color: #94A3B8;
         }
       }
     }

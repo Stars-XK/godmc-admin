@@ -1,50 +1,65 @@
 <template>
-  <div class="login-bg">
-    <div v-for="n in 5" :key="n" />
-  </div>
-
-  <div class="login">
-    <el-form ref="loginRef" :model="loginForm.model" :rules="loginForm.rules" class="login-form">
-      <h3 class="title">nest-admin后台管理系统</h3>
-      <el-form-item prop="userName">
-        <el-input v-model.trim="loginForm.model.userName" maxlength="10" type="text" size="large" auto-complete="off" placeholder="账号">
-          <template #prefix>
-            <!-- <svg-icon icon-class="User" class="input-icon" /> -->
-            <User class="input-icon" />
-          </template>
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="password">
-        <el-input v-model="loginForm.model.password" maxlength="20" type="password" size="large" auto-complete="off" placeholder="密码" @keyup.enter="handleLogin">
-          <template #prefix>
-            <Lock class="input-icon" />
-          </template>
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="code" v-if="authCodeInfo.captchaEnabled">
-        <el-input v-model.trim="loginForm.model.code" maxlength="3" size="large" auto-complete="off" placeholder="验证码" style="width: 63%" @keyup.enter="handleLogin">
-          <template #prefix>
-            <svg-icon icon-class="validCode" class="input-icon" />
-          </template>
-        </el-input>
-        <div class="login-code" v-html="authCodeInfo.imgUrl" @click="useAuthCode.getValidateCode(loginForm.model, true)" />
-      </el-form-item>
-
-      <div class="login-tips">
-        <el-checkbox v-model="loginForm.model.rememberMe" style="margin: 0px 0px 25px 0px">记住密码</el-checkbox>
-        <el-link v-if="showRegisterUser" class="login-tips-link" type="primary" href="/register" target="_blank">去注册账号</el-link>
+  <div class="login-container">
+    <div class="login-overlay"></div>
+    
+    <div class="login-content">
+      <div class="login-brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+        </div>
+        <h2 class="brand-name">GodMC Admin</h2>
+        <p class="brand-desc">Enterprise Microservice Management Platform</p>
       </div>
 
-      <el-form-item style="width: 100%">
-        <el-button :loading="authCodeInfo.loading" size="large" type="primary" style="width: 100%" @click.prevent="handleLogin">
-          <span v-if="!authCodeInfo.loading">登 录</span>
-          <span v-else>登 录 中...</span>
-        </el-button>
-      </el-form-item>
-    </el-form>
+      <el-form ref="loginRef" :model="loginForm.model" :rules="loginForm.rules" class="login-form">
+        <div class="form-header">
+          <h3>Welcome Back</h3>
+          <p>Please enter your details to sign in.</p>
+        </div>
 
-    <div class="el-login-footer">
-      <span>Copyright © 2018-2024 nest-admin All Rights Reserved.</span>
+        <el-form-item prop="userName">
+          <el-input v-model.trim="loginForm.model.userName" maxlength="10" type="text" size="large" auto-complete="off" placeholder="Username">
+            <template #prefix>
+              <User class="input-icon" />
+            </template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item prop="password">
+          <el-input v-model="loginForm.model.password" maxlength="20" type="password" size="large" auto-complete="off" placeholder="Password" @keyup.enter="handleLogin" show-password>
+            <template #prefix>
+              <Lock class="input-icon" />
+            </template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item prop="code" v-if="authCodeInfo.captchaEnabled">
+          <div class="captcha-wrapper">
+            <el-input v-model.trim="loginForm.model.code" maxlength="3" size="large" auto-complete="off" placeholder="Captcha" @keyup.enter="handleLogin">
+              <template #prefix>
+                <svg-icon icon-class="validCode" class="input-icon" />
+              </template>
+            </el-input>
+            <div class="login-code" v-html="authCodeInfo.imgUrl" @click="useAuthCode.getValidateCode(loginForm.model, true)" />
+          </div>
+        </el-form-item>
+
+        <div class="login-actions">
+          <el-checkbox v-model="loginForm.model.rememberMe">Remember me</el-checkbox>
+          <el-link v-if="showRegisterUser" class="register-link" type="primary" :underline="false" href="/register" target="_blank">Create an account</el-link>
+        </div>
+
+        <el-form-item style="margin-bottom: 0;">
+          <el-button :loading="authCodeInfo.loading" size="large" type="primary" class="submit-btn" @click.prevent="handleLogin">
+            <span v-if="!authCodeInfo.loading">Sign In</span>
+            <span v-else>Signing in...</span>
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+
+    <div class="login-footer">
+      <span>Copyright © 2024 GodMC Admin. All Rights Reserved.</span>
     </div>
   </div>
 </template>
@@ -96,17 +111,14 @@ function handleLogin() {
     if (valid) {
       authCodeInfo.loading = true
       loginForm.model.uuid = authCodeInfo.uuid
-      // 勾选了需要记住密码设置在 cookie 中设置记住用户名和密码，否则移除
       useAuthCode.setUserCookie(loginForm.model)
 
-      // 调用action的登录方法
       userStore
         .login(loginForm.model)
         .then(() => {
           router.push({ path: redirect.value || '/' })
         })
         .catch(() => {
-          // 重新获取验证码
           if (authCodeInfo.captchaEnabled) {
             useAuthCode.getValidateCode(loginForm.model, true)
           }
@@ -124,62 +136,194 @@ loginForm.model = useAuthCode.getUserCookie(loginForm.model)
 </script>
 
 <style lang="scss" scoped>
-@import '@/assets/styles/login.scss';
-
-.login {
+.login-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100%;
-  background: #f0f2f5;
+  min-height: 100vh;
+  position: relative;
+  background: #F8FAFC;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
 }
-.title {
-  margin: 0px auto 30px auto;
+
+.login-overlay {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 50% 50%, rgba(79, 70, 229, 0.1) 0%, rgba(248, 250, 252, 0) 50%);
+  animation: rotate 30s linear infinite;
+  z-index: 0;
+}
+
+@keyframes rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.login-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  padding: 0 20px;
+}
+
+.login-brand {
   text-align: center;
-  color: #707070;
+  margin-bottom: 40px;
+  animation: fade-in-up 0.6s ease-out;
+
+  .brand-logo {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 16px;
+    background: linear-gradient(135deg, #4F46E5 0%, #6366F1 100%);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+    
+    svg {
+      width: 32px;
+      height: 32px;
+      color: white;
+    }
+  }
+
+  .brand-name {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0F172A;
+    margin: 0 0 8px;
+    letter-spacing: -0.5px;
+  }
+
+  .brand-desc {
+    font-size: 15px;
+    color: #64748B;
+    margin: 0;
+  }
 }
 
 .login-form {
-  border-radius: 6px;
-  background: #ffffff;
-  width: 400px;
-  padding: 25px 25px 5px 25px;
-  .input-icon {
-    height: 39px;
-    width: 14px;
-    margin-left: 10px;
-  }
-}
-
-.login-code {
-  width: 35%;
-  height: 48px;
-  float: right;
-  text-align: right;
-  img {
-    cursor: pointer;
-    vertical-align: middle;
-  }
-}
-.el-login-footer {
-  height: 40px;
-  line-height: 40px;
-  position: fixed;
-  bottom: 0;
   width: 100%;
-  text-align: center;
-  color: #909399;
-  font-family: Arial;
-  font-size: 12px;
-  letter-spacing: 1px;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  animation: fade-in-up 0.8s ease-out;
+
+  .form-header {
+    margin-bottom: 30px;
+    
+    h3 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1E293B;
+      margin: 0 0 6px;
+    }
+    
+    p {
+      font-size: 14px;
+      color: #94A3B8;
+      margin: 0;
+    }
+  }
 }
 
-.login-tips {
-  &-link {
-    position: relative;
-    top: -3px;
-    left: 10px;
-    font-size: 13px;
+:deep(.el-input__wrapper) {
+  padding: 8px 15px;
+  background-color: #F8FAFC !important;
+  box-shadow: 0 0 0 1px #E2E8F0 inset !important;
+}
+
+:deep(.el-input__wrapper.is-focus) {
+  background-color: #FFFFFF !important;
+  box-shadow: 0 0 0 2px #4F46E5 inset !important;
+}
+
+.input-icon {
+  width: 18px;
+  height: 18px;
+  color: #94A3B8;
+}
+
+.captcha-wrapper {
+  display: flex;
+  gap: 16px;
+  
+  .el-input {
+    flex: 1;
   }
+  
+  .login-code {
+    width: 120px;
+    height: 48px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px #E2E8F0 inset;
+    
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      
+      &:hover {
+        opacity: 0.8;
+      }
+    }
+  }
+}
+
+.login-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  
+  :deep(.el-checkbox__label) {
+    color: #64748B;
+  }
+  
+  .register-link {
+    font-size: 14px;
+    font-weight: 500;
+  }
+}
+
+.submit-btn {
+  width: 100%;
+  height: 48px;
+  font-size: 16px;
+  border-radius: 12px !important;
+  letter-spacing: 0.5px;
+}
+
+.login-footer {
+  position: absolute;
+  bottom: 24px;
+  text-align: center;
+  color: #94A3B8;
+  font-size: 13px;
+  animation: fade-in 1s ease-out 0.5s both;
+}
+
+@keyframes fade-in-up {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 </style>

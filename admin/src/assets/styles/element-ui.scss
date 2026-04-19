@@ -94,3 +94,127 @@
 .el-dropdown .el-dropdown-link{
   color: var(--el-color-primary) !important;
 }
+/* ==========================================================================
+   Premium SaaS Overrides (Frontend Design)
+   ========================================================================== */
+
+:root {
+  --el-color-primary: #4F46E5 !important;
+  --el-color-primary-light-3: #818CF8 !important;
+  --el-color-primary-light-5: #A5B4FC !important;
+  --el-color-primary-light-7: #C7D2FE !important;
+  --el-color-primary-light-8: #E0E7FF !important;
+  --el-color-primary-light-9: #EEF2FF !important;
+  
+  --el-color-success: #10B981 !important;
+  --el-color-warning: #F59E0B !important;
+  --el-color-danger: #EF4444 !important;
+  --el-color-info: #64748B !important;
+
+  --el-border-radius-base: 8px !important;
+  --el-border-radius-small: 6px !important;
+  --el-border-radius-round: 20px !important;
+  
+  --el-box-shadow-light: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05) !important;
+  --el-box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Cards */
+.el-card {
+  border: 1px solid #F1F5F9 !important;
+  border-radius: 12px !important;
+  box-shadow: var(--el-box-shadow-light) !important;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.el-card:hover {
+  box-shadow: var(--el-box-shadow) !important;
+}
+
+.el-card__header {
+  border-bottom: 1px solid #F1F5F9 !important;
+  padding: 16px 20px !important;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+/* Buttons */
+.el-button {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.el-button--primary {
+  background: linear-gradient(135deg, #4F46E5 0%, #6366F1 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3) !important;
+}
+
+.el-button--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(79, 70, 229, 0.4) !important;
+}
+
+/* Inputs & Forms */
+.el-input__wrapper, .el-textarea__inner {
+  border-radius: 6px !important;
+  box-shadow: 0 0 0 1px #E2E8F0 inset !important;
+  transition: box-shadow 0.2s ease !important;
+}
+.el-input__wrapper:hover, .el-textarea__inner:hover {
+  box-shadow: 0 0 0 1px #94A3B8 inset !important;
+}
+.el-input__wrapper.is-focus, .el-textarea__inner:focus {
+  box-shadow: 0 0 0 2px #818CF8 inset !important;
+}
+
+/* Tables */
+.el-table {
+  border-radius: 12px;
+  overflow: hidden;
+  --el-table-border-color: #F1F5F9;
+  --el-table-header-bg-color: #F8FAFC;
+  --el-table-header-text-color: #475569;
+}
+
+.el-table th.el-table__cell {
+  font-weight: 600;
+  background-color: var(--el-table-header-bg-color) !important;
+}
+
+.el-table--border, .el-table--group {
+  border: 1px solid #F1F5F9;
+}
+
+/* Tags */
+.el-tag {
+  border-radius: 6px !important;
+  border: none !important;
+  font-weight: 500;
+}
+.el-tag--primary {
+  background-color: #EEF2FF !important;
+  color: #4F46E5 !important;
+}
+.el-tag--success {
+  background-color: #ECFDF5 !important;
+  color: #10B981 !important;
+}
+
+/* Dialogs */
+.el-dialog {
+  border-radius: 16px !important;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15) !important;
+}
+.el-dialog__header {
+  margin-right: 0 !important;
+  border-bottom: 1px solid #F1F5F9;
+  padding: 20px 24px !important;
+}
+.el-dialog__title {
+  font-weight: 600;
+  color: #0F172A;
+}
+

@@ -236,3 +236,68 @@
     }
   }
 }
+
+/* ==========================================================================
+   Premium SaaS Sidebar Overrides (Frontend Design)
+   ========================================================================== */
+
+#app {
+  .sidebar-container {
+    box-shadow: 1px 0 10px rgba(0, 0, 0, 0.05) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    
+    .el-menu {
+      padding: 12px 0;
+    }
+
+    .el-menu-item, .el-sub-menu__title {
+      margin: 4px 12px !important;
+      border-radius: 8px !important;
+      height: 44px !important;
+      line-height: 44px !important;
+      transition: all 0.2s ease !important;
+      width: auto !important;
+    }
+
+    // Active state styling
+    .theme-dark .is-active > .el-sub-menu__title,
+    .theme-dark .el-menu-item.is-active {
+      background-color: var(--el-color-primary) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+      font-weight: 500;
+    }
+
+    // Hover state styling
+    .theme-dark .el-menu-item:not(.is-active):hover,
+    .theme-dark .el-sub-menu__title:hover {
+      background-color: rgba(255, 255, 255, 0.08) !important;
+      color: #ffffff !important;
+    }
+
+    .svg-icon {
+      margin-right: 12px;
+      font-size: 18px;
+    }
+  }
+
+  .hideSidebar {
+    .sidebar-container {
+      width: 64px !important;
+    }
+    .main-container {
+      margin-left: 64px !important;
+    }
+    .el-menu-item, .el-sub-menu__title {
+      margin: 4px 8px !important;
+      padding: 0 !important;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .svg-icon {
+      margin-right: 0 !important;
+      margin-left: 0 !important;
+    }
+  }
+}
