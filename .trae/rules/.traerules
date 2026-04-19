@@ -1,0 +1,12 @@
+# Project Rules
+
+## Git Workflow
+每次处理完任务需要提交所有内容到github，并且push到主分支。
+
+操作步骤示例：
+```bash
+git add .
+git commit -m "feat/fix: update according to task"
+git push origin main
+```
+在完成任何任务的最后一步，都必须执行上述操作。
