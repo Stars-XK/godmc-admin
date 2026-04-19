@@ -1,102 +1,30 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Response } from 'express';
-import { Repository, In, Not, IsNull } from 'typeorm';
-import { ResultData } from '@app/common/utils/result';
-import { ExportTable } from '@app/common/utils/export';
-import { MonitorLoginlogEntity } from '@app/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import { CreateLoginlogDto, ListLoginlogDto } from './dto/index';
+import { Response } from 'express';
+import { ExportTable } from '@app/common/utils/export';
 
 @Injectable()
 export class LoginlogService {
-  constructor(
-    @InjectRepository(MonitorLoginlogEntity)
-    private readonly monitorLoginlogEntityRep: Repository<MonitorLoginlogEntity>,
-  ) {}
+  constructor(@Inject('MICRO_MONITOR') private readonly client: ClientProxy) {}
 
-  /**
-   * 创建用户登录日志
-   * @param createLoginlogDto
-   * @returns
-   */
   async create(createLoginlogDto: CreateLoginlogDto) {
-    return await this.monitorLoginlogEntityRep.save(createLoginlogDto);
+    return firstValueFrom(this.client.send('monitor.loginlog.create', createLoginlogDto));
   }
 
-  /**
-   * 日志列表-分页
-   * @param query
-   * @returns
-   */
   async findAll(query: ListLoginlogDto) {
-    const entity = this.monitorLoginlogEntityRep.createQueryBuilder('entity');
-    entity.where('entity.delFlag = :delFlag', { delFlag: '0' });
-
-    if (query.ipaddr) {
-      entity.andWhere(`entity.ipaddr LIKE "%${query.ipaddr}%"`);
-    }
-
-    if (query.userName) {
-      entity.andWhere(`entity.userName LIKE "%${query.userName}%"`);
-    }
-
-    if (query.status) {
-      entity.andWhere('entity.status = :status', { status: query.status });
-    }
-
-    if (query.params?.beginTime && query.params?.endTime) {
-      entity.andWhere('entity.loginTime BETWEEN :start AND :end', { start: query.params.beginTime, end: query.params.endTime });
-    }
-
-    if (query.orderByColumn && query.isAsc) {
-      const key = query.isAsc === 'ascending' ? 'ASC' : 'DESC';
-      entity.orderBy(`entity.${query.orderByColumn}`, key);
-    }
-
-    if (query.pageSize && query.pageNum) {
-      entity.skip(query.pageSize * (query.pageNum - 1)).take(query.pageSize);
-    }
-
-    const [list, total] = await entity.getManyAndCount();
-
-    return ResultData.ok({
-      list,
-      total,
-    });
+    return firstValueFrom(this.client.send('monitor.loginlog.findAll', query));
   }
 
-  /**
-   * 删除日志
-   * @returns
-   */
   async remove(ids: string[]) {
-    const data = await this.monitorLoginlogEntityRep.update(
-      { infoId: In(ids) },
-      {
-        delFlag: '1',
-      },
-    );
-    return ResultData.ok(data);
+    return firstValueFrom(this.client.send('monitor.loginlog.remove', ids));
   }
 
-  /**
-   * 删除全部日志
-   * @returns
-   */
   async removeAll() {
-    await this.monitorLoginlogEntityRep.update(
-      { infoId: Not(IsNull()) },
-      {
-        delFlag: '1',
-      },
-    );
-    return ResultData.ok();
+    return firstValueFrom(this.client.send('monitor.loginlog.removeAll', {}));
   }
 
-  /**
-   * 导出登录日志数据为xlsx
-   * @param res
-   */
   async export(res: Response, body: ListLoginlogDto) {
     delete body.pageNum;
     delete body.pageSize;

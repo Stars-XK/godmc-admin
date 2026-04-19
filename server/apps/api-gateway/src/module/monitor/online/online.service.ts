@@ -1,47 +1,16 @@
-import { Injectable } from '@nestjs/common';
-import { ResultData } from '@app/common/utils/result';
-import { RedisService } from '@app/common/shared/redis/redis.service';
-import { CacheEnum } from '@app/common/enum/index';
-import { Paginate } from '@app/common/utils/index';
+import { Injectable, Inject } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class OnlineService {
-  constructor(private readonly redisService: RedisService) {}
-  /**
-   * 日志列表-分页
-   * @param query
-   * @returns
-   */
-  async findAll(query) {
-    const kes = await this.redisService.keys(`${CacheEnum.LOGIN_TOKEN_KEY}*`);
-    const data = await this.redisService.mget(kes);
-    const list = Paginate(
-      {
-        list: data,
-        pageSize: query.pageSize,
-        pageNum: query.pageNum,
-      },
-      query,
-    ).map((item) => {
-      return {
-        tokenId: item.token,
-        deptName: item.user.deptName,
-        userName: item.userName,
-        ipaddr: item.ipaddr,
-        loginLocation: item.loginLocation,
-        browser: item.browser,
-        os: item.os,
-        loginTime: item.loginTime,
-      };
-    });
-    return ResultData.ok({
-      list,
-      total: data.length,
-    });
+  constructor(@Inject('MICRO_MONITOR') private readonly client: ClientProxy) {}
+
+  async findAll(query: any) {
+    return firstValueFrom(this.client.send('monitor.online.findAll', query));
   }
 
   async delete(token: string) {
-    await this.redisService.del(`${CacheEnum.LOGIN_TOKEN_KEY}${token}`);
-    return ResultData.ok();
+    return firstValueFrom(this.client.send('monitor.online.delete', token));
   }
 }

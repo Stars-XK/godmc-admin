@@ -1,76 +1,26 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
-import { JobLog } from '@app/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import { ListJobLogDto } from './dto/create-job.dto';
-import { ResultData } from '@app/common/utils/result';
-import { ExportTable } from '@app/common/utils/export';
 import { Response } from 'express';
+import { ExportTable } from '@app/common/utils/export';
 
 @Injectable()
 export class JobLogService {
-  constructor(
-    @InjectRepository(JobLog)
-    private jobLogRepository: Repository<JobLog>,
-  ) {}
+  constructor(@Inject('MICRO_MONITOR') private readonly client: ClientProxy) {}
 
-  /**
-   * 查询任务日志列表
-   */
   async list(query: ListJobLogDto) {
-    const entity = this.jobLogRepository.createQueryBuilder('entity');
-
-    if (query.pageSize && query.pageNum) {
-      entity.skip(query.pageSize * (query.pageNum - 1)).take(query.pageSize);
-    }
-
-    if (query.jobName) {
-      entity.andWhere('entity.jobName LIKE :jobName', { jobName: `%${query.jobName}%` });
-    }
-
-    if (query.jobGroup) {
-      entity.andWhere('entity.jobGroup = :jobGroup', { jobGroup: query.jobGroup });
-    }
-
-    if (query.status) {
-      entity.andWhere('entity.status = :status', { status: query.status });
-    }
-
-    if (query.params?.beginTime && query.params?.endTime) {
-      entity.andWhere('entity.createTime BETWEEN :start AND :end', { start: query.params.beginTime, end: query.params.endTime });
-    }
-
-    entity.orderBy('entity.createTime', 'DESC');
-
-    const [list, total] = await entity.getManyAndCount();
-
-    return ResultData.ok({
-      list,
-      total,
-    });
+    return firstValueFrom(this.client.send('monitor.jobLog.list', query));
   }
 
-  /**
-   * 添加任务日志
-   */
-  async addJobLog(jobLog: Partial<JobLog>) {
-    const log = this.jobLogRepository.create(jobLog);
-    await this.jobLogRepository.save(log);
-    return ResultData.ok();
-  }
-
-  /**
-   * 清空日志
-   */
   async clean() {
-    await this.jobLogRepository.clear();
-    return ResultData.ok();
+    return firstValueFrom(this.client.send('monitor.jobLog.clean', {}));
   }
 
-  /**
-   * 导出调度日志为xlsx文件
-   * @param res
-   */
+  async addJobLog(jobLog: any) {
+    return firstValueFrom(this.client.send('monitor.jobLog.addJobLog', jobLog));
+  }
+
   async export(res: Response, body: ListJobLogDto) {
     delete body.pageNum;
     delete body.pageSize;
@@ -79,21 +29,18 @@ export class JobLogService {
       sheetName: '调度日志',
       data: list.data.list,
       header: [
-        { title: '日志编号', dataIndex: 'jobLogId' },
+        { title: '日志序号', dataIndex: 'jobLogId' },
         { title: '任务名称', dataIndex: 'jobName' },
         { title: '任务组名', dataIndex: 'jobGroup' },
         { title: '调用目标字符串', dataIndex: 'invokeTarget' },
         { title: '日志信息', dataIndex: 'jobMessage' },
-        { title: '执行时间', dataIndex: 'createTime' },
+        { title: '执行状态', dataIndex: 'status' },
+        { title: '异常信息', dataIndex: 'exceptionInfo' },
       ],
       dictMap: {
         status: {
-          '0': '成功',
+          '0': '正常',
           '1': '失败',
-        },
-        jobGroup: {
-          SYSTEM: '系统',
-          DEFAULT: '默认',
         },
       },
     };

@@ -40,6 +40,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/micro-system/tsconfig.app.json"
       }
+    },
+    "micro-monitor": {
+      "type": "application",
+      "root": "apps/micro-monitor",
+      "entryFile": "main",
+      "sourceRoot": "apps/micro-monitor/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/micro-monitor/tsconfig.app.json"
+      }
     }
   }
 }
