@@ -1,7 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Response } from 'express';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
 import { ExportTable } from '@app/common/utils/export';
 import { CreateConfigDto, UpdateConfigDto, ListConfigDto } from './dto/index';

@@ -1,6 +1,4 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindManyOptions, In } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
 import { SysMenuEntity } from '@app/common';
 import { SysRoleWithMenuEntity } from '@app/common';
@@ -44,9 +42,7 @@ export class MenuService {
       return firstValueFrom(this.client.send('system.menu.remove', menuId));
   }
 
-  async findMany(where: FindManyOptions<SysMenuEntity>) {
-      return firstValueFrom(this.client.send('system.menu.findMany', where));
-  }
+  
 
   /**
    * 根据用户ID查询菜单

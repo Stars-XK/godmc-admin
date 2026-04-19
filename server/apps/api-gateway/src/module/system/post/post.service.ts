@@ -1,6 +1,4 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
 import { ExportTable } from '@app/common/utils/export';
 import { SysPostEntity } from '@app/common';
