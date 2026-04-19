@@ -162,7 +162,7 @@
   box-shadow: 0 0 0 1px #94A3B8 inset !important;
 }
 .el-input__wrapper.is-focus, .el-textarea__inner:focus {
-  box-shadow: 0 0 0 2px #818CF8 inset !important;
+  box-shadow: 0 0 0 2px var(--el-color-primary) inset !important;
 }
 
 /* Tables */
@@ -197,19 +197,19 @@
     border-color: var(--el-color-primary-light-5) !important;
   }
   &.el-button--success {
-    background-color: #ECFDF5 !important;
+    background-color: var(--el-color-success-light-9) !important;
     color: var(--el-color-success) !important;
-    border-color: #A7F3D0 !important;
+    border-color: var(--el-color-success-light-5) !important;
   }
   &.el-button--warning {
-    background-color: #FFFBEB !important;
+    background-color: var(--el-color-warning-light-9) !important;
     color: var(--el-color-warning) !important;
-    border-color: #FDE68A !important;
+    border-color: var(--el-color-warning-light-5) !important;
   }
   &.el-button--danger {
-    background-color: #FEF2F2 !important;
+    background-color: var(--el-color-danger-light-9) !important;
     color: var(--el-color-danger) !important;
-    border-color: #FECDD3 !important;
+    border-color: var(--el-color-danger-light-5) !important;
   }
 }
 
