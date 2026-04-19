@@ -172,7 +172,10 @@ function goTarget(url) {
           background: rgba(255, 255, 255, 0.1);
           border-color: rgba(255, 255, 255, 0.2);
           color: #FFFFFF;
-          &:hover { background: rgba(255, 255, 255, 0.2); }
+          &:hover { 
+            background: rgba(255, 255, 255, 0.2);
+            color: #FFFFFF; 
+          }
         }
       }
     }

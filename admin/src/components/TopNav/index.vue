@@ -160,25 +160,25 @@ onMounted(() => {
 <style lang="scss">
 .topmenu-container.el-menu--horizontal > .el-menu-item {
   float: left;
-  height: 50px !important;
-  line-height: 50px !important;
-  color: #999093 !important;
+  height: 60px !important;
+  line-height: 60px !important;
+  color: #64748B !important;
   padding: 0 5px !important;
   margin: 0 10px !important;
 }
 
 .topmenu-container.el-menu--horizontal > .el-menu-item.is-active,
-.el-menu--horizontal > .el-sub-menu.is-active .el-submenu__title {
+.el-menu--horizontal > .el-sub-menu.is-active .el-sub-menu__title {
   border-bottom: 2px solid #{'var(--theme)'} !important;
-  color: #303133;
+  color: #0F172A !important;
 }
 
 /* sub-menu item */
 .topmenu-container.el-menu--horizontal > .el-sub-menu .el-sub-menu__title {
   float: left;
-  height: 50px !important;
-  line-height: 50px !important;
-  color: #999093 !important;
+  height: 60px !important;
+  line-height: 60px !important;
+  color: #64748B !important;
   padding: 0 5px !important;
   margin: 0 10px !important;
 }

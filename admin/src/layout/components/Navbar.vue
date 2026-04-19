@@ -1,7 +1,10 @@
 <template>
   <div class="navbar">
-    <hamburger id="hamburger-container" :is-active="appStore.sidebar.opened" class="hamburger-container" @toggleClick="toggleSideBar" />
-    <breadcrumb id="breadcrumb-container" class="breadcrumb-container" v-if="!settingsStore.topNav" />
+    <div class="left-menu">
+      <hamburger id="hamburger-container" :is-active="appStore.sidebar.opened" class="hamburger-container" @toggleClick="toggleSideBar" />
+      <breadcrumb id="breadcrumb-container" class="breadcrumb-container" v-if="!settingsStore.topNav" />
+    </div>
+    
     <top-nav id="topmenu-container" class="topmenu-container" v-if="settingsStore.topNav" />
 
     <div class="right-menu">
@@ -103,18 +106,26 @@ function setLayout() {
 <style lang='scss' scoped>
 .navbar {
   height: 60px;
-  overflow: hidden;
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid #F1F5F9;
   z-index: 10;
 
-  .hamburger-container {
-    line-height: 56px;
+  .left-menu {
+    display: flex;
+    align-items: center;
     height: 100%;
-    float: left;
+  }
+
+  .hamburger-container {
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    height: 100%;
     cursor: pointer;
     transition: background 0.3s;
     -webkit-tap-highlight-color: transparent;
@@ -125,13 +136,15 @@ function setLayout() {
   }
 
   .breadcrumb-container {
-    float: left;
-    line-height: 60px;
+    display: flex;
+    align-items: center;
+    height: 100%;
   }
 
   .topmenu-container {
-    position: absolute;
-    left: 50px;
+    flex: 1;
+    margin-left: 20px;
+    overflow: hidden;
   }
 
   .errLog-container {
@@ -140,11 +153,9 @@ function setLayout() {
   }
 
   .right-menu {
-    float: right;
-    height: 100%;
-    line-height: 60px;
     display: flex;
     align-items: center;
+    height: 100%;
 
     &:focus {
       outline: none;
@@ -160,6 +171,14 @@ function setLayout() {
       color: #64748B;
       transition: all 0.3s;
 
+      :deep(.el-dropdown) {
+        color: inherit;
+      }
+      
+      :deep(.svg-icon) {
+        fill: currentColor;
+      }
+
       &.hover-effect {
         cursor: pointer;
         &:hover {
@@ -170,7 +189,7 @@ function setLayout() {
     }
 
     .avatar-container {
-      margin-right: 30px;
+      margin-right: 20px;
 
       .avatar-wrapper {
         display: flex;
@@ -196,7 +215,7 @@ function setLayout() {
           cursor: pointer;
           margin-left: 8px;
           font-size: 14px;
-          color: #94A3B8;
+          color: inherit;
         }
       }
     }
