@@ -28,7 +28,8 @@ cos:
 # 数据库配置
 db:
   mysql:
-    host: '127.0.0.1'
+    type: 'mysql'
+    host: '139.224.26.134'
     username: 'root'
     password: 'yehuozhili'
     database: 'nest-admin'

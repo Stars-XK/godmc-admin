@@ -15,9 +15,12 @@ console.log(env);
 export default () => {
   const config = yaml.load(readFileSync(join(__dirname, `./${configFileNameObj[env]}.yml`), 'utf8')) as Record<string, any>;
   
-  if (process.env.MYSQL_HOST) config.db.mysql.host = process.env.MYSQL_HOST;
-  if (process.env.MYSQL_PASSWORD) config.db.mysql.password = process.env.MYSQL_PASSWORD;
-  if (process.env.MYSQL_DATABASE) config.db.mysql.database = process.env.MYSQL_DATABASE;
+  if (process.env.DB_TYPE) config.db.mysql.type = process.env.DB_TYPE;
+  if (process.env.DB_HOST) config.db.mysql.host = process.env.DB_HOST;
+  if (process.env.DB_PORT) config.db.mysql.port = parseInt(process.env.DB_PORT, 10);
+  if (process.env.DB_USERNAME) config.db.mysql.username = process.env.DB_USERNAME;
+  if (process.env.DB_PASSWORD) config.db.mysql.password = process.env.DB_PASSWORD;
+  if (process.env.DB_DATABASE) config.db.mysql.database = process.env.DB_DATABASE;
   
   if (process.env.REDIS_HOST) config.redis.host = process.env.REDIS_HOST;
   if (process.env.REDIS_PASSWORD) config.redis.password = process.env.REDIS_PASSWORD;

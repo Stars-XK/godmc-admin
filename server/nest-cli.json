@@ -7,11 +7,14 @@
   "compilerOptions": {
     "webpack": true,
     "tsConfigPath": "tsconfig.build.json",
+    "deleteOutDir": true,
     "assets": [
-      "**/*.yml"
-    ],
-    "watchAssets": true,
-    "deleteOutDir": true
+      "**/*.yml",
+      {
+        "include": "../../libs/shared/src/config/*.yml",
+        "outDir": "./dist/apps/api-gateway"
+      }
+    ]
   },
   "projects": {
     "api-gateway": {
@@ -20,7 +23,14 @@
       "entryFile": "main",
       "sourceRoot": "apps/api-gateway/src",
       "compilerOptions": {
-        "tsConfigPath": "tsconfig.build.json"
+        "tsConfigPath": "tsconfig.build.json",
+        "assets": [
+          "**/*.yml",
+          {
+            "include": "../../../libs/shared/src/config/*.yml",
+            "outDir": "./dist/apps/api-gateway"
+          }
+        ]
       }
     },
     "micro-auth": {
@@ -29,7 +39,14 @@
       "entryFile": "main",
       "sourceRoot": "apps/micro-auth/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/micro-auth/tsconfig.app.json"
+        "tsConfigPath": "apps/micro-auth/tsconfig.app.json",
+        "assets": [
+          "**/*.yml",
+          {
+            "include": "../../../libs/shared/src/config/*.yml",
+            "outDir": "./dist/apps/micro-auth"
+          }
+        ]
       }
     },
     "micro-system": {
@@ -38,7 +55,14 @@
       "entryFile": "main",
       "sourceRoot": "apps/micro-system/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/micro-system/tsconfig.app.json"
+        "tsConfigPath": "apps/micro-system/tsconfig.app.json",
+        "assets": [
+          "**/*.yml",
+          {
+            "include": "../../../libs/shared/src/config/*.yml",
+            "outDir": "./dist/apps/micro-system"
+          }
+        ]
       }
     },
     "micro-monitor": {
@@ -47,7 +71,14 @@
       "entryFile": "main",
       "sourceRoot": "apps/micro-monitor/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/micro-monitor/tsconfig.app.json"
+        "tsConfigPath": "apps/micro-monitor/tsconfig.app.json",
+        "assets": [
+          "**/*.yml",
+          {
+            "include": "../../../libs/shared/src/config/*.yml",
+            "outDir": "./dist/apps/micro-monitor"
+          }
+        ]
       }
     },
     "micro-upload": {
@@ -56,7 +87,14 @@
       "entryFile": "main",
       "sourceRoot": "apps/micro-upload/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/micro-upload/tsconfig.app.json"
+        "tsConfigPath": "apps/micro-upload/tsconfig.app.json",
+        "assets": [
+          "**/*.yml",
+          {
+            "include": "../../../libs/shared/src/config/*.yml",
+            "outDir": "./dist/apps/micro-upload"
+          }
+        ]
       }
     },
     "micro-tools": {
@@ -65,7 +103,14 @@
       "entryFile": "main",
       "sourceRoot": "apps/micro-tools/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/micro-tools/tsconfig.app.json"
+        "tsConfigPath": "apps/micro-tools/tsconfig.app.json",
+        "assets": [
+          "**/*.yml",
+          {
+            "include": "../../../libs/shared/src/config/*.yml",
+            "outDir": "./dist/apps/micro-tools"
+          }
+        ]
       }
     }
   }
