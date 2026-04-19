@@ -30,4 +30,9 @@ export class MicroAuthController {
   captchaImage() {
     return this.microAuthService.captchaImage();
   }
+
+  @MessagePattern('validateToken')
+  validateToken(@Payload() token: string) {
+    return this.microAuthService.validateToken(token);
+  }
 }

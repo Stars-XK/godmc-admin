@@ -7,7 +7,6 @@ import { SharedModule } from '@app/shared';
 
 import { MicroAuthController } from './micro-auth.controller';
 import { MicroAuthService } from './micro-auth.service';
-import { AuthModule } from './auth/auth.module';
 
 import {
   UserEntity,
@@ -76,7 +75,6 @@ import {
       inject: [ConfigService],
     }),
     SharedModule,
-    AuthModule,
   ],
   controllers: [MicroAuthController],
   providers: [MicroAuthService],

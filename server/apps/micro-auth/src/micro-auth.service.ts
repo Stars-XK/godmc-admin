@@ -224,6 +224,19 @@ export class MicroAuthService {
     }
   }
 
+  async validateToken(token: string) {
+    try {
+      if (!token) return null;
+      const payload = this.jwtService.verify(token.replace('Bearer ', ''));
+      if (!payload || !payload.uuid) return null;
+      const user = await this.redisService.get(`${CacheEnum.LOGIN_TOKEN_KEY}${payload.uuid}`);
+      if (!user) return null;
+      return user;
+    } catch (error) {
+      return null;
+    }
+  }
+
   private async getConfigValue(configKey: string) {
     // 优先从缓存获取
     const cacheValue = await this.redisService.get(`${CacheEnum.SYS_CONFIG_KEY}${configKey}`);
