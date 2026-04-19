@@ -1,4 +1,4 @@
-import { IsDateString, IsNumber, IsNumberString, IsObject, IsOptional, IsString, IsEnum } from 'class-validator';
+import { IsDateString, IsNumber, IsNumberString, IsObject, IsOptional, IsString, IsEnum, IsJSON, IsPhoneNumber, Min, IsBoolean, MinLength, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { SortRuleEnum } from '@app/common/enum/index';
@@ -58,3 +58,63 @@ export class PagingDto {
   @IsEnum(SortRuleEnum)
   isAsc?: string;
 }
+
+
+
+
+export class LoginDto {
+  @ApiProperty({
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  code?: string;
+
+  @ApiProperty({
+    required: true,
+  })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(10)
+  userName: string;
+
+  @ApiProperty({
+    required: true,
+  })
+  @IsString()
+  @MinLength(5)
+  @MaxLength(20)
+  password: string;
+
+  @ApiProperty({
+    required: true,
+  })
+  @IsOptional()
+  @IsString()
+  uuid?: string;
+}
+
+export class RegisterDto extends LoginDto {}
+import { SysDeptEntity } from '../entities/dept.entity';
+import { SysPostEntity } from '../entities/post.entity';
+import { SysRoleEntity } from '../entities/role.entity';
+import { UserEntity } from '../entities/sys-user.entity';
+
+export type UserType = {
+  browser: string;
+  ipaddr: string;
+  loginLocation: string;
+  loginTime: Date;
+  os: string;
+  permissions: string[];
+  roles: string[];
+  token: string;
+  user: {
+    dept: SysDeptEntity;
+    roles: Array<SysRoleEntity>;
+    posts: Array<SysPostEntity>;
+  } & UserEntity;
+  userId: number;
+  userName: string;
+  deptId: number;
+};

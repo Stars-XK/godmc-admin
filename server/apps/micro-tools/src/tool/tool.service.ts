@@ -15,7 +15,7 @@ import { index as templateIndex } from './template/index';
 import archiver from 'archiver';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { UserDto } from '@app/api-gateway/module/system/user/user.decorator';
+import { UserDto } from '@app/common';
 
 @Injectable()
 export class ToolService {

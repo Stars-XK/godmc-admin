@@ -41,3 +41,4 @@ export * from './utils/decorator';
 export * from './utils/export';
 export * from './utils/index';
 export * from './utils/result';
+export * from './decorators/user.decorator';

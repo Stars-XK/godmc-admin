@@ -1,6 +1,6 @@
 import { isURL } from 'class-validator';
 import * as Lodash from 'lodash';
-import * as UserConstants from '@app/api-gateway/module/system/user/user.constant';
+import * as UserConstants from '@app/common/constant/user.constant';
 
 /**
  * 菜单列表转树形结构

@@ -9,7 +9,9 @@ import { AxiosService } from '@app/shared';
 import { QueryOperLogDto } from './dto/operLog.dto';
 import { ExportTable } from '@app/common/utils/export';
 import { Response } from 'express';
-import { DictService } from '@app/api-gateway/module/system/dict/dict.service';
+import { SysDictDataEntity } from '@app/common';
+import { CacheEnum } from '@app/common/enum/index';
+import { RedisService } from '@app/shared';
 import { isEmpty } from '@app/common/utils';
 
 @Injectable({ scope: Scope.REQUEST })
@@ -19,9 +21,10 @@ export class OperlogService {
     private readonly request: Request & { user: any },
     @InjectRepository(SysOperlogEntity)
     private readonly operLogEntityRep: Repository<SysOperlogEntity>,
+    @InjectRepository(SysDictDataEntity)
+    private readonly dictDataRep: Repository<SysDictDataEntity>,
     private readonly axiosService: AxiosService,
-    @Inject(DictService)
-    private readonly dictService: DictService,
+    private readonly redisService: RedisService,
   ) {}
 
   async findAll(query: QueryOperLogDto) {
@@ -181,9 +184,22 @@ export class OperlogService {
     delete body.pageNum;
     delete body.pageSize;
     const list = await this.findAll(body);
-    const { data: operatorTypeDict } = await this.dictService.findOneDataType('sys_oper_type');
+    
+    let operatorTypeDict = await this.redisService.get(`${CacheEnum.SYS_DICT_KEY}sys_oper_type`);
+    if (!operatorTypeDict) {
+      operatorTypeDict = await this.dictDataRep.find({
+        where: {
+          dictType: 'sys_oper_type',
+          delFlag: '0',
+        },
+      });
+      if (operatorTypeDict) {
+        await this.redisService.set(`${CacheEnum.SYS_DICT_KEY}sys_oper_type`, operatorTypeDict);
+      }
+    }
+
     const operatorTypeDictMap = {};
-    operatorTypeDict.forEach((item) => {
+    operatorTypeDict?.forEach((item) => {
       operatorTypeDictMap[item.dictValue] = item.dictLabel;
     });
     const options = {

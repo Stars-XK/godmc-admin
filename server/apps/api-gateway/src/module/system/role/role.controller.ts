@@ -7,7 +7,7 @@ import { AllocatedListDto } from '../user/dto/index';
 import { RequirePermission } from '@app/common/decorators/require-premission.decorator';
 
 import { UserService } from '../user/user.service';
-import { User, UserDto } from '@app/api-gateway/module/system/user/user.decorator';
+import { User, UserDto } from '@app/common';
 
 @ApiTags('角色管理')
 @Controller('system/role')
