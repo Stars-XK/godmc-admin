@@ -49,6 +49,24 @@
       "compilerOptions": {
         "tsConfigPath": "apps/micro-monitor/tsconfig.app.json"
       }
+    },
+    "micro-upload": {
+      "type": "application",
+      "root": "apps/micro-upload",
+      "entryFile": "main",
+      "sourceRoot": "apps/micro-upload/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/micro-upload/tsconfig.app.json"
+      }
+    },
+    "micro-tools": {
+      "type": "application",
+      "root": "apps/micro-tools",
+      "entryFile": "main",
+      "sourceRoot": "apps/micro-tools/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/micro-tools/tsconfig.app.json"
+      }
     }
   }
 }

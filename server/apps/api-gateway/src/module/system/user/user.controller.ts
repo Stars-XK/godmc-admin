@@ -1,16 +1,17 @@
-import { Controller, Get, Post, Body, Put, Param, Query, Res, Delete, Request, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param, Query, Res, Delete, Request, UploadedFile, UseInterceptors, Inject } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBody, ApiConsumes, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { Response } from 'express';
 import { RequirePermission } from '@app/common/decorators/require-premission.decorator';
 import { RequireRole } from '@app/common/decorators/require-role.decorator';
-import { UploadService } from '@app/api-gateway/module/upload/upload.service';
 import { CreateUserDto, UpdateUserDto, ListUserDto, ChangeStatusDto, ResetPwdDto, UpdateProfileDto, UpdatePwdDto } from './dto/index';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ResultData } from '@app/common/utils/result';
 import { User, UserDto, UserTool, UserToolType } from '@app/api-gateway/module/system/user/user.decorator';
 import { BusinessType } from '@app/common/constant/business.constant';
 import { Operlog } from '@app/common/decorators/operlog.decorator';
+import { ClientProxy } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
 
 @ApiTags('用户管理')
 @Controller('system/user')
@@ -18,7 +19,7 @@ import { Operlog } from '@app/common/decorators/operlog.decorator';
 export class UserController {
   constructor(
     private readonly userService: UserService,
-    private readonly uploadService: UploadService,
+    @Inject('MICRO_UPLOAD') private readonly uploadClient: ClientProxy,
   ) {}
 
   @ApiOperation({
@@ -47,8 +48,8 @@ export class UserController {
   @Post('/profile/avatar')
   @UseInterceptors(FileInterceptor('avatarfile'))
   async avatar(@UploadedFile() avatarfile: Express.Multer.File, @User() user: UserDto) {
-    const res = await this.uploadService.singleFileUpload(avatarfile);
-    return ResultData.ok({ imgUrl: res.fileName });
+    const res = await lastValueFrom(this.uploadClient.send('singleFileUpload', { file: avatarfile }));
+    return ResultData.ok({ imgUrl: res.data.fileName });
   }
 
   @ApiOperation({

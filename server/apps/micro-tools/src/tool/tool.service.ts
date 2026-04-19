@@ -227,24 +227,8 @@ export class ToolService {
   /**
    * 生成代码压缩包
    * @param table
-   * @param res
    */
-  async batchGenCode(table: TableName, res) {
-    const zipFilePath = path.posix.join(__dirname, 'temp.zip');
-    const output = fs.createWriteStream(zipFilePath);
-    const archive = archiver('zip', {
-      zlib: { level: 9 },
-    });
-    output.on('close', async () => {
-      res.download(zipFilePath, 'download.zip', async (err) => {
-        if (!err) await fs.remove(zipFilePath);
-        else res.status(500).send('Error downloading file');
-      });
-    });
-
-    archive.on('error', (err) => {
-      throw err;
-    });
+  async batchGenCode(table: TableName) {
     const tableNamesList = table.tableNames.split(',');
     const tableList = await Promise.all(
       tableNamesList.map(async (item) => {
@@ -255,7 +239,18 @@ export class ToolService {
       }),
     );
 
-    archive.pipe(output);
+    const archive = archiver('zip', {
+      zlib: { level: 9 },
+    });
+
+    const buffers: Buffer[] = [];
+    archive.on('data', (data) => buffers.push(data));
+
+    const end = new Promise<Buffer>((resolve, reject) => {
+      archive.on('end', () => resolve(Buffer.concat(buffers)));
+      archive.on('error', reject);
+    });
+
     for (const item of tableList) {
       const list = templateIndex(item);
       const templates = [
@@ -275,7 +270,9 @@ export class ToolService {
       }
     }
 
-    await archive.finalize();
+    archive.finalize();
+    const zipBuffer = await end;
+    return zipBuffer;
   }
   /**
    *
