@@ -6,7 +6,7 @@ import { ResultData } from '@app/common/utils/result';
 import { ExportTable } from '@app/common/utils/export';
 import { CreateConfigDto, UpdateConfigDto, ListConfigDto } from './dto/index';
 import { SysConfigEntity } from '@app/common';
-import { RedisService } from '@app/common/shared/redis/redis.service';
+import { RedisService } from '@app/shared';
 import { CacheEnum } from '@app/common/enum/index';
 import { Cacheable, CacheEvict } from '@app/common/decorators/redis.decorator';
 

@@ -1,7 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
-import configuration from '@app/common/config/index';
+import { configuration } from '@app/shared';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from '@app/common/guards/auth.guard';
 import { PermissionGuard } from '@app/common/guards/permission.guard';
@@ -10,7 +10,7 @@ import { RolesGuard } from '@app/common/guards/roles.guard';
 import { MainModule } from './module/main/main.module';
 import { UploadModule } from './module/upload/upload.module';
 import { SystemModule } from './module/system/system.module';
-import { CommonModule } from '@app/common/shared/common.module';
+import { SharedModule } from '@app/shared';
 import { MonitorModule } from './module/monitor/monitor.module';
 import { MicroservicesModule } from './microservices.module';
 
@@ -43,7 +43,7 @@ import { MicroservicesModule } from './microservices.module';
     MainModule,
     UploadModule,
 
-    CommonModule,
+    SharedModule,
     SystemModule,
     MonitorModule,
   ],

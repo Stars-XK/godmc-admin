@@ -3,14 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, Not } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { RedisService } from '@app/common/shared/redis/redis.service';
+import { RedisService } from '@app/shared';
 import * as bcrypt from 'bcryptjs';
 import { GetNowDate, GenerateUUID, Uniq } from '@app/common/utils/index';
 import { createMath } from '@app/common/utils/captcha';
 import { ResultData, SUCCESS_CODE } from '@app/common/utils/result';
 import { CacheEnum, DelFlagEnum, StatusEnum } from '@app/common/enum/index';
 import { LOGIN_TOKEN_EXPIRESIN, SYS_USER_TYPE } from '@app/common/constant/index';
-import { AxiosService } from '@app/common/shared/axios/axios.service';
+import { AxiosService } from '@app/shared';
 
 import {
   UserEntity,

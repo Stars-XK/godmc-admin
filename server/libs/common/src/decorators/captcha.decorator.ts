@@ -3,7 +3,7 @@ import { CacheEnum } from '@app/common/enum';
 import { paramsKeyGetObj } from '@app/common/utils/decorator';
 import { ResultData } from '@app/common/utils/result';
 import { ConfigService } from '@app/api-gateway/module/system/config/config.service';
-import { RedisService } from '@app/common/shared/redis/redis.service';
+import { RedisService } from '@app/shared';
 
 export function Captcha(CACHE_KEY: string) {
   const injectRedis = Inject(RedisService);

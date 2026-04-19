@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ResultData } from '@app/common/utils/result';
-import { RedisService } from '@app/common/shared/redis/redis.service';
+import { RedisService } from '@app/shared';
 import { CacheEnum } from '@app/common/enum/index';
 import { Paginate } from '@app/common/utils/index';
 

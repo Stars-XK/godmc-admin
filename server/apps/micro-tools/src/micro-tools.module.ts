@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
-import configuration from '@app/common/config/index';
-import { CommonModule } from '@app/common/shared/common.module';
+import { configuration } from '@app/shared';
+import { SharedModule } from '@app/shared';
 import { ToolModule } from './tool/tool.module';
 
 @Module({
@@ -26,7 +26,7 @@ import { ToolModule } from './tool/tool.module';
         } as TypeOrmModuleOptions;
       },
     }),
-    CommonModule,
+    SharedModule,
     ToolModule,
   ],
 })

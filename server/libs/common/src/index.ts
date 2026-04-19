@@ -1,4 +1,3 @@
-export * from './config/index';
 export * from './constant/index';
 export * from './decorators/apiDataResponse.decorator';
 export * from './decorators/captcha.decorator';
@@ -37,11 +36,6 @@ export * from './guards/auth.guard';
 export * from './guards/permission.guard';
 export * from './guards/roles.guard';
 export * from './interceptor/operlog.interceptor';
-export * from './shared/axios/axios.module';
-export * from './shared/axios/axios.service';
-export * from './shared/redis/redis.module';
-export * from './shared/redis/redis.service';
-export * from './shared/common.module';
 export * from './utils/captcha';
 export * from './utils/decorator';
 export * from './utils/export';

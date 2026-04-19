@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
-import configuration from '@app/common/config/index';
-import { CommonModule } from '@app/common/shared/common.module';
+import { configuration } from '@app/shared';
+import { SharedModule } from '@app/shared';
 
 import { MicroAuthController } from './micro-auth.controller';
 import { MicroAuthService } from './micro-auth.service';
@@ -75,7 +75,7 @@ import {
       }),
       inject: [ConfigService],
     }),
-    CommonModule,
+    SharedModule,
     AuthModule,
   ],
   controllers: [MicroAuthController],

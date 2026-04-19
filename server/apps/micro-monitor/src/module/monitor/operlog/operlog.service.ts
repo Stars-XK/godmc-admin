@@ -5,7 +5,7 @@ import { SysOperlogEntity } from '@app/common';
 import { REQUEST } from '@nestjs/core';
 import { Request } from 'express';
 import { ResultData } from '@app/common/utils/result';
-import { AxiosService } from '@app/common/shared/axios/axios.service';
+import { AxiosService } from '@app/shared';
 import { QueryOperLogDto } from './dto/operLog.dto';
 import { ExportTable } from '@app/common/utils/export';
 import { Response } from 'express';

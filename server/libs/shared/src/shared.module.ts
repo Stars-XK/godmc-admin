@@ -26,4 +26,4 @@ import { RedisClientOptions } from '@songkeys/nestjs-redis';
     AxiosModule,
   ],
 })
-export class CommonModule {}
+export class SharedModule {}

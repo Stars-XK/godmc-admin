@@ -8,7 +8,7 @@ import { ExportTable } from '@app/common/utils/export';
 import { SysDictTypeEntity } from '@app/common';
 import { SysDictDataEntity } from '@app/common';
 import { CreateDictTypeDto, UpdateDictTypeDto, ListDictType, CreateDictDataDto, UpdateDictDataDto, ListDictData } from './dto/index';
-import { RedisService } from '@app/common/shared/redis/redis.service';
+import { RedisService } from '@app/shared';
 import { ClientProxy } from "@nestjs/microservices";
 import { firstValueFrom } from "rxjs";
 

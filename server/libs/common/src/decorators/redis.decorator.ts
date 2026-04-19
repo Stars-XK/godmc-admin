@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { RedisService } from '@app/common/shared/redis/redis.service';
+import { RedisService } from '@app/shared';
 import { paramsKeyFormat } from '../utils/decorator';
 
 export function CacheEvict(CACHE_NAME: string, CACHE_KEY: string) {

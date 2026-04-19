@@ -5,7 +5,7 @@ import { RegisterDto, LoginDto } from './dto/index';
 import { createMath } from '@app/common/utils/captcha';
 import { ResultData } from '@app/common/utils/result';
 import { GenerateUUID } from '@app/common/utils/index';
-import { RedisService } from '@app/common/shared/redis/redis.service';
+import { RedisService } from '@app/shared';
 import { CacheEnum } from '@app/common/enum/index';
 import { ConfigService } from '@app/api-gateway/module/system/config/config.service';
 import { ClientInfo, ClientInfoDto } from '@app/common/decorators/common.decorator';
