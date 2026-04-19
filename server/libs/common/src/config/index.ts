@@ -13,5 +13,14 @@ const env = process.env.NODE_ENV;
 console.log(env);
 
 export default () => {
-  return yaml.load(readFileSync(join(__dirname, `./${configFileNameObj[env]}.yml`), 'utf8')) as Record<string, any>;
+  const config = yaml.load(readFileSync(join(__dirname, `./${configFileNameObj[env]}.yml`), 'utf8')) as Record<string, any>;
+  
+  if (process.env.MYSQL_HOST) config.db.mysql.host = process.env.MYSQL_HOST;
+  if (process.env.MYSQL_PASSWORD) config.db.mysql.password = process.env.MYSQL_PASSWORD;
+  if (process.env.MYSQL_DATABASE) config.db.mysql.database = process.env.MYSQL_DATABASE;
+  
+  if (process.env.REDIS_HOST) config.redis.host = process.env.REDIS_HOST;
+  if (process.env.REDIS_PASSWORD) config.redis.password = process.env.REDIS_PASSWORD;
+  
+  return config;
 };

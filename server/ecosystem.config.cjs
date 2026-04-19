@@ -1,23 +1,34 @@
 module.exports = {
   apps: [
     {
-      name: 'nest_admin_server',
-      namespace: 'nest_admin_server',
-      max_memory_restart: '1024M',
-      user: 'www',
-      exec_mode: 'fork',
-      cwd: '/www/wwwroot/nest-admin-server',
-      script: 'dist/main.js',
-      args: '',
-      watch: false,
-      out_file: '/www/wwwlogs/pm2/nest_admin_server/out.log',
-      error_file: '/www/wwwlogs/pm2/nest_admin_server/err.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss',
-      merge_logs: true,
-      env: {
-        // 环境变量
-        NODE_ENV: 'production',
-      },
+      name: 'api_gateway',
+      script: 'dist/apps/api-gateway/main.js',
+      env: { NODE_ENV: 'production' },
+    },
+    {
+      name: 'micro_auth',
+      script: 'dist/apps/micro-auth/main.js',
+      env: { NODE_ENV: 'production' },
+    },
+    {
+      name: 'micro_system',
+      script: 'dist/apps/micro-system/main.js',
+      env: { NODE_ENV: 'production' },
+    },
+    {
+      name: 'micro_monitor',
+      script: 'dist/apps/micro-monitor/main.js',
+      env: { NODE_ENV: 'production' },
+    },
+    {
+      name: 'micro_upload',
+      script: 'dist/apps/micro-upload/main.js',
+      env: { NODE_ENV: 'production' },
+    },
+    {
+      name: 'micro_tools',
+      script: 'dist/apps/micro-tools/main.js',
+      env: { NODE_ENV: 'production' },
     },
   ],
 };

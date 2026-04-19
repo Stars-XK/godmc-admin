@@ -1,0 +1,107 @@
+version: '3.8'
+
+x-common-env: &common-env
+  NODE_ENV: production
+  MICRO_AUTH_HOST: micro-auth
+  MICRO_SYSTEM_HOST: micro-system
+  MICRO_MONITOR_HOST: micro-monitor
+  MICRO_UPLOAD_HOST: micro-upload
+  MICRO_TOOLS_HOST: micro-tools
+  REDIS_HOST: redis
+  REDIS_PASSWORD: ''
+  MYSQL_HOST: mysql
+  MYSQL_PASSWORD: root
+  MYSQL_DATABASE: godmc_admin
+
+services:
+  api-gateway:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    command: node dist/apps/api-gateway/main.js
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+      - mysql
+    environment:
+      <<: *common-env
+
+  micro-auth:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    command: node dist/apps/micro-auth/main.js
+    depends_on:
+      - redis
+      - mysql
+    environment:
+      <<: *common-env
+
+  micro-system:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    command: node dist/apps/micro-system/main.js
+    depends_on:
+      - redis
+      - mysql
+    environment:
+      <<: *common-env
+
+  micro-monitor:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    command: node dist/apps/micro-monitor/main.js
+    depends_on:
+      - redis
+      - mysql
+    environment:
+      <<: *common-env
+
+  micro-upload:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    command: node dist/apps/micro-upload/main.js
+    depends_on:
+      - redis
+      - mysql
+    environment:
+      <<: *common-env
+
+  micro-tools:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    command: node dist/apps/micro-tools/main.js
+    depends_on:
+      - redis
+      - mysql
+    environment:
+      <<: *common-env
+
+  admin-frontend:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - api-gateway
+
+  redis:
+    image: redis:6.2-alpine
+    ports:
+      - "6379:6379"
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: godmc_admin
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./server/db/init.sql:/docker-entrypoint-initdb.d/init.sql
