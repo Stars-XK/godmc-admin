@@ -69,7 +69,17 @@
 // dropdown
 .el-dropdown-menu {
   a {
-    display: block
+    display: block;
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+.el-dropdown-menu__item {
+  color: var(--el-text-color-regular);
+  &:hover {
+    color: var(--el-color-primary);
+    background-color: var(--el-color-primary-light-9);
   }
 }
 
@@ -177,7 +187,30 @@
 .el-tag {
   border-radius: 6px !important;
   font-weight: 500;
-  border: 1px solid var(--el-color-primary-light-7) !important;
+}
+
+/* Fix Plain Buttons (like "新增", "修改") */
+.el-button.is-plain {
+  &.el-button--primary {
+    background-color: var(--el-color-primary-light-9) !important;
+    color: var(--el-color-primary) !important;
+    border-color: var(--el-color-primary-light-5) !important;
+  }
+  &.el-button--success {
+    background-color: #ECFDF5 !important;
+    color: var(--el-color-success) !important;
+    border-color: #A7F3D0 !important;
+  }
+  &.el-button--warning {
+    background-color: #FFFBEB !important;
+    color: var(--el-color-warning) !important;
+    border-color: #FDE68A !important;
+  }
+  &.el-button--danger {
+    background-color: #FEF2F2 !important;
+    color: var(--el-color-danger) !important;
+    border-color: #FECDD3 !important;
+  }
 }
 
 /* Pagination */

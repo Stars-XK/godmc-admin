@@ -241,6 +241,15 @@ body {
   padding: 20px;
 }
 
+/* Global AppMain Layout Fixes */
+.fixed-header + .app-main {
+  padding-top: 60px;
+}
+
+.hasTagsView .fixed-header + .app-main {
+  padding-top: 94px;
+}
+
 /* Global Transition Fade */
 .fade-transform-enter-active,
 .fade-transform-leave-active {

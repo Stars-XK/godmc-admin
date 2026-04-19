@@ -260,11 +260,15 @@
     }
 
     // Active state styling
-    .theme-dark .is-active > .el-sub-menu__title,
     .theme-dark .el-menu-item.is-active {
       background-color: var(--el-color-primary) !important;
       color: #ffffff !important;
       box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+      font-weight: 500;
+    }
+    
+    .theme-dark .is-active > .el-sub-menu__title {
+      color: #ffffff !important;
       font-weight: 500;
     }
 
@@ -273,6 +277,12 @@
     .theme-dark .el-sub-menu__title:hover {
       background-color: rgba(255, 255, 255, 0.08) !important;
       color: #ffffff !important;
+    }
+
+    // Default text color for dark theme
+    .theme-dark .el-menu-item,
+    .theme-dark .el-sub-menu__title {
+      color: #94A3B8;
     }
 
     .svg-icon {
@@ -286,7 +296,7 @@
       width: 64px !important;
     }
     .main-container {
-      margin-left: 64px !important;
+      margin-left: 64px;
     }
     .el-menu-item, .el-sub-menu__title {
       margin: 4px 8px !important;
