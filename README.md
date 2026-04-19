@@ -52,10 +52,11 @@ cd server
 npm install
 
 # 一键启动所有后端微服务及网关（推荐）
-# 此命令使用 concurrently，会在同一终端用不同颜色区分不同服务的日志输出
+# 🚀 跨平台支持：Windows、macOS、Linux 均可完美运行！
+# 🎨 此命令使用 concurrently，会在同一终端用不同颜色区分不同服务的日志输出，方便调试
 npm run start:all
 
-# 或者可以分别启动（不推荐）
+# 或者可以分别打开多个终端单独启动（不推荐）
 # npm run start:dev api-gateway
 # npm run start:dev micro-auth
 # npm run start:dev micro-system
