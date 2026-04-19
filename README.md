@@ -51,15 +51,17 @@ docker-compose up -d --build
 cd server
 npm install
 
-# 启动 API 网关
-npm run start:dev api-gateway
+# 一键启动所有后端微服务及网关（推荐）
+# 此命令使用 concurrently，会在同一终端用不同颜色区分不同服务的日志输出
+npm run start:all
 
-# 打开新的终端，分别启动各个微服务
-npm run start:dev micro-auth
-npm run start:dev micro-system
-npm run start:dev micro-monitor
-npm run start:dev micro-upload
-npm run start:dev micro-tools
+# 或者可以分别启动（不推荐）
+# npm run start:dev api-gateway
+# npm run start:dev micro-auth
+# npm run start:dev micro-system
+# npm run start:dev micro-monitor
+# npm run start:dev micro-upload
+# npm run start:dev micro-tools
 ```
 
 **4. 启动前端**
