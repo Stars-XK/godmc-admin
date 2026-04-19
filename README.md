@@ -13,7 +13,8 @@
 - **`micro-monitor`** (端口: 3003): 监控与调度微服务。负责操作日志、登录日志、定时任务（`@Task`引擎）、缓存监控、在线用户及服务监控。
 - **`micro-upload`** (端口: 3004): 上传微服务。处理文件及图片上传。
 - **`micro-tools`** (端口: 3005): 工具微服务。提供代码生成器与模板处理引擎。
-- **`@app/common`**: 公共依赖库。包含全局配置 (Config)、工具类 (Utils)、装饰器 (Decorators)、数据库实体 (Entities)、拦截器与 Redis 缓存服务。
+- **`@app/common`**: 公共业务依赖库。包含工具类 (Utils)、装饰器 (Decorators)、数据库实体 (Entities) 和拦截器等。
+- **`@app/shared`**: 公共基础设施库。包含全局配置模块 (Config)、Redis 缓存服务集成以及统一的 Axios 请求服务。
 
 ### 技术栈
 - **前端**: Vue 3 + Vite + Element Plus (基于若依/RuoYi体系)
@@ -44,7 +45,7 @@ docker-compose up -d --build
 - Redis 
 
 **2. 配置数据库与 Redis**
-修改 `server/libs/common/src/config/dev.yml` 文件中的数据库与 Redis 连接信息。
+修改 `server/libs/shared/src/config/dev.yml` 文件中的数据库与 Redis 连接信息。
 
 **3. 启动服务端**
 ```bash
@@ -107,7 +108,8 @@ pm2 start ecosystem.config.cjs
 │   │   ├── micro-tools/            # 工具微服务
 │   │   └── micro-upload/           # 上传微服务
 │   ├── libs/                       # 共享依赖库
-│   │   └── common/                 # @app/common (实体、配置、Redis等)
+│   │   ├── common/                 # @app/common (实体、工具类等)
+│   │   └── shared/                 # @app/shared (配置、Redis等基础设施)
 │   ├── db/                         # 数据库初始化 SQL
 │   ├── ecosystem.config.cjs        # PM2 部署配置
 │   ├── nest-cli.json               # Nest CLI 工作区配置
