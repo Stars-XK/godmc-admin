@@ -12,10 +12,12 @@ import { UploadModule } from './module/upload/upload.module';
 import { SystemModule } from './module/system/system.module';
 import { CommonModule } from '@app/common/shared/common.module';
 import { MonitorModule } from './module/monitor/monitor.module';
+import { MicroservicesModule } from './microservices.module';
 
 @Global()
 @Module({
   imports: [
+    MicroservicesModule,
     // 配置模块
     ConfigModule.forRoot({
       cache: true,
