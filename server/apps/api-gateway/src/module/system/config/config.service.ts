@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { Response } from 'express';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -9,63 +9,28 @@ import { SysConfigEntity } from '@app/common';
 import { RedisService } from '@app/common/shared/redis/redis.service';
 import { CacheEnum } from '@app/common/enum/index';
 import { Cacheable, CacheEvict } from '@app/common/decorators/redis.decorator';
+import { ClientProxy } from "@nestjs/microservices";
+import { firstValueFrom } from "rxjs";
 
 @Injectable()
 export class ConfigService {
-  constructor(
-    @InjectRepository(SysConfigEntity)
-    private readonly sysConfigEntityRep: Repository<SysConfigEntity>,
-    private readonly redisService: RedisService,
-  ) {}
+    constructor(@Inject('MICRO_SYSTEM') private readonly client: ClientProxy) {
+    }
+
   async create(createConfigDto: CreateConfigDto) {
-    await this.sysConfigEntityRep.save(createConfigDto);
-    return ResultData.ok();
+      return firstValueFrom(this.client.send('system.config.create', createConfigDto));
   }
 
   async findAll(query: ListConfigDto) {
-    const entity = this.sysConfigEntityRep.createQueryBuilder('entity');
-    entity.where('entity.delFlag = :delFlag', { delFlag: '0' });
-
-    if (query.configName) {
-      entity.andWhere(`entity.configName LIKE "%${query.configName}%"`);
-    }
-
-    if (query.configKey) {
-      entity.andWhere(`entity.configKey LIKE "%${query.configKey}%"`);
-    }
-
-    if (query.configType) {
-      entity.andWhere('entity.configType = :configType', { configType: query.configType });
-    }
-
-    if (query.params?.beginTime && query.params?.endTime) {
-      entity.andWhere('entity.createTime BETWEEN :start AND :end', { start: query.params.beginTime, end: query.params.endTime });
-    }
-
-    if (query.pageSize && query.pageNum) {
-      entity.skip(query.pageSize * (query.pageNum - 1)).take(query.pageSize);
-    }
-
-    const [list, total] = await entity.getManyAndCount();
-
-    return ResultData.ok({
-      list,
-      total,
-    });
+      return firstValueFrom(this.client.send('system.config.findAll', query));
   }
 
   async findOne(configId: number) {
-    const data = await this.sysConfigEntityRep.findOne({
-      where: {
-        configId: configId,
-      },
-    });
-    return ResultData.ok(data);
+      return firstValueFrom(this.client.send('system.config.findOne', configId));
   }
 
   async findOneByConfigKey(configKey: string) {
-    const data = await this.getConfigValue(configKey);
-    return ResultData.ok(data);
+      return firstValueFrom(this.client.send('system.config.findOneByConfigKey', configKey));
   }
 
   /**
@@ -76,40 +41,16 @@ export class ConfigService {
    */
   @Cacheable(CacheEnum.SYS_CONFIG_KEY, '{configKey}')
   async getConfigValue(configKey: string) {
-    const data = await this.sysConfigEntityRep.findOne({ where: { configKey: configKey } });
-    return data.configValue;
+      return firstValueFrom(this.client.send('system.config.getConfigValue', configKey));
   }
 
   @CacheEvict(CacheEnum.SYS_CONFIG_KEY, '{updateConfigDto.configKey}')
   async update(updateConfigDto: UpdateConfigDto) {
-    await this.sysConfigEntityRep.update(
-      {
-        configId: updateConfigDto.configId,
-      },
-      updateConfigDto,
-    );
-    return ResultData.ok();
+      return firstValueFrom(this.client.send('system.config.update', updateConfigDto));
   }
 
   async remove(configIds: number[]) {
-    const list = await this.sysConfigEntityRep.find({
-      where: {
-        configId: In(configIds),
-        delFlag: '0',
-      },
-      select: ['configType', 'configKey'],
-    });
-    const item = list.find((item) => item.configType === 'Y');
-    if (item) {
-      return ResultData.fail(500, `内置参数【${item.configKey}】不能删除`);
-    }
-    const data = await this.sysConfigEntityRep.update(
-      { configId: In(configIds) },
-      {
-        delFlag: '1',
-      },
-    );
-    return ResultData.ok(data);
+      return firstValueFrom(this.client.send('system.config.remove', configIds));
   }
 
   /**
@@ -145,9 +86,7 @@ export class ConfigService {
    * @returns
    */
   async resetConfigCache() {
-    await this.clearConfigCache();
-    await this.loadingConfigCache();
-    return ResultData.ok();
+      return firstValueFrom(this.client.send('system.config.resetConfigCache', {}));
   }
 
   /**
@@ -155,20 +94,15 @@ export class ConfigService {
    * @returns
    */
   @CacheEvict(CacheEnum.SYS_CONFIG_KEY, '*')
-  async clearConfigCache() {}
+  async clearConfigCache() {
+      return firstValueFrom(this.client.send('system.config.clearConfigCache', {}));
+  }
 
   /**
    * 加载系统配置缓存
    * @returns
    */
   async loadingConfigCache() {
-    const entity = this.sysConfigEntityRep.createQueryBuilder('entity');
-    entity.where('entity.delFlag = :delFlag', { delFlag: '0' });
-    const list = await entity.getMany();
-    list.forEach((item) => {
-      if (item.configKey) {
-        this.redisService.set(`${CacheEnum.SYS_CONFIG_KEY}${item.configKey}`, item.configValue);
-      }
-    });
+      return firstValueFrom(this.client.send('system.config.loadingConfigCache', {}));
   }
 }

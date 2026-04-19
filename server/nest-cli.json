@@ -31,6 +31,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/micro-auth/tsconfig.app.json"
       }
+    },
+    "micro-system": {
+      "type": "application",
+      "root": "apps/micro-system",
+      "entryFile": "main",
+      "sourceRoot": "apps/micro-system/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/micro-system/tsconfig.app.json"
+      }
     }
   }
 }

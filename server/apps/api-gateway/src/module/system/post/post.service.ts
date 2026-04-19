@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
@@ -6,69 +6,32 @@ import { ExportTable } from '@app/common/utils/export';
 import { SysPostEntity } from '@app/common';
 import { Response } from 'express';
 import { CreatePostDto, UpdatePostDto, ListPostDto } from './dto/index';
+import { ClientProxy } from "@nestjs/microservices";
+import { firstValueFrom } from "rxjs";
 
 @Injectable()
 export class PostService {
-  constructor(
-    @InjectRepository(SysPostEntity)
-    private readonly sysPostEntityRep: Repository<SysPostEntity>,
-  ) {}
+    constructor(@Inject('MICRO_SYSTEM') private readonly client: ClientProxy) {
+    }
+
   async create(createPostDto: CreatePostDto) {
-    await this.sysPostEntityRep.save(createPostDto);
-    return ResultData.ok();
+      return firstValueFrom(this.client.send('system.post.create', createPostDto));
   }
 
   async findAll(query: ListPostDto) {
-    const entity = this.sysPostEntityRep.createQueryBuilder('entity');
-    entity.where('entity.delFlag = :delFlag', { delFlag: '0' });
-
-    if (query.postName) {
-      entity.andWhere(`entity.postName LIKE "%${query.postName}%"`);
-    }
-
-    if (query.postCode) {
-      entity.andWhere(`entity.postCode LIKE "%${query.postCode}%"`);
-    }
-
-    if (query.status) {
-      entity.andWhere('entity.status = :status', { status: query.status });
-    }
-
-    if (query.pageSize && query.pageNum) {
-      entity.skip(query.pageSize * (query.pageNum - 1)).take(query.pageSize);
-    }
-
-    const [list, total] = await entity.getManyAndCount();
-
-    return ResultData.ok({
-      list,
-      total,
-    });
+      return firstValueFrom(this.client.send('system.post.findAll', query));
   }
 
   async findOne(postId: number) {
-    const res = await this.sysPostEntityRep.findOne({
-      where: {
-        postId: postId,
-        delFlag: '0',
-      },
-    });
-    return ResultData.ok(res);
+      return firstValueFrom(this.client.send('system.post.findOne', postId));
   }
 
   async update(updatePostDto: UpdatePostDto) {
-    const res = await this.sysPostEntityRep.update({ postId: updatePostDto.postId }, updatePostDto);
-    return ResultData.ok(res);
+      return firstValueFrom(this.client.send('system.post.update', updatePostDto));
   }
 
   async remove(postIds: string[]) {
-    const data = await this.sysPostEntityRep.update(
-      { postId: In(postIds) },
-      {
-        delFlag: '1',
-      },
-    );
-    return ResultData.ok(data);
+      return firstValueFrom(this.client.send('system.post.remove', postIds));
   }
 
   /**

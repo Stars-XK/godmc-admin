@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Response } from 'express';
 import { Repository, In } from 'typeorm';
@@ -9,121 +9,53 @@ import { SysDictTypeEntity } from '@app/common';
 import { SysDictDataEntity } from '@app/common';
 import { CreateDictTypeDto, UpdateDictTypeDto, ListDictType, CreateDictDataDto, UpdateDictDataDto, ListDictData } from './dto/index';
 import { RedisService } from '@app/common/shared/redis/redis.service';
+import { ClientProxy } from "@nestjs/microservices";
+import { firstValueFrom } from "rxjs";
+
 @Injectable()
 export class DictService {
-  constructor(
-    @InjectRepository(SysDictTypeEntity)
-    private readonly sysDictTypeEntityRep: Repository<SysDictTypeEntity>,
-    @InjectRepository(SysDictDataEntity)
-    private readonly sysDictDataEntityRep: Repository<SysDictDataEntity>,
-    private readonly redisService: RedisService,
-  ) {}
+    constructor(@Inject('MICRO_SYSTEM') private readonly client: ClientProxy) {
+    }
+
   async createType(CreateDictTypeDto: CreateDictTypeDto) {
-    await this.sysDictTypeEntityRep.save(CreateDictTypeDto);
-    return ResultData.ok();
+      return firstValueFrom(this.client.send('system.dict.createType', CreateDictTypeDto));
   }
 
   async deleteType(dictIds: number[]) {
-    await this.sysDictTypeEntityRep.update({ dictId: In(dictIds) }, { delFlag: '1' });
-    return ResultData.ok();
+      return firstValueFrom(this.client.send('system.dict.deleteType', dictIds));
   }
 
   async updateType(updateDictTypeDto: UpdateDictTypeDto) {
-    await this.sysDictTypeEntityRep.update({ dictId: updateDictTypeDto.dictId }, updateDictTypeDto);
-    return ResultData.ok();
+      return firstValueFrom(this.client.send('system.dict.updateType', updateDictTypeDto));
   }
 
   async findAllType(query: ListDictType) {
-    const entity = this.sysDictTypeEntityRep.createQueryBuilder('entity');
-    entity.where('entity.delFlag = :delFlag', { delFlag: '0' });
-
-    if (query.dictName) {
-      entity.andWhere(`entity.dictName LIKE "%${query.dictName}%"`);
-    }
-
-    if (query.dictType) {
-      entity.andWhere(`entity.dictType LIKE "%${query.dictType}%"`);
-    }
-
-    if (query.status) {
-      entity.andWhere('entity.status = :status', { status: query.status });
-    }
-
-    if (query.params?.beginTime && query.params?.endTime) {
-      entity.andWhere('entity.createTime BETWEEN :start AND :end', { start: query.params.beginTime, end: query.params.endTime });
-    }
-
-    if (query.pageSize && query.pageNum) {
-      entity.skip(query.pageSize * (query.pageNum - 1)).take(query.pageSize);
-    }
-
-    const [list, total] = await entity.getManyAndCount();
-
-    return ResultData.ok({
-      list,
-      total,
-    });
+      return firstValueFrom(this.client.send('system.dict.findAllType', query));
   }
 
   async findOneType(dictId: number) {
-    const data = await this.sysDictTypeEntityRep.findOne({
-      where: {
-        dictId: dictId,
-        delFlag: '0',
-      },
-    });
-    return ResultData.ok(data);
+      return firstValueFrom(this.client.send('system.dict.findOneType', dictId));
   }
 
   async findOptionselect() {
-    const data = await this.sysDictTypeEntityRep.find({
-      where: {
-        delFlag: '0',
-      },
-    });
-    return ResultData.ok(data);
+      return firstValueFrom(this.client.send('system.dict.findOptionselect', {}));
   }
 
   // 字典数据
   async createDictData(createDictDataDto: CreateDictDataDto) {
-    await this.sysDictDataEntityRep.save(createDictDataDto);
-    return ResultData.ok();
+      return firstValueFrom(this.client.send('system.dict.createDictData', createDictDataDto));
   }
 
   async deleteDictData(dictIds: number[]) {
-    await this.sysDictDataEntityRep.update({ dictCode: In(dictIds) }, { delFlag: '1' });
-    return ResultData.ok();
+      return firstValueFrom(this.client.send('system.dict.deleteDictData', dictIds));
   }
 
   async updateDictData(updateDictDataDto: UpdateDictDataDto) {
-    await this.sysDictDataEntityRep.update({ dictCode: updateDictDataDto.dictCode }, updateDictDataDto);
-    return ResultData.ok();
+      return firstValueFrom(this.client.send('system.dict.updateDictData', updateDictDataDto));
   }
 
   async findAllData(query: ListDictData) {
-    const entity = this.sysDictDataEntityRep.createQueryBuilder('entity');
-    entity.where('entity.delFlag = :delFlag', { delFlag: '0' });
-    if (query.dictLabel) {
-      entity.andWhere(`entity.dictLabel LIKE "%${query.dictLabel}%"`);
-    }
-
-    if (query.dictType) {
-      entity.andWhere(`entity.dictType LIKE "%${query.dictType}%"`);
-    }
-
-    if (query.status) {
-      entity.andWhere('entity.status = :status', { status: query.status });
-    }
-    if (query.pageSize && query.pageNum) {
-      entity.skip(query.pageSize * (query.pageNum - 1)).take(query.pageSize);
-    }
-
-    const [list, total] = await entity.getManyAndCount();
-
-    return ResultData.ok({
-      list,
-      total,
-    });
+      return firstValueFrom(this.client.send('system.dict.findAllData', query));
   }
 
   /**
@@ -133,35 +65,11 @@ export class DictService {
    * @returns 返回查询到的数据类型信息，如果未查询到则返回空。
    */
   async findOneDataType(dictType: string) {
-    // 尝试从Redis缓存中获取字典数据
-    let data = await this.redisService.get(`${CacheEnum.SYS_DICT_KEY}${dictType}`);
-
-    if (data) {
-      // 如果缓存中存在，则直接返回缓存数据
-      return ResultData.ok(data);
-    }
-
-    // 从数据库中查询字典数据
-    data = await this.sysDictDataEntityRep.find({
-      where: {
-        dictType: dictType,
-        delFlag: '0',
-      },
-    });
-
-    // 将查询到的数据存入Redis缓存，并返回数据
-    await this.redisService.set(`${CacheEnum.SYS_DICT_KEY}${dictType}`, data);
-    return ResultData.ok(data);
+      return firstValueFrom(this.client.send('system.dict.findOneDataType', dictType));
   }
 
   async findOneDictData(dictCode: number) {
-    const data = await this.sysDictDataEntityRep.findOne({
-      where: {
-        dictCode: dictCode,
-        delFlag: '0',
-      },
-    });
-    return ResultData.ok(data);
+      return firstValueFrom(this.client.send('system.dict.findOneDictData', dictCode));
   }
 
   /**
@@ -190,20 +98,7 @@ export class DictService {
    * @param res
    */
   async exportData(res: Response, body: ListDictType) {
-    delete body.pageNum;
-    delete body.pageSize;
-    const list = await this.findAllData(body);
-    const options = {
-      sheetName: '字典数据',
-      data: list.data.list,
-      header: [
-        { title: '字典主键', dataIndex: 'dictCode' },
-        { title: '字典名称', dataIndex: 'dictLabel' },
-        { title: '字典类型', dataIndex: 'dictValue' },
-        { title: '备注', dataIndex: 'remark' },
-      ],
-    };
-    ExportTable(options, res);
+      return firstValueFrom(this.client.send('system.dict.exportData', { res, body }));
   }
 
   /**
@@ -211,9 +106,7 @@ export class DictService {
    * @returns
    */
   async resetDictCache() {
-    await this.clearDictCache();
-    await this.loadingDictCache();
-    return ResultData.ok();
+      return firstValueFrom(this.client.send('system.dict.resetDictCache', {}));
   }
 
   /**
@@ -221,10 +114,7 @@ export class DictService {
    * @returns
    */
   async clearDictCache() {
-    const keys = await this.redisService.keys(`${CacheEnum.SYS_DICT_KEY}*`);
-    if (keys && keys.length > 0) {
-      await this.redisService.del(keys);
-    }
+      return firstValueFrom(this.client.send('system.dict.clearDictCache', {}));
   }
 
   /**
@@ -232,14 +122,6 @@ export class DictService {
    * @returns
    */
   async loadingDictCache() {
-    const entity = this.sysDictTypeEntityRep.createQueryBuilder('entity');
-    entity.where('entity.delFlag = :delFlag', { delFlag: '0' });
-    entity.leftJoinAndMapMany('entity.dictTypeList', SysDictDataEntity, 'dictType', 'dictType.dictType = entity.dictType');
-    const list = await entity.getMany();
-    list.forEach((item: any) => {
-      if (item.dictType) {
-        this.redisService.set(`${CacheEnum.SYS_DICT_KEY}${item.dictType}`, item.dictTypeList);
-      }
-    });
+      return firstValueFrom(this.client.send('system.dict.loadingDictCache', {}));
   }
 }

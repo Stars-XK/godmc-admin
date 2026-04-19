@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
@@ -7,57 +7,26 @@ import { CreateDeptDto, UpdateDeptDto, ListDeptDto } from './dto/index';
 import { ListToTree } from '@app/common/utils/index';
 import { CacheEnum, DataScopeEnum } from '@app/common/enum/index';
 import { Cacheable, CacheEvict } from '@app/common/decorators/redis.decorator';
+import { ClientProxy } from "@nestjs/microservices";
+import { firstValueFrom } from "rxjs";
 
 @Injectable()
 export class DeptService {
-  constructor(
-    @InjectRepository(SysDeptEntity)
-    private readonly sysDeptEntityRep: Repository<SysDeptEntity>,
-  ) {}
+    constructor(@Inject('MICRO_SYSTEM') private readonly client: ClientProxy) {
+    }
 
   @CacheEvict(CacheEnum.SYS_DEPT_KEY, '*')
   async create(createDeptDto: CreateDeptDto) {
-    if (createDeptDto.parentId) {
-      const parent = await this.sysDeptEntityRep.findOne({
-        where: {
-          deptId: createDeptDto.parentId,
-          delFlag: '0',
-        },
-        select: ['ancestors'],
-      });
-      if (!parent) {
-        return ResultData.fail(500, '父级部门不存在');
-      }
-      const ancestors = parent.ancestors ? `${parent.ancestors},${createDeptDto.parentId}` : `${createDeptDto.parentId}`;
-      Object.assign(createDeptDto, { ancestors: ancestors });
-    }
-    await this.sysDeptEntityRep.save(createDeptDto);
-    return ResultData.ok();
+      return firstValueFrom(this.client.send('system.dept.create', createDeptDto));
   }
 
   async findAll(query: ListDeptDto) {
-    const entity = this.sysDeptEntityRep.createQueryBuilder('entity');
-    entity.where('entity.delFlag = :delFlag', { delFlag: '0' });
-
-    if (query.deptName) {
-      entity.andWhere(`entity.deptName LIKE "%${query.deptName}%"`);
-    }
-    if (query.status) {
-      entity.andWhere('entity.status = :status', { status: query.status });
-    }
-    const res = await entity.getMany();
-    return ResultData.ok(res);
+      return firstValueFrom(this.client.send('system.dept.findAll', query));
   }
 
   @Cacheable(CacheEnum.SYS_DEPT_KEY, 'findOne:{deptId}')
   async findOne(deptId: number) {
-    const data = await this.sysDeptEntityRep.findOne({
-      where: {
-        deptId: deptId,
-        delFlag: '0',
-      },
-    });
-    return ResultData.ok(data);
+      return firstValueFrom(this.client.send('system.dept.findOne', deptId));
   }
 
   /**
@@ -68,31 +37,7 @@ export class DeptService {
    */
   @Cacheable(CacheEnum.SYS_DEPT_KEY, 'findDeptIdsByDataScope:{deptId}-{dataScope}')
   async findDeptIdsByDataScope(deptId: number, dataScope: DataScopeEnum) {
-    try {
-      // 创建部门实体的查询构建器
-      const entity = this.sysDeptEntityRep.createQueryBuilder('dept');
-      // 筛选出删除标志为未删除的部门
-      entity.where('dept.delFlag = :delFlag', { delFlag: '0' });
-
-      // 根据不同的数据权限范围添加不同的查询条件
-      if (dataScope === DataScopeEnum.DATA_SCOPE_DEPT) {
-        // 如果是本部门数据权限，则只查询指定部门
-        this.addQueryForDeptDataScope(entity, deptId);
-      } else if (dataScope === DataScopeEnum.DATA_SCOPE_DEPT_AND_CHILD) {
-        // 如果是本部门及子部门数据权限，则查询指定部门及其所有子部门
-        this.addQueryForDeptAndChildDataScope(entity, deptId);
-      } else if (dataScope === DataScopeEnum.DATA_SCOPE_SELF) {
-        // 如果是仅本人数据权限，则不查询任何部门，直接返回空数组
-        return [];
-      }
-      // 执行查询并获取结果
-      const list = await entity.getMany();
-      // 将查询结果映射为部门ID数组后返回
-      return list.map((item) => item.deptId);
-    } catch (error) {
-      console.error('Failed to query department IDs:', error);
-      throw new Error('Querying department IDs failed');
-    }
+      return firstValueFrom(this.client.send('system.dept.findDeptIdsByDataScope', { deptId, dataScope }));
   }
 
   /**
@@ -120,44 +65,17 @@ export class DeptService {
 
   @Cacheable(CacheEnum.SYS_DEPT_KEY, 'findListExclude')
   async findListExclude(id: number) {
-    //TODO 需排出ancestors 中不出现id的数据
-    const data = await this.sysDeptEntityRep.find({
-      where: {
-        delFlag: '0',
-      },
-    });
-    return ResultData.ok(data);
+      return firstValueFrom(this.client.send('system.dept.findListExclude', id));
   }
 
   @CacheEvict(CacheEnum.SYS_DEPT_KEY, '*')
   async update(updateDeptDto: UpdateDeptDto) {
-    if (updateDeptDto.parentId && updateDeptDto.parentId !== 0) {
-      const parent = await this.sysDeptEntityRep.findOne({
-        where: {
-          deptId: updateDeptDto.parentId,
-          delFlag: '0',
-        },
-        select: ['ancestors'],
-      });
-      if (!parent) {
-        return ResultData.fail(500, '父级部门不存在');
-      }
-      const ancestors = parent.ancestors ? `${parent.ancestors},${updateDeptDto.parentId}` : `${updateDeptDto.parentId}`;
-      Object.assign(updateDeptDto, { ancestors: ancestors });
-    }
-    await this.sysDeptEntityRep.update({ deptId: updateDeptDto.deptId }, updateDeptDto);
-    return ResultData.ok();
+      return firstValueFrom(this.client.send('system.dept.update', updateDeptDto));
   }
 
   @CacheEvict(CacheEnum.SYS_DEPT_KEY, '*')
   async remove(deptId: number) {
-    const data = await this.sysDeptEntityRep.update(
-      { deptId: deptId },
-      {
-        delFlag: '1',
-      },
-    );
-    return ResultData.ok(data);
+      return firstValueFrom(this.client.send('system.dept.remove', deptId));
   }
 
   /**
@@ -166,16 +84,6 @@ export class DeptService {
    */
   @Cacheable(CacheEnum.SYS_DEPT_KEY, 'deptTree')
   async deptTree() {
-    const res = await this.sysDeptEntityRep.find({
-      where: {
-        delFlag: '0',
-      },
-    });
-    const tree = ListToTree(
-      res,
-      (m) => m.deptId,
-      (m) => m.deptName,
-    );
-    return tree;
+      return firstValueFrom(this.client.send('system.dept.deptTree', {}));
   }
 }

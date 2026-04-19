@@ -1,76 +1,34 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
 import { SysNoticeEntity } from '@app/common';
 import { CreateNoticeDto, UpdateNoticeDto, ListNoticeDto } from './dto/index';
+import { ClientProxy } from "@nestjs/microservices";
+import { firstValueFrom } from "rxjs";
 
 @Injectable()
 export class NoticeService {
-  constructor(
-    @InjectRepository(SysNoticeEntity)
-    private readonly sysNoticeEntityRep: Repository<SysNoticeEntity>,
-  ) {}
+    constructor(@Inject('MICRO_SYSTEM') private readonly client: ClientProxy) {
+    }
+
   async create(createNoticeDto: CreateNoticeDto) {
-    await this.sysNoticeEntityRep.save(createNoticeDto);
-    return ResultData.ok();
+      return firstValueFrom(this.client.send('system.notice.create', createNoticeDto));
   }
 
   async findAll(query: ListNoticeDto) {
-    const entity = this.sysNoticeEntityRep.createQueryBuilder('entity');
-    entity.where('entity.delFlag = :delFlag', { delFlag: '0' });
-
-    if (query.noticeTitle) {
-      entity.andWhere(`entity.noticeTitle LIKE "%${query.noticeTitle}%"`);
-    }
-
-    if (query.createBy) {
-      entity.andWhere(`entity.createBy LIKE "%${query.createBy}%"`);
-    }
-
-    if (query.noticeType) {
-      entity.andWhere('entity.noticeType = :noticeType', { noticeType: query.noticeType });
-    }
-
-    if (query.params?.beginTime && query.params?.endTime) {
-      entity.andWhere('entity.createTime BETWEEN :start AND :end', { start: query.params.beginTime, end: query.params.endTime });
-    }
-
-    entity.skip(query.pageSize * (query.pageNum - 1)).take(query.pageSize);
-    const [list, total] = await entity.getManyAndCount();
-
-    return ResultData.ok({
-      list,
-      total,
-    });
+      return firstValueFrom(this.client.send('system.notice.findAll', query));
   }
 
   async findOne(noticeId: number) {
-    const data = await this.sysNoticeEntityRep.findOne({
-      where: {
-        noticeId: noticeId,
-      },
-    });
-    return ResultData.ok(data);
+      return firstValueFrom(this.client.send('system.notice.findOne', noticeId));
   }
 
   async update(updateNoticeDto: UpdateNoticeDto) {
-    await this.sysNoticeEntityRep.update(
-      {
-        noticeId: updateNoticeDto.noticeId,
-      },
-      updateNoticeDto,
-    );
-    return ResultData.ok();
+      return firstValueFrom(this.client.send('system.notice.update', updateNoticeDto));
   }
 
   async remove(noticeIds: number[]) {
-    const data = await this.sysNoticeEntityRep.update(
-      { noticeId: In(noticeIds) },
-      {
-        delFlag: '1',
-      },
-    );
-    return ResultData.ok(data);
+      return firstValueFrom(this.client.send('system.notice.remove', noticeIds));
   }
 }

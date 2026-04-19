@@ -8,110 +8,44 @@ import { CreateMenuDto, UpdateMenuDto, ListDeptDto } from './dto/index';
 import { ListToTree, Uniq } from '@app/common/utils/index';
 import { UserService } from '../user/user.service';
 import { buildMenus } from './utils';
+import { ClientProxy } from "@nestjs/microservices";
+import { firstValueFrom } from "rxjs";
+
 @Injectable()
 export class MenuService {
-  constructor(
-    @Inject(forwardRef(() => UserService))
-    private readonly userService: UserService,
-    @InjectRepository(SysMenuEntity)
-    private readonly sysMenuEntityRep: Repository<SysMenuEntity>,
-    @InjectRepository(SysRoleWithMenuEntity)
-    private readonly sysRoleWithMenuEntityRep: Repository<SysRoleWithMenuEntity>,
-  ) {}
+    constructor(@Inject('MICRO_SYSTEM') private readonly client: ClientProxy) {
+    }
 
   async create(createMenuDto: CreateMenuDto) {
-    const res = await this.sysMenuEntityRep.save(createMenuDto);
-    return ResultData.ok(res);
+      return firstValueFrom(this.client.send('system.menu.create', createMenuDto));
   }
 
   async findAll(query: ListDeptDto) {
-    const entity = this.sysMenuEntityRep.createQueryBuilder('entity');
-    entity.where('entity.delFlag = :delFlag', { delFlag: '0' });
-
-    if (query.menuName) {
-      entity.andWhere(`entity.menuName LIKE "%${query.menuName}%"`);
-    }
-    if (query.status) {
-      entity.andWhere('entity.status = :status', { status: query.status });
-    }
-    entity.orderBy('entity.orderNum', 'ASC');
-
-    const res = await entity.getMany();
-    return ResultData.ok(res);
+      return firstValueFrom(this.client.send('system.menu.findAll', query));
   }
 
   async treeSelect() {
-    const res = await this.sysMenuEntityRep.find({
-      where: {
-        delFlag: '0',
-      },
-      order: {
-        orderNum: 'ASC',
-      },
-    });
-    const tree = ListToTree(
-      res,
-      (m) => m.menuId,
-      (m) => m.menuName,
-    );
-    return ResultData.ok(tree);
+      return firstValueFrom(this.client.send('system.menu.treeSelect', {}));
   }
 
   async roleMenuTreeselect(roleId: number): Promise<any> {
-    const res = await this.sysMenuEntityRep.find({
-      where: {
-        delFlag: '0',
-      },
-      order: {
-        orderNum: 'ASC',
-        parentId: 'ASC',
-      },
-    });
-    const tree = ListToTree(
-      res,
-      (m) => m.menuId,
-      (m) => m.menuName,
-    );
-    const menuIds = await this.sysRoleWithMenuEntityRep.find({
-      where: { roleId: roleId },
-      select: ['menuId'],
-    });
-    const checkedKeys = menuIds.map((item) => {
-      return item.menuId;
-    });
-    return ResultData.ok({
-      menus: tree,
-      checkedKeys: checkedKeys,
-    });
+      return firstValueFrom(this.client.send('system.menu.roleMenuTreeselect', roleId));
   }
 
   async findOne(menuId: number) {
-    const res = await this.sysMenuEntityRep.findOne({
-      where: {
-        delFlag: '0',
-        menuId: menuId,
-      },
-    });
-    return ResultData.ok(res);
+      return firstValueFrom(this.client.send('system.menu.findOne', menuId));
   }
 
   async update(updateMenuDto: UpdateMenuDto) {
-    const res = await this.sysMenuEntityRep.update({ menuId: updateMenuDto.menuId }, updateMenuDto);
-    return ResultData.ok(res);
+      return firstValueFrom(this.client.send('system.menu.update', updateMenuDto));
   }
 
   async remove(menuId: number) {
-    const data = await this.sysMenuEntityRep.update(
-      { menuId: menuId },
-      {
-        delFlag: '1',
-      },
-    );
-    return ResultData.ok(data);
+      return firstValueFrom(this.client.send('system.menu.remove', menuId));
   }
 
   async findMany(where: FindManyOptions<SysMenuEntity>) {
-    return await this.sysMenuEntityRep.find(where);
+      return firstValueFrom(this.client.send('system.menu.findMany', where));
   }
 
   /**
@@ -121,39 +55,6 @@ export class MenuService {
    * @return 菜单列表
    */
   async getMenuListByUserId(userId: number) {
-    let menuWidthRoleList = [];
-    const roleIds = await this.userService.getRoleIds([userId]);
-    if (roleIds.includes(1)) {
-      // 超管roleId=1，所有菜单权限
-      menuWidthRoleList = await this.sysMenuEntityRep.find({
-        where: {
-          delFlag: '0',
-          status: '0',
-        },
-        select: ['menuId'],
-      });
-    } else {
-      // 查询角色绑定的菜单
-      menuWidthRoleList = await this.sysRoleWithMenuEntityRep.find({
-        where: { roleId: In(roleIds) },
-        select: ['menuId'],
-      });
-    }
-    // 菜单Id去重
-    const menuIds = Uniq(menuWidthRoleList.map((item) => item.menuId));
-    // 菜单列表
-    const menuList = await this.sysMenuEntityRep.find({
-      where: {
-        delFlag: '0',
-        status: '0',
-        menuId: In(menuIds),
-      },
-      order: {
-        orderNum: 'ASC',
-      },
-    });
-    // 构建前端需要的菜单树
-    const menuTree = buildMenus(menuList);
-    return menuTree;
+      return firstValueFrom(this.client.send('system.menu.getMenuListByUserId', userId));
   }
 }
