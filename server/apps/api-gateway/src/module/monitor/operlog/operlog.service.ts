@@ -1,16 +1,16 @@
 import { Injectable, Inject, Scope } from '@nestjs/common';
 import { IsNull, Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { SysOperlogEntity } from './entities/operlog.entity';
+import { SysOperlogEntity } from '@app/common';
 import { REQUEST } from '@nestjs/core';
 import { Request } from 'express';
-import { ResultData } from 'src/common/utils/result';
-import { AxiosService } from 'src/module/common/axios/axios.service';
+import { ResultData } from '@app/common/utils/result';
+import { AxiosService } from '@app/common/shared/axios/axios.service';
 import { QueryOperLogDto } from './dto/operLog.dto';
-import { ExportTable } from 'src/common/utils/export';
+import { ExportTable } from '@app/common/utils/export';
 import { Response } from 'express';
-import { DictService } from 'src/module/system/dict/dict.service';
-import { isEmpty } from 'src/common/utils';
+import { DictService } from '@app/api-gateway/module/system/dict/dict.service';
+import { isEmpty } from '@app/common/utils';
 
 @Injectable({ scope: Scope.REQUEST })
 export class OperlogService {

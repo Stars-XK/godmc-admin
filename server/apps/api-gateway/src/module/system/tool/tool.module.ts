@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { ToolService } from './tool.service';
 import { ToolController } from './tool.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { GenTableEntity } from './entities/gen-table.entity';
-import { GenTableColumnEntity } from './entities/gen-table-cloumn.entity';
+import { GenTableEntity } from '@app/common';
+import { GenTableColumnEntity } from '@app/common';
 
 @Module({
   imports: [TypeOrmModule.forFeature([GenTableEntity, GenTableColumnEntity])],

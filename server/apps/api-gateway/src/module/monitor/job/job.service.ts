@@ -3,11 +3,11 @@ import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
-import { Job } from './entities/job.entity';
+import { Job } from '@app/common';
 import { CreateJobDto, ListJobDto } from './dto/create-job.dto';
-import { ResultData } from 'src/common/utils/result';
+import { ResultData } from '@app/common/utils/result';
 import { TaskService } from './task.service';
-import { ExportTable } from 'src/common/utils/export';
+import { ExportTable } from '@app/common/utils/export';
 import { Response } from 'express';
 
 @Injectable()

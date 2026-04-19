@@ -3,7 +3,7 @@ import { UploadService } from './upload.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBody, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { ChunkFileDto, ChunkMergeFileDto, FileUploadDto, uploadIdDto } from './dto/index';
-import { ResultData } from 'src/common/utils/result';
+import { ResultData } from '@app/common/utils/result';
 
 @ApiTags('通用-文件上传')
 @Controller('common/upload')

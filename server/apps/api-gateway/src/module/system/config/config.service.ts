@@ -2,13 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { Response } from 'express';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
-import { ResultData } from 'src/common/utils/result';
-import { ExportTable } from 'src/common/utils/export';
+import { ResultData } from '@app/common/utils/result';
+import { ExportTable } from '@app/common/utils/export';
 import { CreateConfigDto, UpdateConfigDto, ListConfigDto } from './dto/index';
-import { SysConfigEntity } from './entities/config.entity';
-import { RedisService } from 'src/module/common/redis/redis.service';
-import { CacheEnum } from 'src/common/enum/index';
-import { Cacheable, CacheEvict } from 'src/common/decorators/redis.decorator';
+import { SysConfigEntity } from '@app/common';
+import { RedisService } from '@app/common/shared/redis/redis.service';
+import { CacheEnum } from '@app/common/enum/index';
+import { Cacheable, CacheEvict } from '@app/common/decorators/redis.decorator';
 
 @Injectable()
 export class ConfigService {

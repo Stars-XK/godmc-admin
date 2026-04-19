@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { ResultData } from 'src/common/utils/result';
-import { SUCCESS_CODE } from 'src/common/utils/result';
+import { ResultData } from '@app/common/utils/result';
+import { SUCCESS_CODE } from '@app/common/utils/result';
 import { UserService } from '../system/user/user.service';
 import { LoginlogService } from '../monitor/loginlog/loginlog.service';
-import { AxiosService } from 'src/module/common/axios/axios.service';
+import { AxiosService } from '@app/common/shared/axios/axios.service';
 import { RegisterDto, LoginDto } from './dto/index';
 import { MenuService } from '../system/menu/menu.service';
-import { ClientInfoDto } from 'src/common/decorators/common.decorator';
+import { ClientInfoDto } from '@app/common/decorators/common.decorator';
 @Injectable()
 export class MainService {
   constructor(

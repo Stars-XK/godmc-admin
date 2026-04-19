@@ -6,7 +6,7 @@ export const moduleTem = (options) => {
 import { Global, Module } from '@nestjs/common';
 import { ${Lodash.upperFirst(BusinessName)}Service } from './${businessName}.service';
 import { ${Lodash.upperFirst(BusinessName)}Controller } from './${businessName}.controller';
-import { ${Lodash.upperFirst(BusinessName)}Entity } from './entities/${businessName}.entity';
+import { ${Lodash.upperFirst(BusinessName)}Entity } from '@app/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Global()

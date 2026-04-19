@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Response } from 'express';
 import { Repository, In, Not, IsNull } from 'typeorm';
-import { ResultData } from 'src/common/utils/result';
-import { ExportTable } from 'src/common/utils/export';
-import { MonitorLoginlogEntity } from './entities/loginlog.entity';
+import { ResultData } from '@app/common/utils/result';
+import { ExportTable } from '@app/common/utils/export';
+import { MonitorLoginlogEntity } from '@app/common';
 import { CreateLoginlogDto, ListLoginlogDto } from './dto/index';
 
 @Injectable()

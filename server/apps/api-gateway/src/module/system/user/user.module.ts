@@ -4,12 +4,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
-import { UserEntity } from './entities/sys-user.entity';
-import { SysUserWithPostEntity } from './entities/user-width-post.entity';
-import { SysUserWithRoleEntity } from './entities/user-width-role.entity';
-import { SysDeptEntity } from '../dept/entities/dept.entity';
-import { SysRoleEntity } from '../role/entities/role.entity';
-import { SysPostEntity } from '../post/entities/post.entity';
+import { UserEntity } from '@app/common';
+import { SysUserWithPostEntity } from '@app/common';
+import { SysUserWithRoleEntity } from '@app/common';
+import { SysDeptEntity } from '@app/common';
+import { SysRoleEntity } from '@app/common';
+import { SysPostEntity } from '@app/common';
 
 @Global()
 @Module({

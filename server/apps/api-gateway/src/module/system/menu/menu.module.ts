@@ -2,8 +2,8 @@ import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MenuService } from './menu.service';
 import { MenuController } from './menu.controller';
-import { SysMenuEntity } from './entities/menu.entity';
-import { SysRoleWithMenuEntity } from '../role/entities/role-width-menu.entity';
+import { SysMenuEntity } from '@app/common';
+import { SysRoleWithMenuEntity } from '@app/common';
 
 @Global()
 @Module({

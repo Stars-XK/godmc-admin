@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Task } from 'src/common/decorators/task.decorator';
+import { Task } from '@app/common/decorators/task.decorator';
 
 @Injectable()
 export class BackupService {

@@ -2,7 +2,7 @@ import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoginlogService } from './loginlog.service';
 import { LoginlogController } from './loginlog.controller';
-import { MonitorLoginlogEntity } from './entities/loginlog.entity';
+import { MonitorLoginlogEntity } from '@app/common';
 @Global()
 @Module({
   imports: [TypeOrmModule.forFeature([MonitorLoginlogEntity])],

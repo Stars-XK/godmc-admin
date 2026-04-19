@@ -3,19 +3,19 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { isNotEmpty } from 'class-validator';
 import { TableName, CreateGenTableDto, GenDbTableList, GenTableList, GenTableUpdate } from './dto/create-genTable-dto';
-import { ResultData } from 'src/common/utils/result';
-import { FormatDate, GetNowDate } from 'src/common/utils/index';
-import { GenTableEntity } from './entities/gen-table.entity';
-import { GenTableColumnEntity } from './entities/gen-table-cloumn.entity';
+import { ResultData } from '@app/common/utils/result';
+import { FormatDate, GetNowDate } from '@app/common/utils/index';
+import { GenTableEntity } from '@app/common';
+import { GenTableColumnEntity } from '@app/common';
 import toolConfig from './config';
-import { GenConstants } from 'src/common/constant/gen.constant';
+import { GenConstants } from '@app/common/constant/gen.constant';
 import { camelCase, toLower } from 'lodash';
 import { arraysContains, getColumnLength, StringUtils, capitalize } from './utils/index';
 import { index as templateIndex } from './template/index';
 import archiver from 'archiver';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { UserDto } from 'src/module/system/user/user.decorator';
+import { UserDto } from '@app/api-gateway/module/system/user/user.decorator';
 
 @Injectable()
 export class ToolService {

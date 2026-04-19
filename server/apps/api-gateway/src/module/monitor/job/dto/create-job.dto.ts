@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsOptional, IsString, Length } from 'class-validator';
-import { PagingDto } from 'src/common/dto/index';
+import { PagingDto } from '@app/common/dto/index';
 
 export class CreateJobDto {
   @ApiProperty({ description: '任务名称' })

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
-import { ResultData } from 'src/common/utils/result';
-import { ExportTable } from 'src/common/utils/export';
-import { SysPostEntity } from './entities/post.entity';
+import { ResultData } from '@app/common/utils/result';
+import { ExportTable } from '@app/common/utils/export';
+import { SysPostEntity } from '@app/common';
 import { Response } from 'express';
 import { CreatePostDto, UpdatePostDto, ListPostDto } from './dto/index';
 

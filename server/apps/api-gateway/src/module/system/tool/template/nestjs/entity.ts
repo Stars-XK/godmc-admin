@@ -1,4 +1,4 @@
-import { GenConstants } from 'src/common/constant/gen.constant';
+import { GenConstants } from '@app/common/constant/gen.constant';
 import * as Lodash from 'lodash';
 
 export const entityTem = (options) => {

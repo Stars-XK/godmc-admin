@@ -1,11 +1,11 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindManyOptions, In } from 'typeorm';
-import { ResultData } from 'src/common/utils/result';
-import { SysMenuEntity } from './entities/menu.entity';
-import { SysRoleWithMenuEntity } from '../role/entities/role-width-menu.entity';
+import { ResultData } from '@app/common/utils/result';
+import { SysMenuEntity } from '@app/common';
+import { SysRoleWithMenuEntity } from '@app/common';
 import { CreateMenuDto, UpdateMenuDto, ListDeptDto } from './dto/index';
-import { ListToTree, Uniq } from 'src/common/utils/index';
+import { ListToTree, Uniq } from '@app/common/utils/index';
 import { UserService } from '../user/user.service';
 import { buildMenus } from './utils';
 @Injectable()

@@ -1,11 +1,11 @@
 import { Controller, Get, Param, Delete, Query, Post, Res, Body } from '@nestjs/common';
 import { OperlogService } from './operlog.service';
 import { ApiOperation, ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { RequirePermission } from 'src/common/decorators/require-premission.decorator';
-import { Operlog } from 'src/common/decorators/operlog.decorator';
-import { BusinessType } from 'src/common/constant/business.constant';
+import { RequirePermission } from '@app/common/decorators/require-premission.decorator';
+import { Operlog } from '@app/common/decorators/operlog.decorator';
+import { BusinessType } from '@app/common/constant/business.constant';
 import { BaseOperLogDto, QueryOperLogDto } from './dto/operLog.dto';
-import { ApiDataResponse } from 'src/common/decorators/apiDataResponse.decorator';
+import { ApiDataResponse } from '@app/common/decorators/apiDataResponse.decorator';
 import { Response } from 'express';
 
 @ApiTags('操作日志')

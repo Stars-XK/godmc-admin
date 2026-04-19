@@ -2,15 +2,15 @@ import { Controller, Get, Post, Body, Put, Param, Query, Res, Delete, Request, U
 import { ApiTags, ApiOperation, ApiBody, ApiConsumes, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { Response } from 'express';
-import { RequirePermission } from 'src/common/decorators/require-premission.decorator';
-import { RequireRole } from 'src/common/decorators/require-role.decorator';
-import { UploadService } from 'src/module/upload/upload.service';
+import { RequirePermission } from '@app/common/decorators/require-premission.decorator';
+import { RequireRole } from '@app/common/decorators/require-role.decorator';
+import { UploadService } from '@app/api-gateway/module/upload/upload.service';
 import { CreateUserDto, UpdateUserDto, ListUserDto, ChangeStatusDto, ResetPwdDto, UpdateProfileDto, UpdatePwdDto } from './dto/index';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ResultData } from 'src/common/utils/result';
-import { User, UserDto, UserTool, UserToolType } from 'src/module/system/user/user.decorator';
-import { BusinessType } from 'src/common/constant/business.constant';
-import { Operlog } from 'src/common/decorators/operlog.decorator';
+import { ResultData } from '@app/common/utils/result';
+import { User, UserDto, UserTool, UserToolType } from '@app/api-gateway/module/system/user/user.decorator';
+import { BusinessType } from '@app/common/constant/business.constant';
+import { Operlog } from '@app/common/decorators/operlog.decorator';
 
 @ApiTags('用户管理')
 @Controller('system/user')

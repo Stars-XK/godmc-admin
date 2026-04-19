@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { Task, TaskRegistry } from 'src/common/decorators/task.decorator';
+import { Task, TaskRegistry } from '@app/common/decorators/task.decorator';
 import { JobLogService } from './job-log.service';
 
 @Injectable()

@@ -1,8 +1,8 @@
 import { IsString, IsNumber, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, OmitType, IntersectionType } from '@nestjs/swagger';
-import { PagingDto } from 'src/common/dto/index';
-import { CharEnum } from 'src/common/enum/index';
+import { PagingDto } from '@app/common/dto/index';
+import { CharEnum } from '@app/common/enum/index';
 
 export class BaseOperLogDto {
   @ApiProperty({ required: false, description: '日志主键' })

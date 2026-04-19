@@ -2,34 +2,34 @@ import { Repository, In, Not } from 'typeorm';
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { RedisService } from 'src/module/common/redis/redis.service';
+import { RedisService } from '@app/common/shared/redis/redis.service';
 import * as bcrypt from 'bcryptjs';
 import { Response } from 'express';
-import { GetNowDate, GenerateUUID, Uniq } from 'src/common/utils/index';
-import { ExportTable } from 'src/common/utils/export';
+import { GetNowDate, GenerateUUID, Uniq } from '@app/common/utils/index';
+import { ExportTable } from '@app/common/utils/export';
 
-import { CacheEnum, DelFlagEnum, StatusEnum, DataScopeEnum } from 'src/common/enum/index';
-import { LOGIN_TOKEN_EXPIRESIN, SYS_USER_TYPE } from 'src/common/constant/index';
-import { ResultData } from 'src/common/utils/result';
+import { CacheEnum, DelFlagEnum, StatusEnum, DataScopeEnum } from '@app/common/enum/index';
+import { LOGIN_TOKEN_EXPIRESIN, SYS_USER_TYPE } from '@app/common/constant/index';
+import { ResultData } from '@app/common/utils/result';
 import { CreateUserDto, UpdateUserDto, ListUserDto, ChangeStatusDto, ResetPwdDto, AllocatedListDto, UpdateProfileDto, UpdatePwdDto } from './dto/index';
 import { RegisterDto, LoginDto } from '../../main/dto/index';
 import { AuthUserCancelDto, AuthUserCancelAllDto, AuthUserSelectAllDto } from '../role/dto/index';
 
-import { UserEntity } from './entities/sys-user.entity';
-import { SysUserWithPostEntity } from './entities/user-width-post.entity';
-import { SysUserWithRoleEntity } from './entities/user-width-role.entity';
-import { SysPostEntity } from '../post/entities/post.entity';
-import { SysDeptEntity } from '../dept/entities/dept.entity';
+import { UserEntity } from '@app/common';
+import { SysUserWithPostEntity } from '@app/common';
+import { SysUserWithRoleEntity } from '@app/common';
+import { SysPostEntity } from '@app/common';
+import { SysDeptEntity } from '@app/common';
 import { RoleService } from '../role/role.service';
 import { DeptService } from '../dept/dept.service';
 
 import { ConfigService } from '../config/config.service';
-import { SysRoleEntity } from '../role/entities/role.entity';
-import { SysMenuEntity } from '../menu/entities/menu.entity';
+import { SysRoleEntity } from '@app/common';
+import { SysMenuEntity } from '@app/common';
 import { UserType } from './dto/user';
-import { ClientInfoDto } from 'src/common/decorators/common.decorator';
-import { Cacheable, CacheEvict } from 'src/common/decorators/redis.decorator';
-import { Captcha } from 'src/common/decorators/captcha.decorator';
+import { ClientInfoDto } from '@app/common/decorators/common.decorator';
+import { Cacheable, CacheEvict } from '@app/common/decorators/redis.decorator';
+import { Captcha } from '@app/common/decorators/captcha.decorator';
 
 @Injectable()
 export class UserService {

@@ -2,13 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Response } from 'express';
 import { Repository, In } from 'typeorm';
-import { ResultData } from 'src/common/utils/result';
-import { CacheEnum } from 'src/common/enum/index';
-import { ExportTable } from 'src/common/utils/export';
-import { SysDictTypeEntity } from './entities/dict.type.entity';
-import { SysDictDataEntity } from './entities/dict.data.entity';
+import { ResultData } from '@app/common/utils/result';
+import { CacheEnum } from '@app/common/enum/index';
+import { ExportTable } from '@app/common/utils/export';
+import { SysDictTypeEntity } from '@app/common';
+import { SysDictDataEntity } from '@app/common';
 import { CreateDictTypeDto, UpdateDictTypeDto, ListDictType, CreateDictDataDto, UpdateDictDataDto, ListDictData } from './dto/index';
-import { RedisService } from 'src/module/common/redis/redis.service';
+import { RedisService } from '@app/common/shared/redis/redis.service';
 @Injectable()
 export class DictService {
   constructor(

@@ -1,13 +1,20 @@
-import { Global, Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { Module, Global } from '@nestjs/common';
 import { OperlogService } from './operlog.service';
 import { OperlogController } from './operlog.controller';
-import { SysOperlogEntity } from './entities/operlog.entity';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { SysOperlogEntity } from '@app/common';
+
 @Global()
 @Module({
   imports: [TypeOrmModule.forFeature([SysOperlogEntity])],
   controllers: [OperlogController],
-  providers: [OperlogService],
-  exports: [OperlogService],
+  providers: [
+    OperlogService,
+    {
+      provide: 'OPERLOG_SERVICE',
+      useExisting: OperlogService,
+    },
+  ],
+  exports: [OperlogService, 'OPERLOG_SERVICE'],
 })
 export class OperlogModule {}

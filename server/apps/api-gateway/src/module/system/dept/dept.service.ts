@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
-import { ResultData } from 'src/common/utils/result';
-import { SysDeptEntity } from './entities/dept.entity';
+import { ResultData } from '@app/common/utils/result';
+import { SysDeptEntity } from '@app/common';
 import { CreateDeptDto, UpdateDeptDto, ListDeptDto } from './dto/index';
-import { ListToTree } from 'src/common/utils/index';
-import { CacheEnum, DataScopeEnum } from 'src/common/enum/index';
-import { Cacheable, CacheEvict } from 'src/common/decorators/redis.decorator';
+import { ListToTree } from '@app/common/utils/index';
+import { CacheEnum, DataScopeEnum } from '@app/common/enum/index';
+import { Cacheable, CacheEvict } from '@app/common/decorators/redis.decorator';
 
 @Injectable()
 export class DeptService {

@@ -1,5 +1,5 @@
 import * as Lodash from 'lodash';
-import { GenConstants } from 'src/common/constant/gen.constant';
+import { GenConstants } from '@app/common/constant/gen.constant';
 
 export const serviceTem = (options) => {
   const { BusinessName, primaryKey, businessName } = options;
@@ -7,10 +7,10 @@ export const serviceTem = (options) => {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not, In, Like } from 'typeorm';
 import { Injectable } from '@nestjs/common';
-import { ResultData } from 'src/common/utils/result';
+import { ResultData } from '@app/common/utils/result';
 import { Create${Lodash.upperFirst(BusinessName)}Dto, Update${Lodash.upperFirst(BusinessName)}Dto, Query${Lodash.upperFirst(BusinessName)}Dto } from './dto/${businessName}.dto';
-import { ${Lodash.upperFirst(BusinessName)}Entity } from './entities/${businessName}.entity';
-import { isEmpty } from 'src/common/utils';
+import { ${Lodash.upperFirst(BusinessName)}Entity } from '@app/common';
+import { isEmpty } from '@app/common/utils';
 
 @Injectable()
 export class ${Lodash.upperFirst(BusinessName)}Service {

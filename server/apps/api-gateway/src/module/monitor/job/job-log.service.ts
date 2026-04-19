@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
-import { JobLog } from './entities/job-log.entity';
+import { JobLog } from '@app/common';
 import { ListJobLogDto } from './dto/create-job.dto';
-import { ResultData } from 'src/common/utils/result';
-import { ExportTable } from 'src/common/utils/export';
+import { ResultData } from '@app/common/utils/result';
+import { ExportTable } from '@app/common/utils/export';
 import { Response } from 'express';
 
 @Injectable()
