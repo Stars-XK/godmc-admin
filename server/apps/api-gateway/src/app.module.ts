@@ -13,6 +13,7 @@ import { UploadModule } from './module/upload/upload.module';
 import { SystemModule } from './module/system/system.module';
 import { SharedModule } from '@app/shared';
 import { MonitorModule } from './module/monitor/monitor.module';
+import { WaterBasicModule } from './module/water-basic/water-basic.module';
 import { MicroservicesModule } from './microservices.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
@@ -59,6 +60,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     SharedModule,
     SystemModule,
     MonitorModule,
+    WaterBasicModule,
   ],
   providers: [
     {
