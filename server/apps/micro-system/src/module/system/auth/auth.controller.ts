@@ -8,12 +8,12 @@ import { NotRequireAuth, User, UserDto } from '../user/user.decorator';
 
 @ApiTags('Auth模块')
 @Controller('/')
-@ApiBearerAuth('Authorization')
 export class AuthController {
   constructor(@Inject('MICRO_AUTH') private readonly authClient: ClientProxy) {}
 
   @ApiOperation({ summary: '用户登录' })
   @ApiBody({ type: LoginDto, required: true })
+  @NotRequireAuth()
   @Post('/login')
   @HttpCode(200)
   login(@Body() user: LoginDto, @ClientInfo() clientInfo: ClientInfoDto) {
@@ -21,8 +21,7 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: '退出登录' })
-  @ApiBody({ type: LoginDto, required: true })
-  @NotRequireAuth()
+  @ApiBearerAuth('Authorization')
   @Post('/logout')
   @HttpCode(200)
   logout(@User() user: UserDto, @ClientInfo() clientInfo: ClientInfoDto) {
@@ -31,6 +30,7 @@ export class AuthController {
 
   @ApiOperation({ summary: '用户注册' })
   @ApiBody({ type: RegisterDto, required: true })
+  @NotRequireAuth()
   @Post('/register')
   @HttpCode(200)
   register(@Body() user: RegisterDto) {
@@ -38,12 +38,14 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: '账号自助-是否开启用户注册功能' })
+  @NotRequireAuth()
   @Get('/registerUser')
   registerUser() {
     return firstValueFrom(this.authClient.send('registerUser', {}));
   }
 
   @ApiOperation({ summary: '获取验证图片' })
+  @NotRequireAuth()
   @Get('/captchaImage')
   captchaImage() {
     return firstValueFrom(this.authClient.send('captchaImage', {}));
