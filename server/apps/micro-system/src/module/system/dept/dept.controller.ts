@@ -1,49 +1,75 @@
-import { Controller } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { Controller, Get, Post, Body, Put, Param, Query, Delete, HttpCode } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBody, ApiConsumes, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { DeptService } from './dept.service';
+import { CreateDeptDto, UpdateDeptDto, ListDeptDto } from './dto/index';
+import { RequirePermission } from '@app/common/decorators/require-premission.decorator';
 
-@Controller()
+@ApiTags('部门管理')
+@Controller('system/dept')
+@ApiBearerAuth('Authorization')
 export class DeptController {
   constructor(private readonly deptService: DeptService) {}
 
-  @MessagePattern('system.dept.create')
-  create(@Payload() createDeptDto: any) {
+  @ApiOperation({
+    summary: '部门管理-创建',
+  })
+  @ApiBody({
+    type: CreateDeptDto,
+    required: true,
+  })
+  @RequirePermission('system:dept:add')
+  @Post()
+  @HttpCode(200)
+  create(@Body() createDeptDto: CreateDeptDto) {
     return this.deptService.create(createDeptDto);
   }
 
-  @MessagePattern('system.dept.findAll')
-  findAll(@Payload() query: any) {
+  @ApiOperation({
+    summary: '部门管理-列表',
+  })
+  @RequirePermission('system:dept:list')
+  @Get('/list')
+  findAll(@Query() query: ListDeptDto) {
     return this.deptService.findAll(query);
   }
 
-  @MessagePattern('system.dept.findOne')
-  findOne(@Payload() deptId: any) {
-    return this.deptService.findOne(deptId);
+  @ApiOperation({
+    summary: '部门管理-详情',
+  })
+  @RequirePermission('system:dept:query')
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.deptService.findOne(+id);
   }
 
-  @MessagePattern('system.dept.findDeptIdsByDataScope')
-  findDeptIdsByDataScope(@Payload() payload: any) {
-    return this.deptService.findDeptIdsByDataScope(payload.deptId, payload.dataScope);
+  @ApiOperation({
+    summary: '部门管理-黑名单',
+  })
+  @RequirePermission('system:dept:query')
+  @Get('/list/exclude/:id')
+  findListExclude(@Param('id') id: string) {
+    return this.deptService.findListExclude(+id);
   }
 
-  @MessagePattern('system.dept.findListExclude')
-  findListExclude(@Payload() id: any) {
-    return this.deptService.findListExclude(id);
-  }
-
-  @MessagePattern('system.dept.update')
-  update(@Payload() updateDeptDto: any) {
+  @ApiOperation({
+    summary: '部门管理-更新',
+  })
+  @ApiBody({
+    type: UpdateDeptDto,
+    required: true,
+  })
+  @RequirePermission('system:dept:edit')
+  @Put()
+  update(@Body() updateDeptDto: UpdateDeptDto) {
     return this.deptService.update(updateDeptDto);
   }
 
-  @MessagePattern('system.dept.remove')
-  remove(@Payload() deptId: any) {
-    return this.deptService.remove(deptId);
+  @ApiOperation({
+    summary: '部门管理-删除',
+  })
+  @RequirePermission('system:dept:remove')
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.deptService.remove(+id);
   }
-
-  @MessagePattern('system.dept.deptTree')
-  deptTree() {
-    return this.deptService.deptTree();
-  }
-
 }

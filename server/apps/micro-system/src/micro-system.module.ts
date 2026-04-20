@@ -4,6 +4,7 @@ import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { configuration } from '@app/shared';
 import { SharedModule } from '@app/shared';
 import { SystemModule } from './module/system/system.module';
+import { MainModule } from './module/main/main.module';
 import { RegistryModule } from '@app/common';
 
 @Module({
@@ -29,6 +30,7 @@ import { RegistryModule } from '@app/common';
     }),
     SharedModule,
     SystemModule,
+    MainModule,
     RegistryModule,
   ],
 })

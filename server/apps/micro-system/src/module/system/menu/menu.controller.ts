@@ -1,54 +1,83 @@
-import { Controller } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { Controller, Get, Post, Body, Query, Put, Param, Delete } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBody, ApiConsumes, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { MenuService } from './menu.service';
+import { CreateMenuDto, UpdateMenuDto, ListDeptDto } from './dto/index';
+import { RequirePermission } from '@app/common/decorators/require-premission.decorator';
 
-@Controller()
+@ApiTags('菜单管理')
+@Controller('system/menu')
+@ApiBearerAuth('Authorization')
 export class MenuController {
   constructor(private readonly menuService: MenuService) {}
 
-  @MessagePattern('system.menu.create')
-  create(@Payload() createMenuDto: any) {
+  @ApiOperation({
+    summary: '菜单管理-创建',
+  })
+  @ApiBody({
+    type: CreateMenuDto,
+    required: true,
+  })
+  @RequirePermission('system:menu:add')
+  @Post()
+  create(@Body() createMenuDto: CreateMenuDto) {
     return this.menuService.create(createMenuDto);
   }
 
-  @MessagePattern('system.menu.findAll')
-  findAll(@Payload() query: any) {
+  @ApiOperation({
+    summary: '菜单管理-列表',
+  })
+  @RequirePermission('system:menu:list')
+  @Get('/list')
+  findAll(@Query() query: ListDeptDto) {
     return this.menuService.findAll(query);
   }
 
-  @MessagePattern('system.menu.treeSelect')
+  @ApiOperation({
+    summary: '菜单管理-树表',
+  })
+  @RequirePermission('system:menu:query')
+  @Get('/treeselect')
   treeSelect() {
     return this.menuService.treeSelect();
   }
 
-  @MessagePattern('system.menu.roleMenuTreeselect')
-  roleMenuTreeselect(@Payload() roleId: any) {
-    return this.menuService.roleMenuTreeselect(roleId);
+  @ApiOperation({
+    summary: '菜单管理-角色-树表',
+  })
+  @RequirePermission('system:menu:query')
+  @Get('/roleMenuTreeselect/:menuId')
+  roleMenuTreeselect(@Param('menuId') menuId: string) {
+    return this.menuService.roleMenuTreeselect(+menuId);
   }
 
-  @MessagePattern('system.menu.findOne')
-  findOne(@Payload() menuId: any) {
-    return this.menuService.findOne(menuId);
+  @ApiOperation({
+    summary: '菜单管理-详情',
+  })
+  @RequirePermission('system:menu:query')
+  @Get(':menuId')
+  findOne(@Param('menuId') menuId: string) {
+    return this.menuService.findOne(+menuId);
   }
 
-  @MessagePattern('system.menu.update')
-  update(@Payload() updateMenuDto: any) {
+  @ApiOperation({
+    summary: '菜单管理-修改',
+  })
+  @ApiBody({
+    type: UpdateMenuDto,
+    required: true,
+  })
+  @RequirePermission('system:menu:edit')
+  @Put()
+  update(@Body() updateMenuDto: UpdateMenuDto) {
     return this.menuService.update(updateMenuDto);
   }
 
-  @MessagePattern('system.menu.remove')
-  remove(@Payload() menuId: any) {
-    return this.menuService.remove(menuId);
+  @ApiOperation({
+    summary: '菜单管理-删除',
+  })
+  @RequirePermission('system:menu:remove')
+  @Delete(':menuId')
+  remove(@Param('menuId') menuId: string) {
+    return this.menuService.remove(+menuId);
   }
-
-  @MessagePattern('system.menu.findMany')
-  findMany(@Payload() where: any) {
-    return this.menuService.findMany(where);
-  }
-
-  @MessagePattern('system.menu.getMenuListByUserId')
-  getMenuListByUserId(@Payload() userId: any) {
-    return this.menuService.getMenuListByUserId(userId);
-  }
-
 }

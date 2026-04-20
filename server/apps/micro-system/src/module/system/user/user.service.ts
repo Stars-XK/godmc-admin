@@ -12,7 +12,7 @@ import { CacheEnum, DelFlagEnum, StatusEnum, DataScopeEnum } from '@app/common/e
 import { LOGIN_TOKEN_EXPIRESIN, SYS_USER_TYPE } from '@app/common/constant/index';
 import { ResultData } from '@app/common/utils/result';
 import { CreateUserDto, UpdateUserDto, ListUserDto, ChangeStatusDto, ResetPwdDto, AllocatedListDto, UpdateProfileDto, UpdatePwdDto } from './dto/index';
-import { RegisterDto, LoginDto } from '@app/api-gateway/module/main/dto/index';
+import { RegisterDto, LoginDto } from '../../main/dto/index';
 import { AuthUserCancelDto, AuthUserCancelAllDto, AuthUserSelectAllDto } from '../role/dto/index';
 
 import { UserEntity } from '@app/common';
@@ -31,7 +31,7 @@ import { Cacheable, CacheEvict } from '@app/common/decorators/redis.decorator';
 import { Captcha } from '@app/common/decorators/captcha.decorator';
 
 import { ConfigService as SysConfigService } from '../config/config.service';
-import { ConfigService as ApiGatewayConfigService } from '@app/api-gateway/module/system/config/config.service';
+import { ConfigService as ApiGatewayConfigService } from '../config/config.service';
 
 @Injectable()
 export class UserService {
@@ -902,4 +902,7 @@ export class UserService {
     };
     ExportTable(options, res);
   }
+
+
+
 }

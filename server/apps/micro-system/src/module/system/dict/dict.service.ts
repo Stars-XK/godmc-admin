@@ -189,7 +189,7 @@ export class DictService {
    * 导出字典数据为xlsx文件
    * @param res
    */
-  async exportData(res: Response, body: ListDictType) {
+  async exportData(res: Response, body: ListDictData) {
     delete body.pageNum;
     delete body.pageSize;
     const list = await this.findAllData(body);
@@ -197,10 +197,11 @@ export class DictService {
       sheetName: '字典数据',
       data: list.data.list,
       header: [
-        { title: '字典主键', dataIndex: 'dictCode' },
-        { title: '字典名称', dataIndex: 'dictLabel' },
-        { title: '字典类型', dataIndex: 'dictValue' },
-        { title: '备注', dataIndex: 'remark' },
+        { title: '字典编码', dataIndex: 'dictCode' },
+        { title: '字典标签', dataIndex: 'dictLabel' },
+        { title: '字典键值', dataIndex: 'dictValue' },
+        { title: '字典排序', dataIndex: 'dictSort' },
+        { title: '状态', dataIndex: 'status' },
       ],
     };
     ExportTable(options, res);
@@ -242,4 +243,8 @@ export class DictService {
       }
     });
   }
+
+
+
+
 }

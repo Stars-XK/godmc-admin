@@ -1,59 +1,92 @@
-import { Controller } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { Controller, Get, Post, Body, Put, Param, Delete, Request, Query, Res } from '@nestjs/common';
+import { Response } from 'express';
+import { ApiTags, ApiOperation, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { ConfigService } from './config.service';
+import { CreateConfigDto, UpdateConfigDto, ListConfigDto } from './dto/index';
+import { RequirePermission } from '@app/common/decorators/require-premission.decorator';
 
-@Controller()
-export class SysConfigController {
+@ApiTags('参数设置')
+@Controller('system/config')
+@ApiBearerAuth('Authorization')
+export class ConfigController {
   constructor(private readonly configService: ConfigService) {}
 
-  @MessagePattern('system.config.create')
-  create(@Payload() createConfigDto: any) {
+  @ApiOperation({
+    summary: '参数设置-创建',
+  })
+  @ApiBody({
+    type: CreateConfigDto,
+  })
+  @RequirePermission('system:config:add')
+  @Post()
+  create(@Body() createConfigDto: CreateConfigDto, @Request() req) {
+    createConfigDto['createBy'] = req.user.userName;
     return this.configService.create(createConfigDto);
   }
 
-  @MessagePattern('system.config.findAll')
-  findAll(@Payload() query: any) {
+  @ApiOperation({
+    summary: '参数设置-列表',
+  })
+  @ApiBody({
+    type: ListConfigDto,
+    required: true,
+  })
+  @RequirePermission('system:config:list')
+  @Get('/list')
+  findAll(@Query() query: ListConfigDto) {
     return this.configService.findAll(query);
   }
 
-  @MessagePattern('system.config.findOne')
-  findOne(@Payload() configId: any) {
-    return this.configService.findOne(configId);
+  @ApiOperation({
+    summary: '参数设置-详情(id)',
+  })
+  @RequirePermission('system:config:query')
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.configService.findOne(+id);
   }
 
-  @MessagePattern('system.config.findOneByConfigKey')
-  findOneByConfigKey(@Payload() configKey: any) {
+  @ApiOperation({
+    summary: '参数设置-详情(configKey)【走缓存】',
+  })
+  @RequirePermission('system:config:query')
+  @Get('/configKey/:id')
+  findOneByconfigKey(@Param('id') configKey: string) {
     return this.configService.findOneByConfigKey(configKey);
   }
 
-  @MessagePattern('system.config.getConfigValue')
-  getConfigValue(@Payload() configKey: any) {
-    return this.configService.getConfigValue(configKey);
-  }
-
-  @MessagePattern('system.config.update')
-  update(@Payload() updateConfigDto: any) {
+  @ApiOperation({
+    summary: '参数设置-更新',
+  })
+  @RequirePermission('system:config:edit')
+  @Put()
+  update(@Body() updateConfigDto: UpdateConfigDto) {
     return this.configService.update(updateConfigDto);
   }
 
-  @MessagePattern('system.config.remove')
-  remove(@Payload() configIds: any) {
-    return this.configService.remove(configIds);
-  }
-
-  @MessagePattern('system.config.resetConfigCache')
-  resetConfigCache() {
+  @ApiOperation({
+    summary: '参数设置-刷新缓存',
+  })
+  @RequirePermission('system:config:remove')
+  @Delete('/refreshCache')
+  refreshCache() {
     return this.configService.resetConfigCache();
   }
 
-  @MessagePattern('system.config.clearConfigCache')
-  clearConfigCache() {
-    return this.configService.clearConfigCache();
+  @ApiOperation({
+    summary: '参数设置-删除',
+  })
+  @RequirePermission('system:config:remove')
+  @Delete(':id')
+  remove(@Param('id') ids: string) {
+    const configIds = ids.split(',').map((id) => +id);
+    return this.configService.remove(configIds);
   }
 
-  @MessagePattern('system.config.loadingConfigCache')
-  loadingConfigCache() {
-    return this.configService.loadingConfigCache();
+  @ApiOperation({ summary: '导出参数管理为xlsx文件' })
+  @RequirePermission('system:config:export')
+  @Post('/export')
+  async export(@Res() res: Response, @Body() body: ListConfigDto): Promise<void> {
+    return this.configService.export(res, body);
   }
-
 }
