@@ -3,7 +3,6 @@ import { OperlogService } from './operlog.service';
 import { OperlogController } from './operlog.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SysOperlogEntity } from '@app/common';
-import { DictClientService } from './dict-client.service';
 
 @Global()
 @Module({
@@ -11,7 +10,6 @@ import { DictClientService } from './dict-client.service';
   controllers: [OperlogController],
   providers: [
     OperlogService,
-    DictClientService,
     {
       provide: 'OPERLOG_SERVICE',
       useExisting: OperlogService,

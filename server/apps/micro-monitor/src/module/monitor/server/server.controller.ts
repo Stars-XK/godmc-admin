@@ -1,12 +1,15 @@
-import { Controller } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { Controller, Get } from '@nestjs/common';
 import { ServerService } from './server.service';
-
-@Controller()
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+@ApiTags('系统监控-服务监控')
+@ApiBearerAuth('Authorization')
+@Controller('monitor/server')
 export class ServerController {
   constructor(private readonly serverService: ServerService) {}
-
-  @MessagePattern('monitor.server.getInfo')
+  @ApiOperation({
+    summary: '在线用户-列表',
+  })
+  @Get()
   getInfo() {
     return this.serverService.getInfo();
   }
