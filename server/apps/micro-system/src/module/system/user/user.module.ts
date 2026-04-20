@@ -11,11 +11,13 @@ import { SysDeptEntity } from '@app/common';
 import { SysRoleEntity } from '@app/common';
 import { SysPostEntity } from '@app/common';
 import { RoleModule } from '../role/role.module';
+import { SysConfigModule } from '../config/config.module';
 
 @Global()
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserEntity, SysDeptEntity, SysRoleEntity, SysPostEntity, SysUserWithPostEntity, SysUserWithRoleEntity]),
+    SysConfigModule,
     forwardRef(() => RoleModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
