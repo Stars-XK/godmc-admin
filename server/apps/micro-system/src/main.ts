@@ -11,7 +11,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(MicroSystemModule, { cors: true });
   const config = app.get(ConfigService);
   
-  const prefix = config.get<string>('app.prefix') || '/api';
+  const prefix = config.get<string>('app.prefix') || '';
   app.setGlobalPrefix(prefix);
   
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));

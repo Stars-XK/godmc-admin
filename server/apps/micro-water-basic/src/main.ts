@@ -11,7 +11,7 @@ async function bootstrap() {
   const config = app.get(ConfigService);
   
   // 设置全局前缀，对应于网关转发过来的路径
-  const prefix = config.get<string>('app.prefix') || '/api';
+  const prefix = config.get<string>('app.prefix') || '';
   app.setGlobalPrefix(prefix);
   
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));

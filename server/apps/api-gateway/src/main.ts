@@ -25,7 +25,7 @@ async function bootstrap() {
     }),
   );
   // 设置 api 访问前缀
-  const prefix = config.get<string>('app.prefix');
+  const prefix = config.get<string>('app.prefix') || '';
 
   const rootPath = process.cwd();
   const baseDirPath = path.posix.join(rootPath, config.get('app.file.location'));
@@ -108,16 +108,10 @@ async function bootstrap() {
 
   for (const proxy of proxies) {
     app.use(
-      `${prefix}${proxy.path}`,
       createProxyMiddleware({
         target: proxy.target,
         changeOrigin: true,
-        pathRewrite: (path, req) => {
-          // 由于微服务也是跑在 prefix (比如 /api) 下面的 HTTP 服务
-          // 当网关接收到 /api/login，转发给 target 时，不修改路径，原样发给 /api/login
-          // 只要 changeOrigin: true 就可以完美转发。所以 pathRewrite 其实什么都不需要改变。
-          return path;
-        }
+        pathFilter: `${prefix}${proxy.path}`,
       }),
     );
   }
