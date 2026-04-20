@@ -173,6 +173,7 @@ onMounted(() => {
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #f3f4f6;
+  min-height: 600px;
   
   :deep(.el-table) {
     --el-table-border-color: #f3f4f6;
