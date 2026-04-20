@@ -41,6 +41,8 @@ db:
     synchronize: true
     supportBigNumbers: true
     bigNumberStrings: true
+    extra:
+      connectionLimit: 10
 
 # redis 配置
 redis:
