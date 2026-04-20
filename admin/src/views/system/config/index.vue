@@ -112,6 +112,17 @@
           buttonText="配置对象存储" 
         />
       </el-tab-pane>
+
+      <!-- 扩展模块：数据库备份 -->
+      <el-tab-pane name="backup">
+        <template #label>
+          <div class="tab-label">
+            <el-icon><CopyDocument /></el-icon>
+            <span>数据库备份 (DB)</span>
+          </div>
+        </template>
+        <backup-module v-if="activeTab === 'backup'" />
+      </el-tab-pane>
     </el-tabs>
 
     <!-- 添加或修改参数配置对话框 -->
@@ -132,6 +143,7 @@ import { listConfig, getConfig, delConfig, addConfig, updateConfig, refreshCache
 import ConfigCard from './components/ConfigCard.vue'
 import PlaceholderModule from './components/PlaceholderModule.vue'
 import ConfigDialog from './components/ConfigDialog.vue'
+import BackupModule from './components/BackupModule.vue'
 
 const { proxy } = getCurrentInstance()
 const { sys_yes_no } = proxy.useDict('sys_yes_no')
