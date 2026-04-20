@@ -2,6 +2,29 @@ import { IsDateString, IsNumber, IsNumberString, IsObject, IsOptional, IsString,
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { SortRuleEnum } from '@app/common/enum/index';
+import { SysDeptEntity } from '../entities/dept.entity';
+import { SysPostEntity } from '../entities/post.entity';
+import { SysRoleEntity } from '../entities/role.entity';
+import { UserEntity } from '../entities/sys-user.entity';
+
+export type UserType = {
+  browser: string;
+  ipaddr: string;
+  loginLocation: string;
+  loginTime: Date;
+  os: string;
+  permissions: string[];
+  roles: string[];
+  token: string;
+  user: {
+    dept: SysDeptEntity;
+    roles: Array<SysRoleEntity>;
+    posts: Array<SysPostEntity>;
+  } & UserEntity;
+  userId: number;
+  userName: string;
+  deptId: number;
+};
 
 /**
  * 时间区间对象

@@ -13,7 +13,8 @@ const env = process.env.NODE_ENV;
 console.log(env);
 
 export default () => {
-  const config = yaml.load(readFileSync(join(__dirname, `./${configFileNameObj[env]}.yml`), 'utf8')) as Record<string, any>;
+  const configPath = join(process.cwd(), 'libs/shared/src/config', `${configFileNameObj[env]}.yml`);
+  const config = yaml.load(readFileSync(configPath, 'utf8')) as Record<string, any>;
   
   if (process.env.MYSQL_HOST) config.db.mysql.host = process.env.MYSQL_HOST;
   if (process.env.MYSQL_PASSWORD) config.db.mysql.password = process.env.MYSQL_PASSWORD;

@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { configuration } from '@app/shared';
 import { APP_GUARD } from '@nestjs/core';
+import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from '@app/common/guards/auth.guard';
 import { PermissionGuard } from '@app/common/guards/permission.guard';
 import { RolesGuard } from '@app/common/guards/roles.guard';
@@ -17,6 +18,16 @@ import { MicroservicesModule } from './microservices.module';
 @Global()
 @Module({
   imports: [
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        return {
+          secret: config.get('jwt.secretkey'),
+          signOptions: { expiresIn: config.get('jwt.expiresin') },
+        };
+      },
+    }),
     MicroservicesModule,
     // 配置模块
     ConfigModule.forRoot({
