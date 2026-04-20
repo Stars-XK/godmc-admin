@@ -4,8 +4,8 @@ import { JobController } from './job.controller';
 import { JobLogService } from './job-log.service';
 import { JobLogController } from './job-log.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Job } from './entities/job.entity';
-import { JobLog } from './entities/job-log.entity';
+import { Job } from '@app/common/entities/job.entity';
+import { JobLog } from '@app/common/entities/job-log.entity';
 import { TaskService } from './task.service';
 
 @Module({
