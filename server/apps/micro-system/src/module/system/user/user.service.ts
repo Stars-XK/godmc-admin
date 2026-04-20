@@ -22,6 +22,7 @@ import { SysPostEntity } from '@app/common';
 import { SysDeptEntity } from '@app/common';
 import { RoleService } from '../role/role.service';
 import { DeptService } from '../dept/dept.service';
+import { ConfigService } from '../config/config.service';
 
 import { SysRoleEntity } from '@app/common';
 import { SysMenuEntity } from '@app/common';
@@ -48,6 +49,7 @@ export class UserService {
     private readonly deptService: DeptService,
     private readonly jwtService: JwtService,
     private readonly redisService: RedisService,
+    public readonly configService: ConfigService,
   ) {}
   /**
    * 后台创建用户
