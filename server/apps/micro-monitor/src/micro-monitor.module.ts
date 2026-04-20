@@ -4,6 +4,7 @@ import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { configuration } from '@app/shared';
 import { SharedModule } from '@app/shared';
 import { MonitorModule } from './module/monitor/monitor.module';
+import { MicroservicesModule } from './microservices.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { MonitorModule } from './module/monitor/monitor.module';
       },
     }),
     SharedModule,
+    MicroservicesModule,
     MonitorModule,
   ],
 })

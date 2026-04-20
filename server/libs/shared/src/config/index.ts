@@ -8,12 +8,11 @@ const configFileNameObj = {
   production: 'prod',
 };
 
-const env = process.env.NODE_ENV;
-
-console.log(env);
+const env = process.env.NODE_ENV || 'development';
 
 export default () => {
-  const configPath = join(process.cwd(), 'libs/shared/src/config', `${configFileNameObj[env]}.yml`);
+  const configFileName = configFileNameObj[env] || configFileNameObj.development;
+  const configPath = join(process.cwd(), 'libs/shared/src/config', `${configFileName}.yml`);
   const config = yaml.load(readFileSync(configPath, 'utf8')) as Record<string, any>;
   
   if (process.env.MYSQL_HOST) config.db.mysql.host = process.env.MYSQL_HOST;

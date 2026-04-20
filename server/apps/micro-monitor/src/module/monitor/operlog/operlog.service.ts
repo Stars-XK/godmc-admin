@@ -9,8 +9,8 @@ import { AxiosService } from '@app/shared';
 import { QueryOperLogDto } from './dto/operLog.dto';
 import { ExportTable } from '@app/common/utils/export';
 import { Response } from 'express';
-import { DictService } from '@app/api-gateway/module/system/dict/dict.service';
 import { isEmpty } from '@app/common/utils';
+import { DictClientService } from './dict-client.service';
 
 @Injectable({ scope: Scope.REQUEST })
 export class OperlogService {
@@ -20,8 +20,7 @@ export class OperlogService {
     @InjectRepository(SysOperlogEntity)
     private readonly operLogEntityRep: Repository<SysOperlogEntity>,
     private readonly axiosService: AxiosService,
-    @Inject(DictService)
-    private readonly dictService: DictService,
+    private readonly dictService: DictClientService,
   ) {}
 
   async findAll(query: QueryOperLogDto) {
