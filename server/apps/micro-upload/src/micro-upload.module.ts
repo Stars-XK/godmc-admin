@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { configuration } from '@app/shared';
 import { SharedModule } from '@app/shared';
-import { UploadModule } from './module/upload/upload.module';
+import { UploadModule } from './upload/upload.module';
 import { RegistryModule } from '@app/common';
 import { MicroservicesModule } from '@app/api-gateway/microservices.module';
 
