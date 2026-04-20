@@ -11,6 +11,11 @@ export class ZoneController {
     return this.zoneService.create(payload.dto, payload.user);
   }
 
+  @MessagePattern('waterBasic.zone.findList')
+  findList(@Payload() payload: any) {
+    return this.zoneService.findList(payload.query, payload.user);
+  }
+
   @MessagePattern('waterBasic.zone.findTree')
   findTree(@Payload() payload: any) {
     return this.zoneService.findTree(payload.query, payload.user);
@@ -29,5 +34,10 @@ export class ZoneController {
   @MessagePattern('waterBasic.zone.remove')
   remove(@Payload() id: any) {
     return this.zoneService.remove(id);
+  }
+
+  @MessagePattern('waterBasic.zone.importData')
+  importData(@Payload() payload: any) {
+    return this.zoneService.importData(payload.dataList, payload.parentId, payload.user);
   }
 }

@@ -35,6 +35,34 @@ export class ZoneService {
     return ResultData.ok();
   }
 
+  async findList(query: any, user: any) {
+    const entity = this.zoneRep.createQueryBuilder('zone');
+    entity.where('zone.delFlag = :delFlag', { delFlag: '0' });
+
+    if (query.type) {
+      entity.andWhere('zone.type = :type', { type: query.type });
+    }
+    if (query.name) {
+      entity.andWhere(`zone.name LIKE "%${query.name}%"`);
+    }
+    if (query.code) {
+      entity.andWhere(`zone.code LIKE "%${query.code}%"`);
+    }
+    if (query.status) {
+      entity.andWhere('zone.status = :status', { status: query.status });
+    }
+
+    const isAdmin = user.roles?.some((r) => r.roleKey === 'admin' || r.roleId === 1);
+    if (!isAdmin && user.deptId) {
+      entity.andWhere('zone.deptId = :deptId', { deptId: user.deptId });
+    }
+
+    entity.orderBy('zone.sort', 'ASC');
+
+    const res = await entity.getMany();
+    return ResultData.ok(res);
+  }
+
   async findTree(query: any, user: any) {
     const entity = this.zoneRep.createQueryBuilder('zone');
     entity.where('zone.delFlag = :delFlag', { delFlag: '0' });
@@ -99,6 +127,38 @@ export class ZoneService {
       Object.assign(updateDto, { ancestors: '0', level: 1 });
     }
     await this.zoneRep.update({ id: updateDto.id }, updateDto);
+    return ResultData.ok();
+  }
+
+  async importData(dataList: any[], parentId: number, user: any) {
+    if (!dataList || dataList.length === 0) return ResultData.ok();
+
+    let parentLevel = 0;
+    let parentAncestors = '0';
+
+    if (parentId && parentId !== 0) {
+      const parent = await this.zoneRep.findOne({
+        where: { id: parentId, delFlag: '0' },
+        select: ['ancestors', 'level'],
+      });
+      if (!parent) return ResultData.fail(500, '指定的父级分区不存在');
+      parentLevel = parent.level;
+      parentAncestors = parent.ancestors ? `${parent.ancestors},${parentId}` : `${parentId}`;
+    }
+
+    const insertData = dataList.map((item, index) => {
+      return {
+        ...item,
+        parentId: parentId || 0,
+        ancestors: parentAncestors,
+        level: parentLevel + 1,
+        createBy: user.userName,
+        deptId: user.deptId,
+        sort: item.sort || index,
+      };
+    });
+
+    await this.zoneRep.save(insertData);
     return ResultData.ok();
   }
 

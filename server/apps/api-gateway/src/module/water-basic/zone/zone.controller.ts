@@ -1,5 +1,7 @@
-import { Controller, Get, Post, Body, Put, Param, Delete, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Put, Param, Delete, Query, UseGuards, Res, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { Response } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ZoneService } from './zone.service';
 import { RequirePermission } from '@app/common/decorators/require-premission.decorator';
 import { User } from '@app/common/decorators/user.decorator';
@@ -43,5 +45,36 @@ export class ZoneController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.zoneService.remove(+id);
+  }
+
+  @ApiOperation({ summary: '导出分区数据' })
+  @RequirePermission('water-basic:zone:export')
+  @Post('export')
+  export(@Res() res: Response, @Body() query: any, @User() user: any) {
+    return this.zoneService.export(res, query, user);
+  }
+
+  @ApiOperation({ summary: '下载导入模板' })
+  @Get('importTemplate')
+  importTemplate(@Res() res: Response) {
+    return this.zoneService.importTemplate(res);
+  }
+
+  @ApiOperation({ summary: '导入分区数据' })
+  @RequirePermission('water-basic:zone:import')
+  @Post('importData')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        parentId: { type: 'integer' }
+      },
+    },
+  })
+  importData(@UploadedFile() file: Express.Multer.File, @Body('parentId') parentId: string, @User() user: any) {
+    return this.zoneService.importData(file, parentId ? parseInt(parentId, 10) : 0, user);
   }
 }
