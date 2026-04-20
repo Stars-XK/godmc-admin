@@ -92,7 +92,7 @@ export class ZoneService {
       return { code: 500, msg: '未上传文件' };
     }
     const workbook = new exceljs.Workbook();
-    await workbook.xlsx.load(file.buffer);
+    await workbook.xlsx.load(file.buffer as any);
     const worksheet = workbook.getWorksheet(1);
     
     const dataList = [];

@@ -67,6 +67,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/micro-tools/tsconfig.app.json"
       }
+    },
+    "micro-water-basic": {
+      "type": "application",
+      "root": "apps/micro-water-basic",
+      "entryFile": "main",
+      "sourceRoot": "apps/micro-water-basic/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/micro-water-basic/tsconfig.app.json"
+      }
     }
   }
 }
