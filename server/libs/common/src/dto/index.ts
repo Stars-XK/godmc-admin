@@ -2,7 +2,6 @@ import { IsDateString, IsNumber, IsNumberString, IsObject, IsOptional, IsString,
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { SortRuleEnum } from '@app/common/enum/index';
-import { SysDeptEntity, SysPostEntity, SysRoleEntity, UserEntity } from '@app/common';
 
 /**
  * 时间区间对象
@@ -59,22 +58,3 @@ export class PagingDto {
   @IsEnum(SortRuleEnum)
   isAsc?: string;
 }
-
-export type UserType = {
-  browser: string;
-  ipaddr: string;
-  loginLocation: string;
-  loginTime: Date;
-  os: string;
-  permissions: string[];
-  roles: string[];
-  token: string;
-  user: {
-    dept: SysDeptEntity;
-    roles: Array<SysRoleEntity>;
-    posts: Array<SysPostEntity>;
-  } & UserEntity;
-  userId: number;
-  userName: string;
-  deptId: number;
-};

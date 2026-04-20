@@ -3,8 +3,7 @@
   "collection": "@nestjs/schematics",
   "sourceRoot": "apps/api-gateway/src",
   "monorepo": true,
-  "root": ".",
-  "defaultProject": "api-gateway",
+  "root": "apps/api-gateway",
   "compilerOptions": {
     "webpack": true,
     "tsConfigPath": "tsconfig.build.json",
@@ -21,7 +20,7 @@
       "entryFile": "main",
       "sourceRoot": "apps/api-gateway/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
+        "tsConfigPath": "tsconfig.build.json"
       }
     },
     "micro-auth": {
