@@ -12,7 +12,7 @@
     "start:dev": "cross-env NODE_ENV=development nest start api-gateway --watch",
     "start:test": "cross-env NODE_ENV=test nest start api-gateway --watch",
     "start:debug": "nest start api-gateway --debug --watch",
-    "start:all": "concurrently -c \"cyan,yellow,green,magenta,blue,red\" -n \"gateway,auth,system,monitor,upload,tools\" \"cross-env NODE_ENV=development nest start api-gateway --watch\" \"cross-env NODE_ENV=development nest start micro-auth --watch\" \"cross-env NODE_ENV=development nest start micro-system --watch\" \"cross-env NODE_ENV=development nest start micro-monitor --watch\" \"cross-env NODE_ENV=development nest start micro-upload --watch\" \"cross-env NODE_ENV=development nest start micro-tools --watch\"",
+    "start:all": "concurrently -c \"cyan,yellow,green,magenta,blue,red,white\" -n \"gateway,auth,system,monitor,upload,tools,water\" \"cross-env NODE_ENV=development nest start api-gateway --watch\" \"cross-env NODE_ENV=development nest start micro-auth --watch\" \"cross-env NODE_ENV=development nest start micro-system --watch\" \"cross-env NODE_ENV=development nest start micro-monitor --watch\" \"cross-env NODE_ENV=development nest start micro-upload --watch\" \"cross-env NODE_ENV=development nest start micro-tools --watch\" \"cross-env NODE_ENV=development nest start micro-water-basic --watch\"",
     "start:prod": "node dist/apps/api-gateway/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
