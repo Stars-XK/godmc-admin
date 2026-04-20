@@ -7,6 +7,7 @@ import { NoticeModule } from './notice/notice.module';
 import { PostModule } from './post/post.module';
 import { RoleModule } from './role/role.module';
 import { UserModule } from './user/user.module';
+import { DbUpdaterModule } from './db-updater/db-updater.module';
 
 @Global()
 @Module({
@@ -19,6 +20,7 @@ import { UserModule } from './user/user.module';
     PostModule,
     RoleModule,
     UserModule,
+    DbUpdaterModule,
   ],
 })
 export class SystemModule {}
