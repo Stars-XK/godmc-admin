@@ -77,7 +77,7 @@ export class ConfigService {
   @Cacheable(CacheEnum.SYS_CONFIG_KEY, '{configKey}')
   async getConfigValue(configKey: string) {
     const data = await this.sysConfigEntityRep.findOne({ where: { configKey: configKey } });
-    return data.configValue;
+    return data ? data.configValue : null;
   }
 
   @CacheEvict(CacheEnum.SYS_CONFIG_KEY, '{updateConfigDto.configKey}')

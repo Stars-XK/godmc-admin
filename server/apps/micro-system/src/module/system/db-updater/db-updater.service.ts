@@ -51,7 +51,7 @@ export class DbUpdaterService implements OnModuleInit {
         const filePath = path.join(dbDir, file);
         
         // Escape special chars in password if needed, but for raw execution this is standard
-        const cmd = `mysql -h${dbConfig.host} -P${dbConfig.port} -u${dbConfig.username} -p"${dbConfig.password}" ${dbConfig.database} < "${filePath}"`;
+        const cmd = `mysql --default-character-set=utf8mb4 -h${dbConfig.host} -P${dbConfig.port} -u${dbConfig.username} -p"${dbConfig.password}" ${dbConfig.database} < "${filePath}"`;
         await execAsync(cmd);
         
         await this.dbUpdateRepo.save({
