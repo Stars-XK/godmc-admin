@@ -5,9 +5,10 @@ import { CacheModule } from './cache/cache.module';
 import { LoginlogModule } from './loginlog/loginlog.module';
 import { OnlineModule } from './online/online.module';
 import { OperlogModule } from './operlog/operlog.module';
+import { RegistryMonitorModule } from './registry/registry.module';
 
 @Module({
-  imports: [JobModule, ServerModule, CacheModule, LoginlogModule, OnlineModule, OperlogModule],
+  imports: [JobModule, ServerModule, CacheModule, LoginlogModule, OnlineModule, OperlogModule, RegistryMonitorModule],
   exports: [JobModule],
 })
 export class MonitorModule {}
