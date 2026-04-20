@@ -11,12 +11,12 @@ export function Captcha(CACHE_KEY: string) {
 
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     injectRedis(target, 'redisService');
-    injectConfig(target, 'configService');
+    injectConfig(target, 'apiGatewayConfigService');
 
     const originMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
-      const enable = await this.configService.getConfigValue('sys.account.captchaEnabled');
+      const enable = await this.apiGatewayConfigService.getConfigValue('sys.account.captchaEnabled');
       const captchaEnabled: boolean = enable === 'true';
 
       if (captchaEnabled) {

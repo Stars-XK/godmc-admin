@@ -22,7 +22,6 @@ import { SysPostEntity } from '@app/common';
 import { SysDeptEntity } from '@app/common';
 import { RoleService } from '../role/role.service';
 import { DeptService } from '../dept/dept.service';
-import { ConfigService } from '../config/config.service';
 
 import { SysRoleEntity } from '@app/common';
 import { SysMenuEntity } from '@app/common';
@@ -30,6 +29,9 @@ import { UserType } from './dto/user';
 import { ClientInfoDto } from '@app/common/decorators/common.decorator';
 import { Cacheable, CacheEvict } from '@app/common/decorators/redis.decorator';
 import { Captcha } from '@app/common/decorators/captcha.decorator';
+
+import { ConfigService as SysConfigService } from '../config/config.service';
+import { ConfigService as ApiGatewayConfigService } from '@app/api-gateway/module/system/config/config.service';
 
 @Injectable()
 export class UserService {
@@ -49,7 +51,8 @@ export class UserService {
     private readonly deptService: DeptService,
     private readonly jwtService: JwtService,
     private readonly redisService: RedisService,
-    public readonly configService: ConfigService,
+    public readonly configService: SysConfigService,
+    public readonly apiGatewayConfigService: ApiGatewayConfigService,
   ) {}
   /**
    * 后台创建用户
