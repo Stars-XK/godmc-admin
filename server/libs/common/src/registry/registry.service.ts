@@ -30,7 +30,7 @@ export class RegistryService implements OnModuleInit, OnModuleDestroy {
   onModuleDestroy() {
     // 服务关闭时主动删除注册信息
     if (this.redisKey) {
-      this.redisService.getRedis().del(this.redisKey).catch(console.error);
+      this.redisService.getClient().del(this.redisKey).catch(console.error);
     }
   }
 
@@ -49,7 +49,7 @@ export class RegistryService implements OnModuleInit, OnModuleDestroy {
 
     try {
       // 写入 Redis 并设置 15 秒过期时间
-      await this.redisService.getRedis().set(this.redisKey, JSON.stringify(payload), 'EX', 15);
+      await this.redisService.getClient().set(this.redisKey, JSON.stringify(payload), 'EX', 15);
     } catch (error) {
       console.error(`[RegistryService] Failed to send heartbeat for ${this.serviceName}`, error);
     }

@@ -14,7 +14,7 @@ export class RegistryController {
   @RequirePermission('monitor:registry:list')
   @Get('list')
   async getOnlineServices() {
-    const redis = this.redisService.getRedis();
+    const redis = this.redisService.getClient();
     const keys = await redis.keys('microservice:*');
     const services = [];
     
