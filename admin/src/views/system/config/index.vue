@@ -6,12 +6,14 @@
         <p class="page-desc">管理系统的全局运行参数、第三方服务密钥及核心功能开关。</p>
       </div>
       <div class="header-actions">
-        <el-button type="primary" icon="Refresh" @click="handleRefreshCache" class="glow-btn">
+        <button class="btn-secondary" @click="handleRefreshCache">
+          <el-icon class="mr-1"><Refresh /></el-icon>
           刷新系统缓存
-        </el-button>
-        <el-button plain icon="Plus" @click="handleAdd" v-hasPermi="['system:config:add']">
+        </button>
+        <button class="btn-primary" @click="handleAdd" v-hasPermi="['system:config:add']">
+          <el-icon class="mr-1"><Plus /></el-icon>
           新增自定义参数
-        </el-button>
+        </button>
       </div>
     </div>
 
@@ -35,7 +37,7 @@
               @clear="handleQuery"
               class="search-input"
             />
-            <el-button type="primary" class="ml-4" @click="handleQuery">搜索</el-button>
+            <button class="search-btn" @click="handleQuery">搜索</button>
           </div>
           
           <div v-loading="loading" class="config-grid">
@@ -43,39 +45,44 @@
               <el-empty description="暂无匹配的基础配置参数" />
             </div>
             
-            <el-card v-for="item in filteredSystemConfigs" :key="item.configId" class="config-item-card" shadow="hover">
-              <div class="card-top">
-                <div class="config-title-wrap">
-                  <h3 class="config-name">{{ item.configName }}</h3>
-                  <el-tag :type="item.configType === 'Y' ? 'danger' : 'info'" size="small" class="type-tag" effect="light">
+            <div class="refined-card" v-for="item in filteredSystemConfigs" :key="item.configId">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <h3 class="card-title">{{ item.configName }}</h3>
+                  <span class="card-badge" :class="item.configType === 'Y' ? 'badge-system' : 'badge-custom'">
                     {{ item.configType === 'Y' ? '系统内置' : '自定义' }}
-                  </el-tag>
+                  </span>
                 </div>
-                <div class="config-actions">
-                  <el-tooltip content="编辑" placement="top">
-                    <el-button type="primary" link icon="Edit" @click="handleUpdate(item)" v-hasPermi="['system:config:edit']" />
-                  </el-tooltip>
-                  <el-tooltip content="删除" placement="top" v-if="item.configType !== 'Y'">
-                    <el-button type="danger" link icon="Delete" @click="handleDelete(item)" v-hasPermi="['system:config:remove']" />
-                  </el-tooltip>
+                <div class="card-actions">
+                  <button class="action-btn" @click="handleUpdate(item)" v-hasPermi="['system:config:edit']" title="编辑">
+                    <el-icon><Edit /></el-icon>
+                  </button>
+                  <button class="action-btn text-danger" @click="handleDelete(item)" v-hasPermi="['system:config:remove']" v-if="item.configType !== 'Y'" title="删除">
+                    <el-icon><Delete /></el-icon>
+                  </button>
                 </div>
               </div>
               
-              <div class="config-key-box">
-                <code>{{ item.configKey }}</code>
-                <el-icon class="copy-icon" @click="copyText(item.configKey)"><CopyDocument /></el-icon>
+              <div class="card-body">
+                <div class="info-row">
+                  <span class="info-label">键名</span>
+                  <div class="info-value key-value" @click="copyText(item.configKey)">
+                    <code>{{ item.configKey }}</code>
+                    <el-icon class="copy-icon"><CopyDocument /></el-icon>
+                  </div>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">键值</span>
+                  <div class="info-value text-value" :title="item.configValue">
+                    {{ item.configValue }}
+                  </div>
+                </div>
               </div>
               
-              <div class="config-value-box">
-                <span class="value-label">当前值：</span>
-                <span class="value-text" :title="item.configValue">{{ item.configValue }}</span>
+              <div class="card-footer" v-if="item.remark">
+                <p class="remark-text">{{ item.remark }}</p>
               </div>
-              
-              <div class="config-remark" v-if="item.remark">
-                <el-icon><InfoFilled /></el-icon>
-                <span>{{ item.remark }}</span>
-              </div>
-            </el-card>
+            </div>
           </div>
           
           <div class="pagination-wrapper" v-if="total > 0">
@@ -103,7 +110,7 @@
           </div>
           <h3>邮件推送服务配置</h3>
           <p>集中管理系统的 SMTP 发信账号、服务器地址、端口及模板参数。</p>
-          <el-button type="primary" plain class="mt-4" @click="mockFeature">配置邮件服务</el-button>
+          <button class="btn-secondary" @click="mockFeature">配置邮件服务</button>
         </div>
       </el-tab-pane>
 
@@ -121,7 +128,7 @@
           </div>
           <h3>短信网关配置</h3>
           <p>接入阿里云、腾讯云等第三方短信提供商的 AccessKey 及签名信息。</p>
-          <el-button type="primary" plain class="mt-4" @click="mockFeature">配置短信网关</el-button>
+          <button class="btn-secondary" @click="mockFeature">配置短信网关</button>
         </div>
       </el-tab-pane>
 
@@ -139,7 +146,7 @@
           </div>
           <h3>云存储配置</h3>
           <p>管理七牛云、又拍云、MinIO 等对象存储服务的 Bucket 与域名映射。</p>
-          <el-button type="primary" plain class="mt-4" @click="mockFeature">配置对象存储</el-button>
+          <button class="btn-secondary" @click="mockFeature">配置对象存储</button>
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -190,7 +197,7 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="cancel" size="large">取 消</el-button>
-          <el-button type="primary" @click="submitForm" size="large" class="glow-btn">保存配置</el-button>
+          <button class="btn-primary" @click="submitForm">保存配置</button>
         </div>
       </template>
     </el-dialog>
@@ -358,73 +365,110 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.config-dashboard {
-  background: transparent !important;
-  box-shadow: none !important;
-  border: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
+.app-container.config-dashboard {
+  padding: 32px 40px !important;
+  background-color: #fcfcfc !important;
+  min-height: calc(100vh - 84px);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
 .config-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 24px;
+  align-items: flex-start;
+  margin-bottom: 32px;
   
   .header-info {
     .page-title {
-      font-size: 24px;
+      font-size: 28px;
       font-weight: 700;
-      color: #0F172A;
-      margin: 0 0 8px 0;
-      letter-spacing: -0.5px;
+      color: #111827;
+      margin: 0 0 12px 0;
+      letter-spacing: -0.02em;
     }
     .page-desc {
-      color: #64748B;
-      font-size: 14px;
+      color: #6b7280;
+      font-size: 15px;
       margin: 0;
+      line-height: 1.5;
+      max-width: 600px;
     }
   }
 }
 
-.glow-btn {
-  box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.39) !important;
+.header-actions {
+  display: flex;
+  gap: 12px;
+
+  .btn-primary {
+    background-color: #111827;
+    color: #ffffff;
+    border: 1px solid #111827;
+    border-radius: 8px;
+    padding: 0 16px;
+    height: 40px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    &:hover {
+      background-color: #374151;
+      border-color: #374151;
+    }
+  }
+
+  .btn-secondary {
+    background-color: #ffffff;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0 16px;
+    height: 40px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    &:hover {
+      background-color: #f9fafb;
+      border-color: #9ca3af;
+    }
+  }
+}
+
+/* Tabs Styling - Clean pill style */
+:deep(.el-tabs__nav-wrap::after) {
+  display: none;
+}
+:deep(.el-tabs__active-bar) {
+  display: none;
+}
+:deep(.el-tabs__item) {
+  padding: 0 20px !important;
+  height: 40px;
+  line-height: 40px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  border-radius: 9999px;
+  transition: all 0.2s;
+  margin-right: 8px;
+  
   &:hover {
-    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.23) !important;
+    color: #111827;
+    background-color: #f3f4f6;
+  }
+  
+  &.is-active {
+    color: #111827;
+    background-color: #e5e7eb;
   }
 }
-
-.custom-tabs {
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  border: 1px solid #F1F5F9;
-  overflow: hidden;
-  
-  :deep(.el-tabs__nav-wrap) {
-    padding: 0 24px;
-    margin-bottom: 0;
-    &::after {
-      height: 1px;
-      background-color: #F1F5F9;
-    }
-  }
-  
-  :deep(.el-tabs__active-bar) {
-    height: 3px;
-    border-radius: 3px 3px 0 0;
-  }
-  
-  :deep(.el-tabs__item) {
-    height: 60px;
-    font-size: 15px;
-    color: #64748B;
-    &.is-active {
-      color: var(--el-color-primary);
-      font-weight: 600;
-    }
-  }
+:deep(.el-tabs__header) {
+  margin-bottom: 32px;
 }
 
 .tab-label {
@@ -432,189 +476,289 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   .el-icon {
-    font-size: 18px;
+    font-size: 16px;
   }
 }
 
-.tab-content-wrapper {
-  padding: 24px;
-  background-color: #F8FAFC;
-  min-height: 400px;
-}
-
+/* Search Bar */
 .search-bar {
   margin-bottom: 24px;
   display: flex;
+  align-items: center;
+  gap: 12px;
   
   .search-input {
-    width: 320px;
+    width: 380px;
     :deep(.el-input__wrapper) {
-      border-radius: 100px;
-      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 0 0 1px #E2E8F0 inset !important;
-      padding: 4px 16px;
-      background: #FFFFFF;
+      border-radius: 8px;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 0 0 1px #d1d5db inset !important;
+      padding: 8px 16px;
+      background: #ffffff;
+      transition: all 0.2s;
       
       &.is-focus {
-        box-shadow: 0 0 0 2px var(--el-color-primary) inset !important;
+        box-shadow: 0 0 0 2px #111827 inset !important;
       }
+      
+      .el-input__inner {
+        font-size: 14px;
+        color: #111827;
+        &::placeholder {
+          color: #9ca3af;
+        }
+      }
+    }
+  }
+  
+  .search-btn {
+    background-color: #ffffff;
+    color: #111827;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0 20px;
+    height: 40px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    &:hover {
+      background-color: #f9fafb;
+      border-color: #9ca3af;
     }
   }
 }
 
-/* Grid Layout for Config Cards */
+/* Grid Layout */
 .config-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 20px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
 }
 
-.config-item-card {
-  border: 1px solid #E2E8F0 !important;
-  border-radius: 12px !important;
-  background: #FFFFFF;
-  transition: all 0.3s ease;
-  
-  :deep(.el-card__body) {
-    padding: 20px;
-  }
+/* Refined Card */
+.refined-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
   
   &:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
     transform: translateY(-2px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05) !important;
-    border-color: var(--el-color-primary-light-7) !important;
   }
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
   
-  .card-top {
+  .card-title-group {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 16px;
+    flex-direction: column;
+    gap: 8px;
     
-    .config-title-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      
-      .config-name {
-        margin: 0;
-        font-size: 16px;
-        font-weight: 600;
-        color: #0F172A;
-        line-height: 1.3;
-      }
-      
-      .type-tag {
-        align-self: flex-start;
-        border: none !important;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-      }
-    }
-    
-    .config-actions {
-      display: flex;
-      gap: 4px;
-      .el-button {
-        padding: 4px;
-        height: auto;
-        font-size: 16px;
-        color: #94A3B8;
-        &:hover {
-          color: var(--el-color-primary);
-        }
-        &.el-button--danger:hover {
-          color: var(--el-color-danger);
-        }
-      }
-    }
-  }
-  
-  .config-key-box {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #F1F5F9;
-    padding: 8px 12px;
-    border-radius: 6px;
-    margin-bottom: 16px;
-    
-    code {
-      font-family: 'Fira Code', monospace;
-      font-size: 13px;
-      color: #334155;
-      word-break: break-all;
-    }
-    
-    .copy-icon {
-      color: #94A3B8;
-      cursor: pointer;
+    .card-title {
+      margin: 0;
       font-size: 16px;
-      transition: color 0.2s;
-      &:hover {
-        color: var(--el-color-primary);
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.4;
+    }
+    
+    .card-badge {
+      align-self: flex-start;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.02em;
+      
+      &.badge-system {
+        background-color: #fee2e2;
+        color: #b91c1c;
+      }
+      
+      &.badge-custom {
+        background-color: #f3f4f6;
+        color: #4b5563;
       }
     }
   }
   
-  .config-value-box {
+  .card-actions {
     display: flex;
-    align-items: flex-start;
-    margin-bottom: 16px;
-    font-size: 14px;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
     
-    .value-label {
-      color: #64748B;
-      white-space: nowrap;
-      margin-right: 8px;
-    }
-    
-    .value-text {
-      color: #0F172A;
-      font-weight: 500;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
+    .action-btn {
+      background: transparent;
+      border: none;
+      color: #9ca3af;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      
+      &:hover {
+        background-color: #f3f4f6;
+        color: #111827;
+      }
+      
+      &.text-danger:hover {
+        background-color: #fee2e2;
+        color: #dc2626;
+      }
     }
   }
+}
+
+.refined-card:hover .card-actions {
+  opacity: 1;
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-grow: 1;
   
-  .config-remark {
+  .info-row {
     display: flex;
-    align-items: flex-start;
-    gap: 6px;
-    font-size: 13px;
-    color: #94A3B8;
-    background: #F8FAFC;
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px dashed #E2E8F0;
+    flex-direction: column;
+    gap: 4px;
     
-    .el-icon {
-      margin-top: 2px;
-      color: var(--el-color-info);
+    .info-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
     
-    span {
+    .info-value {
+      font-size: 14px;
+      color: #111827;
       line-height: 1.5;
     }
+    
+    .key-value {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: #f9fafb;
+      border: 1px solid #e5e7eb;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      
+      code {
+        font-family: 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', Consolas, monospace;
+        font-size: 13px;
+        color: #374151;
+      }
+      
+      .copy-icon {
+        color: #9ca3af;
+        font-size: 14px;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      
+      &:hover {
+        background-color: #f3f4f6;
+        border-color: #d1d5db;
+        
+        .copy-icon {
+          opacity: 1;
+        }
+      }
+    }
+    
+    .text-value {
+      background-color: #ffffff;
+      border: 1px solid transparent;
+      padding: 6px 0;
+      word-break: break-all;
+    }
   }
 }
 
-.empty-state {
-  grid-column: 1 / -1;
-  padding: 40px 0;
+.card-footer {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px dashed #e5e7eb;
+  
+  .remark-text {
+    margin: 0;
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }
 
+/* Empty State */
+.empty-state {
+  grid-column: 1 / -1;
+  padding: 80px 0;
+  display: flex;
+  justify-content: center;
+}
+
+/* Pagination */
 .pagination-wrapper {
-  padding-top: 20px;
-  border-top: 1px solid #E2E8F0;
-  margin-top: 20px;
+  margin-top: 32px;
+  display: flex;
+  justify-content: flex-end;
   
-  :deep(.pagination-container) {
-    margin: 0 !important;
-    padding: 0 !important;
+  :deep(.el-pagination) {
+    --el-pagination-button-bg-color: #ffffff;
+    --el-pagination-hover-color: #111827;
+    
+    button {
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      background: #ffffff;
+      &:hover {
+        border-color: #d1d5db;
+      }
+    }
+    
+    .el-pager li {
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      background: #ffffff;
+      margin: 0 4px;
+      font-weight: 500;
+      
+      &:hover {
+        border-color: #d1d5db;
+        color: #111827;
+      }
+      
+      &.is-active {
+        background-color: #111827;
+        border-color: #111827;
+        color: #ffffff;
+      }
+    }
   }
 }
 
@@ -624,49 +768,96 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px;
+  padding: 100px 20px;
   text-align: center;
-  background-color: #F8FAFC;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
   min-height: 400px;
   
   .module-icon-bg {
-    width: 80px;
-    height: 80px;
-    background: #FFFFFF;
-    border-radius: 24px;
+    width: 64px;
+    height: 64px;
+    background: #f3f4f6;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
     margin-bottom: 24px;
     
     .el-icon {
-      font-size: 36px;
-      color: var(--el-color-primary);
+      font-size: 32px;
+      color: #4b5563;
     }
   }
   
   h3 {
     font-size: 20px;
     font-weight: 600;
-    color: #0F172A;
+    color: #111827;
     margin: 0 0 12px 0;
   }
   
   p {
-    color: #64748B;
+    color: #6b7280;
     max-width: 400px;
     line-height: 1.6;
-    margin: 0 0 24px 0;
+    margin: 0 0 32px 0;
   }
 }
 
-/* Form Overrides */
+/* Dialog Forms */
+.premium-dialog {
+  :deep(.el-dialog) {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  :deep(.el-dialog__header) {
+    padding: 24px 32px;
+    border-bottom: 1px solid #e5e7eb;
+    margin-right: 0;
+    
+    .el-dialog__title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #111827;
+    }
+  }
+  
+  :deep(.el-dialog__body) {
+    padding: 32px;
+  }
+  
+  :deep(.el-dialog__footer) {
+    padding: 24px 32px;
+    border-top: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+  }
+}
+
 .premium-form {
   .el-form-item__label {
     font-weight: 500;
-    color: #334155;
+    color: #374151;
     padding-bottom: 8px;
+    font-size: 14px;
+  }
+  
+  :deep(.el-input__wrapper),
+  :deep(.el-textarea__inner) {
+    border-radius: 8px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 0 0 1px #d1d5db inset !important;
+    transition: all 0.2s;
+    
+    &:hover {
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 0 0 1px #9ca3af inset !important;
+    }
+    
+    &.is-focus, &:focus {
+      box-shadow: 0 0 0 2px #111827 inset !important;
+    }
   }
   
   .label-with-tip {
@@ -677,32 +868,30 @@ onMounted(() => {
   .custom-radio-group {
     width: 100%;
     display: flex;
-    flex-wrap: wrap;
     gap: 12px;
+    
     :deep(.el-radio-button) {
-      flex: 1 1 calc(50% - 12px);
-      min-width: 120px;
+      flex: 1;
       .el-radio-button__inner {
         width: 100%;
-        border-radius: 6px !important;
-        border-left: 1px solid var(--el-border-color) !important;
-        box-shadow: none !important;
+        border-radius: 8px !important;
+        border: 1px solid #d1d5db !important;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+        font-weight: 500;
+        color: #374151;
+        transition: all 0.2s;
       }
+      
       &.is-active .el-radio-button__inner {
-        background-color: var(--el-color-primary-light-9);
-        border-color: var(--el-color-primary) !important;
-        color: var(--el-color-primary);
+        background-color: #111827;
+        border-color: #111827 !important;
+        color: #ffffff;
+      }
+      
+      &:not(.is-active):hover .el-radio-button__inner {
+        background-color: #f9fafb;
       }
     }
-  }
-}
-
-.dialog-footer {
-  padding-top: 10px;
-  .el-button {
-    border-radius: 8px;
-    padding: 12px 24px;
-    font-weight: 500;
   }
 }
 </style>
