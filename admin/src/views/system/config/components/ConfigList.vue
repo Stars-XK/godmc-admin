@@ -68,8 +68,19 @@ function getList() {
     configKey: searchQuery.value || undefined
   }
   listConfig(params).then(res => {
-    configList.value = res.rows || res.data.rows || res.data
-    total.value = res.total || res.data.total || 0
+    let listData = []
+    if (res.rows && Array.isArray(res.rows)) {
+      listData = res.rows
+    } else if (res.data && Array.isArray(res.data.rows)) {
+      listData = res.data.rows
+    } else if (res.data && Array.isArray(res.data)) {
+      listData = res.data
+    } else if (Array.isArray(res)) {
+      listData = res
+    }
+    
+    configList.value = listData
+    total.value = res.total || (res.data && res.data.total) || listData.length || 0
     loading.value = false
   }).catch(() => { loading.value = false })
 }
