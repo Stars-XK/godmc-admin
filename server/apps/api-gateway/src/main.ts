@@ -91,11 +91,11 @@ async function bootstrap() {
   const proxies = [
     // 将不需要加模块前缀的根级接口直接打给 micro-system 处理
     { path: '/login', target: 'http://127.0.0.1:3002' },
-    { path: '/logout', target: 'http://127.0.0.1:3002' },
-    { path: '/register', target: 'http://127.0.0.1:3002' },
+    { path: '/logout', target: 'http://127.0.0.1:3001' },
+    { path: '/register', target: 'http://127.0.0.1:3001' },
     { path: '/getInfo', target: 'http://127.0.0.1:3002' },
     { path: '/getRouters', target: 'http://127.0.0.1:3002' },
-    { path: '/captchaImage', target: 'http://127.0.0.1:3002' },
+    { path: '/captchaImage', target: 'http://127.0.0.1:3001' },
 
     { path: '/system', target: 'http://127.0.0.1:3002' },
     { path: '/auth', target: 'http://127.0.0.1:3001' },
@@ -112,9 +112,6 @@ async function bootstrap() {
       createProxyMiddleware({
         target: proxy.target,
         changeOrigin: true,
-        pathRewrite: {
-          [`^${prefix}${proxy.path}`]: `${prefix}${proxy.path}`,
-        },
       }),
     );
   }
