@@ -8,11 +8,7 @@ import { PermissionGuard } from '@app/common/guards/permission.guard';
 import { RolesGuard } from '@app/common/guards/roles.guard';
 import { JwtModule } from '@nestjs/jwt';
 
-import { MainModule } from './module/main/main.module';
-import { UploadModule } from './module/upload/upload.module';
-import { SystemModule } from './module/system/system.module';
 import { SharedModule } from '@app/shared';
-import { MonitorModule } from './module/monitor/monitor.module';
 import { MicroservicesModule } from './microservices.module';
 import { RegistryModule } from '@app/common';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -54,12 +50,7 @@ import { ScheduleModule } from '@nestjs/schedule';
       },
     }),
 
-    MainModule,
-    UploadModule,
-
     SharedModule,
-    SystemModule,
-    MonitorModule,
     RegistryModule,
   ],
   providers: [

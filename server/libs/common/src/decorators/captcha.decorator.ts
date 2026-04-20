@@ -2,22 +2,18 @@ import { Inject } from '@nestjs/common';
 import { CacheEnum } from '@app/common/enum';
 import { paramsKeyGetObj } from '@app/common/utils/decorator';
 import { ResultData } from '@app/common/utils/result';
-import { ConfigService } from '@app/api-gateway/module/system/config/config.service';
 import { RedisService } from '@app/shared';
 
 export function Captcha(CACHE_KEY: string) {
   const injectRedis = Inject(RedisService);
-  const injectConfig = Inject(ConfigService);
 
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     injectRedis(target, 'redisService');
-    injectConfig(target, 'apiGatewayConfigService');
 
     const originMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
-      const enable = await this.apiGatewayConfigService.getConfigValue('sys.account.captchaEnabled');
-      const captchaEnabled: boolean = enable === 'true';
+      const captchaEnabled: boolean = true; // 此处简化处理：可以后续引入微服务间的配置调用
 
       if (captchaEnabled) {
         const user = paramsKeyGetObj(originMethod, CACHE_KEY, args);
