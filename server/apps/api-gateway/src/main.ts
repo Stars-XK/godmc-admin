@@ -10,6 +10,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import path from 'path';
 import { writeFileSync } from 'fs';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -85,6 +86,19 @@ async function bootstrap() {
 
   // 获取真实 ip
   app.use(requestIpMw({ attributeName: 'ip' }));
+
+  // 反向代理 - 水务基础模块
+  app.use(
+    `${prefix}/water-basic`,
+    createProxyMiddleware({
+      target: 'http://127.0.0.1:3006',
+      changeOrigin: true,
+      pathRewrite: {
+        [`^${prefix}/water-basic`]: `${prefix}/water-basic`, // 将带前缀的路径转发到微服务，微服务也有同样的全局前缀
+      },
+    }),
+  );
+
   //服务端口
   const port = config.get<number>('app.port') || 8080;
   await app.listen(port);

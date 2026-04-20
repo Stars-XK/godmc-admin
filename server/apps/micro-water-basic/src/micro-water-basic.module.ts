@@ -4,6 +4,11 @@ import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { configuration } from '@app/shared';
 import { SharedModule } from '@app/shared';
 import { ZoneModule } from './module/zone/zone.module';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from '@app/common/guards/auth.guard';
+import { PermissionGuard } from '@app/common/guards/permission.guard';
+import { RolesGuard } from '@app/common/guards/roles.guard';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -26,8 +31,32 @@ import { ZoneModule } from './module/zone/zone.module';
         } as TypeOrmModuleOptions;
       },
     }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        return {
+          secret: config.get('jwt.secretkey'),
+          signOptions: { expiresIn: config.get('jwt.expiresin') },
+        };
+      },
+    }),
     SharedModule,
     ZoneModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionGuard,
+    },
   ],
 })
 export class MicroWaterBasicModule {}
