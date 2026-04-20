@@ -6,6 +6,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from '@app/common/guards/auth.guard';
 import { PermissionGuard } from '@app/common/guards/permission.guard';
 import { RolesGuard } from '@app/common/guards/roles.guard';
+import { JwtModule } from '@nestjs/jwt';
 
 import { MainModule } from './module/main/main.module';
 import { UploadModule } from './module/upload/upload.module';
@@ -37,6 +38,16 @@ import { MicroservicesModule } from './microservices.module';
           timezone: '+08:00',
           ...config.get('db.mysql'),
         } as TypeOrmModuleOptions;
+      },
+    }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        return {
+          secret: config.get('jwt.secretkey'),
+          signOptions: { expiresIn: config.get('jwt.expiresin') },
+        };
       },
     }),
 

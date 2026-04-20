@@ -20,7 +20,7 @@
       "entryFile": "main",
       "sourceRoot": "apps/api-gateway/src",
       "compilerOptions": {
-        "tsConfigPath": "tsconfig.build.json"
+        "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
       }
     },
     "micro-auth": {
