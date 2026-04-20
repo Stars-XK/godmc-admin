@@ -42,3 +42,5 @@ export * from './utils/export';
 export * from './utils/index';
 export * from './utils/result';
 export * from './entities/water-basic/water-zone.entity';
+export * from './registry/registry.module';
+export * from './registry/registry.service';
