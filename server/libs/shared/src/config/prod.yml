@@ -73,21 +73,3 @@ perm:
 # 初始密码， 重置密码
 user:
   initialPassword: '123456'
-
-# 微服务配置
-microservices:
-  auth:
-    host: '127.0.0.1'
-    port: 3001
-  system:
-    host: '127.0.0.1'
-    port: 3002
-  monitor:
-    host: '127.0.0.1'
-    port: 3003
-  upload:
-    host: '127.0.0.1'
-    port: 3004
-  tools:
-    host: '127.0.0.1'
-    port: 3005

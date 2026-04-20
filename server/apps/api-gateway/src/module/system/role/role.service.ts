@@ -1,4 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, In, FindManyOptions } from 'typeorm';
 import { Response } from 'express';
 import { ResultData } from '@app/common/utils/result';
 import { ListToTree } from '@app/common/utils/index';
@@ -51,7 +53,9 @@ export class RoleService {
       return firstValueFrom(this.client.send('system.role.deptTree', roleId));
   }
 
-  
+  async findRoles(where: FindManyOptions<SysRoleEntity>) {
+      return firstValueFrom(this.client.send('system.role.findRoles', where));
+  }
   /**
    * 根据角色获取用户权限列表
    */

@@ -15,4 +15,3 @@ export const enum SYS_USER_TYPE {
   CUSTOM = '10',
   CLIENT = '20',
 }
-export * from './user.constant';

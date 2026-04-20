@@ -1,10 +1,7 @@
 <template>
   <div class="navbar">
-    <div class="left-menu">
-      <hamburger id="hamburger-container" :is-active="appStore.sidebar.opened" class="hamburger-container" @toggleClick="toggleSideBar" />
-      <breadcrumb id="breadcrumb-container" class="breadcrumb-container" v-if="!settingsStore.topNav" />
-    </div>
-    
+    <hamburger id="hamburger-container" :is-active="appStore.sidebar.opened" class="hamburger-container" @toggleClick="toggleSideBar" />
+    <breadcrumb id="breadcrumb-container" class="breadcrumb-container" v-if="!settingsStore.topNav" />
     <top-nav id="topmenu-container" class="topmenu-container" v-if="settingsStore.topNav" />
 
     <div class="right-menu">
@@ -105,27 +102,16 @@ function setLayout() {
 
 <style lang='scss' scoped>
 .navbar {
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid #F1F5F9;
-  z-index: 10;
-
-  .left-menu {
-    display: flex;
-    align-items: center;
-    height: 100%;
-  }
+  height: 50px;
+  overflow: hidden;
+  position: relative;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
 
   .hamburger-container {
-    display: flex;
-    align-items: center;
-    padding: 0 15px;
+    line-height: 46px;
     height: 100%;
+    float: left;
     cursor: pointer;
     transition: background 0.3s;
     -webkit-tap-highlight-color: transparent;
@@ -136,15 +122,12 @@ function setLayout() {
   }
 
   .breadcrumb-container {
-    display: flex;
-    align-items: center;
-    height: 100%;
+    float: left;
   }
 
   .topmenu-container {
-    flex: 1;
-    margin-left: 20px;
-    overflow: hidden;
+    position: absolute;
+    left: 50px;
   }
 
   .errLog-container {
@@ -153,69 +136,53 @@ function setLayout() {
   }
 
   .right-menu {
-    display: flex;
-    align-items: center;
+    float: right;
     height: 100%;
+    line-height: 50px;
+    display: flex;
 
     &:focus {
       outline: none;
     }
 
     .right-menu-item {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 12px;
+      display: inline-block;
+      padding: 0 8px;
       height: 100%;
       font-size: 18px;
-      color: #64748B;
-      transition: all 0.3s;
-
-      :deep(.el-dropdown) {
-        color: inherit;
-      }
-      
-      :deep(.svg-icon) {
-        fill: currentColor;
-      }
+      color: #5a5e66;
+      vertical-align: text-bottom;
 
       &.hover-effect {
         cursor: pointer;
+        transition: background 0.3s;
+
         &:hover {
-          background: #F8FAFC;
-          color: #0F172A;
+          background: rgba(0, 0, 0, 0.025);
         }
       }
     }
 
     .avatar-container {
-      margin-right: 20px;
+      margin-right: 40px;
 
       .avatar-wrapper {
-        display: flex;
-        align-items: center;
+        margin-top: 5px;
         position: relative;
-        padding: 0 8px;
-        height: 100%;
 
         .user-avatar {
           cursor: pointer;
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          border: 2px solid #E2E8F0;
-          transition: border-color 0.3s;
-          
-          &:hover {
-            border-color: #818CF8;
-          }
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
         }
 
         i {
           cursor: pointer;
-          margin-left: 8px;
-          font-size: 14px;
-          color: inherit;
+          position: absolute;
+          right: -20px;
+          top: 25px;
+          font-size: 12px;
         }
       }
     }

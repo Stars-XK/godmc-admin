@@ -62,7 +62,6 @@ const router = useRouter();
 const visitedViews = computed(() => useTagsViewStore().visitedViews);
 const routes = computed(() => usePermissionStore().routes);
 const theme = computed(() => useSettingsStore().theme);
-const topNav = computed(() => useSettingsStore().topNav);
 
 watch(route, () => {
   addTags()
@@ -84,21 +83,11 @@ function isActive(r) {
   return r.path === route.path
 }
 function activeStyle(tag) {
-  if (!isActive(tag)) return {}
-  
-  if (topNav.value) {
-    return {
-      'background-color': 'var(--el-color-primary-light-9)',
-      'border-color': 'var(--el-color-primary-light-9)',
-      'color': 'var(--el-color-primary)'
-    }
-  }
-  
+  if (!isActive(tag)) return {};
   return {
-    'background-color': theme.value,
-    'border-color': theme.value,
-    'color': 'var(--el-color-white)'
-  }
+    "background-color": theme.value,
+    "border-color": theme.value
+  };
 }
 function isAffix(tag) {
   return tag.meta && tag.meta.affix
@@ -280,12 +269,12 @@ function handleScroll() {
         margin-right: 15px;
       }
       &.active {
-        background-color: var(--el-color-primary);
-        color: var(--el-color-white);
-        border-color: var(--el-color-primary);
+        background-color: #42b983;
+        color: #fff;
+        border-color: #42b983;
         &::before {
-          content: '';
-          background: currentColor;
+          content: "";
+          background: #fff;
           display: inline-block;
           width: 8px;
           height: 8px;

@@ -1,113 +1,139 @@
 <template>
-  <div class="dashboard-container">
-    <div class="welcome-banner">
-      <div class="welcome-content">
-        <h1>Welcome back, Admin 👋</h1>
-        <p>Here's what's happening with your system today. Manage your services, monitor traffic, and review the latest analytics.</p>
-        <div class="welcome-actions">
-          <el-button type="primary" size="large" icon="Document" @click="goTarget('/docs')">View Documentation</el-button>
-          <el-button size="large" plain @click="goTarget('https://gitee.com/tao-zhi/nest-admin')">GitHub Repository</el-button>
-        </div>
-      </div>
-      <div class="welcome-illustration">
-        <!-- Abstract decorative shapes -->
-        <div class="shape shape-1"></div>
-        <div class="shape shape-2"></div>
-      </div>
-    </div>
+  <div class="app-container home">
+    <el-row :gutter="20">
+      <el-col :sm="24" :lg="12" style="padding-left: 20px">
+        <h2>nest-admin后台管理框架</h2>
+        <p>
+          nest-admin管理系统基于Ruoyi框架使用nestjs实现，她可以用于所有的Web应用程序，如网站管理后台，网站会员中心，CMS，CRM，OA等等，当然，您也可以对她进行深度定制，以做出更强系统。所有前端后台代码封装过后十分精简易上手，出错概率低。系统会陆续更新一些实用功能。
+        </p>
+        <p>
+          <b>当前版本:</b>
+          <span>v{{ version }}</span>
+        </p>
+        <p>
+          <el-tag type="danger">免费开源</el-tag>
+        </p>
+        <p>
+          <el-button type="primary" size="mini" icon="MostlyCloudy" plain @click="goTarget('https://gitee.com/tao-zhi/nest-admin')">访问码云</el-button>
+          <el-button size="mini" icon="HomeFilled" plain @click="goTarget('/docs')">访问文档</el-button>
+        </p>
+      </el-col>
 
-    <el-row :gutter="24" class="stat-row">
-      <el-col :xs="24" :sm="12" :lg="6" v-for="stat in stats" :key="stat.title">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-header">
-            <span class="stat-title">{{ stat.title }}</span>
-            <div class="stat-icon" :style="{ backgroundColor: stat.bgColor, color: stat.color }">
-              <el-icon><component :is="stat.icon" /></el-icon>
-            </div>
-          </div>
-          <div class="stat-value">{{ stat.value }}</div>
-          <div class="stat-footer">
-            <span :class="['trend', stat.trend > 0 ? 'up' : 'down']">
-              {{ stat.trend > 0 ? '+' : '' }}{{ stat.trend }}%
-            </span>
-            <span class="trend-text">from last month</span>
-          </div>
-        </el-card>
+      <el-col :sm="24" :lg="12" style="padding-left: 50px">
+        <el-row>
+          <el-col :span="12">
+            <h2>技术选型</h2>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="6">
+            <h4>后端技术</h4>
+            <ul>
+              <li>node</li>
+              <li>nestjs</li>
+              <li>typeorm</li>
+              <li>redis</li>
+              <li>mysql</li>
+              <li>...</li>
+            </ul>
+          </el-col>
+          <el-col :span="6">
+            <h4>前端技术</h4>
+            <ul>
+              <li>Vue3</li>
+              <li>Element-Plus</li>
+              <li>Axios</li>
+              <li>Sass</li>
+              <li>Quill</li>
+              <li>...</li>
+            </ul>
+          </el-col>
+        </el-row>
       </el-col>
     </el-row>
-
-    <el-row :gutter="24" class="info-row">
-      <el-col :xs="24" :lg="16">
-        <el-card shadow="hover" class="system-info-card">
-          <template #header>
-            <div class="card-header">
-              <span>System Overview</span>
-              <el-tag type="success" effect="light" round>Running Smoothly</el-tag>
-            </div>
-          </template>
-          <div class="info-content">
-            <el-descriptions :column="2" border>
-              <el-descriptions-item label="Version">v{{ version }}</el-descriptions-item>
-              <el-descriptions-item label="License">MIT Open Source</el-descriptions-item>
-              <el-descriptions-item label="Architecture">Microservices</el-descriptions-item>
-              <el-descriptions-item label="Framework">NestJS 10 + Vue 3</el-descriptions-item>
-              <el-descriptions-item label="Database">MySQL 8.0</el-descriptions-item>
-              <el-descriptions-item label="Cache">Redis 6.2</el-descriptions-item>
-            </el-descriptions>
+    <el-divider />
+    <el-row :gutter="20">
+      <el-col :xs="24" :sm="24" :md="12" :lg="8">
+        <el-card class="update-log">
+          <div slot="header" class="clearfix">
+            <span>联系信息</span>
+          </div>
+          <div class="body">
+            <p>
+              <svg-icon icon-class="guide" class-name="icon" />
+              官网：
+              <el-link href="https://nest-admin.dooring.vip/" target="_blank">https://nest-admin.dooring.vip/</el-link>
+            </p>
+            <p>
+              <svg-icon icon-class="wechat" class-name="icon" />
+              微信：
+              <a href="javascript:;">taozhi10100</a>
+            </p>
           </div>
         </el-card>
       </el-col>
-
-      <el-col :xs="24" :lg="8">
-        <el-card shadow="hover" class="quick-links-card">
-          <template #header>
-            <div class="card-header">
-              <span>Quick Actions</span>
-            </div>
-          </template>
-          <div class="link-list">
-            <a href="#" class="link-item">
-              <div class="link-icon"><el-icon><User /></el-icon></div>
-              <div class="link-text">
-                <h4>Manage Users</h4>
-                <p>Add or modify user accounts</p>
-              </div>
-              <el-icon class="link-arrow"><ArrowRight /></el-icon>
-            </a>
-            <a href="#" class="link-item">
-              <div class="link-icon"><el-icon><Setting /></el-icon></div>
-              <div class="link-text">
-                <h4>System Settings</h4>
-                <p>Configure global parameters</p>
-              </div>
-              <el-icon class="link-arrow"><ArrowRight /></el-icon>
-            </a>
-            <a href="#" class="link-item">
-              <div class="link-icon"><el-icon><Monitor /></el-icon></div>
-              <div class="link-text">
-                <h4>View Logs</h4>
-                <p>Check system operation logs</p>
-              </div>
-              <el-icon class="link-arrow"><ArrowRight /></el-icon>
-            </a>
+      <el-col :xs="24" :sm="24" :md="12" :lg="8">
+        <el-card class="update-log">
+          <div slot="header" class="clearfix">
+            <span>更多优质产品</span>
+          </div>
+          <div class="body">
+            <p>
+              <el-link href="https://h5dooring.online" target="_blank">H5-Dooring</el-link>
+            </p>
+            <p>
+              <el-link href="https://v6.dooring.vip/" target="_blank">V6-Dooring</el-link>
+            </p>
+            <p>
+              <el-link href="https://board.dooring.vip/" target="_blank">创意白板</el-link>
+            </p>
+              <p>
+              <el-link href="https://www.easyapp.site/zh" target="_blank">EsayApp</el-link>
+            </p>
           </div>
         </el-card>
       </el-col>
+      <el-col :xs="24" :sm="24" :md="12" :lg="8">
+        <el-card class="update-log">
+          <div slot="header" class="clearfix">
+            <span>贡献者</span>
+          </div>
+          <div class="body">
+            <p>
+              <svg-icon icon-class="github" class-name="icon" />
+              ：
+              <el-link href="https://github.com/a876691666" target="_blank">a876691666</el-link>
+            </p>
+            <p>
+              <svg-icon icon-class="github" class-name="icon" />
+              ：
+              <el-link href="https://github.com/ExploringTheCodeWorld" target="_blank">ExploringTheCodeWorld</el-link>
+            </p>
+            <p>
+              <svg-icon icon-class="github" class-name="icon" />
+              ：
+              <el-link href="https://github.com/CrazyStudent13" target="_blank">CrazyStudent13</el-link>
+            </p>
+          </div>
+        </el-card>
+      </el-col>
+      <!-- <el-col :xs="24" :sm="24" :md="12" :lg="8">
+				<el-card class="update-log">
+					<div slot="header" class="clearfix">
+						<span>捐赠支持</span>
+					</div>
+					<div class="body">
+						<img src="@/assets/images/pay.png" alt="donate" width="100%" />
+						<span style="display: inline-block; height: 30px; line-height: 30px">你可以请作者喝杯咖啡表示鼓励</span>
+					</div>
+				</el-card>
+			</el-col> -->
     </el-row>
   </div>
 </template>
 
 <script setup name="Index">
-import { ref } from 'vue'
-
 const version = ref('1.0.0')
-
-const stats = ref([
-  { title: 'Total Users', value: '12,423', icon: 'UserFilled', color: '#4F46E5', bgColor: '#EEF2FF', trend: 12.5 },
-  { title: 'Active Sessions', value: '892', icon: 'Monitor', color: '#10B981', bgColor: '#ECFDF5', trend: 5.2 },
-  { title: 'API Requests', value: '1.2M', icon: 'Connection', color: '#F59E0B', bgColor: '#FEF3C7', trend: -2.4 },
-  { title: 'System Alerts', value: '3', icon: 'Warning', color: '#EF4444', bgColor: '#FEF2F2', trend: 0 }
-])
 
 function goTarget(url) {
   window.open(url, '__blank')
@@ -115,266 +141,64 @@ function goTarget(url) {
 </script>
 
 <style scoped lang="scss">
-.dashboard-container {
-  padding: 24px;
-  max-width: 1440px;
-  margin: 0 auto;
-  font-family: 'Inter', sans-serif;
-}
+.home {
+  blockquote {
+    padding: 10px 20px;
+    margin: 0 0 20px;
+    font-size: 17.5px;
+    border-left: 5px solid #eee;
+  }
+  hr {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    border: 0;
+    border-top: 1px solid #eee;
+  }
+  .col-item {
+    margin-bottom: 20px;
+  }
 
-.welcome-banner {
-  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-  border-radius: 20px;
-  padding: 48px;
-  margin-bottom: 32px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  ul {
+    padding: 0;
+    margin: 0;
+  }
 
-  .welcome-content {
-    position: relative;
-    z-index: 2;
-    max-width: 600px;
+  font-family: 'open sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  color: #676a6c;
+  overflow-x: hidden;
 
-    h1 {
-      color: #FFFFFF;
-      font-size: 36px;
+  ul {
+    list-style-type: none;
+  }
+
+  h4 {
+    margin-top: 0px;
+  }
+
+  h2 {
+    margin-top: 10px;
+    font-size: 26px;
+    font-weight: 100;
+  }
+
+  p {
+    margin-top: 10px;
+
+    b {
       font-weight: 700;
-      margin: 0 0 16px 0;
-      letter-spacing: -0.5px;
-    }
-
-    p {
-      color: #94A3B8;
-      font-size: 16px;
-      line-height: 1.6;
-      margin: 0 0 32px 0;
-    }
-
-    .welcome-actions {
-      display: flex;
-      gap: 16px;
-      
-      .el-button {
-        border-radius: 8px;
-        font-weight: 500;
-        
-        &.el-button--primary {
-          background: #4F46E5;
-          border-color: #4F46E5;
-          &:hover { background: #4338CA; border-color: #4338CA; }
-        }
-        
-        &.is-plain {
-          background: rgba(255, 255, 255, 0.1);
-          border-color: rgba(255, 255, 255, 0.2);
-          color: #FFFFFF;
-          &:hover { 
-            background: rgba(255, 255, 255, 0.2);
-            color: #FFFFFF; 
-          }
-        }
-      }
     }
   }
 
-  .welcome-illustration {
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 50%;
-    height: 100%;
-    z-index: 1;
-
-    .shape {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(60px);
-    }
-
-    .shape-1 {
-      width: 300px;
-      height: 300px;
-      background: rgba(79, 70, 229, 0.4);
-      top: -50px;
-      right: -50px;
-    }
-
-    .shape-2 {
-      width: 250px;
-      height: 250px;
-      background: rgba(16, 185, 129, 0.3);
-      bottom: -100px;
-      right: 150px;
-    }
-  }
-}
-
-.stat-row {
-  margin-bottom: 32px;
-}
-
-.stat-card {
-  border: none !important;
-  
-  .stat-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-
-    .stat-title {
-      color: #64748B;
-      font-size: 14px;
-      font-weight: 500;
-    }
-
-    .stat-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-    }
-  }
-
-  .stat-value {
-    font-size: 32px;
-    font-weight: 700;
-    color: #0F172A;
-    margin-bottom: 12px;
-    letter-spacing: -1px;
-  }
-
-  .stat-footer {
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    .trend {
-      font-weight: 600;
-      &.up { color: #10B981; }
-      &.down { color: #EF4444; }
-    }
-
-    .trend-text {
-      color: #94A3B8;
-    }
-  }
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: 600;
-  font-size: 16px;
-  color: #0F172A;
-}
-
-.system-info-card {
-  height: 100%;
-  
-  :deep(.el-descriptions__label) {
-    width: 140px;
-    background-color: #F8FAFC;
-    color: #475569;
-    font-weight: 500;
-  }
-  
-  :deep(.el-descriptions__content) {
-    color: #0F172A;
-    font-weight: 500;
-  }
-}
-
-.quick-links-card {
-  height: 100%;
-
-  .link-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .link-item {
-    display: flex;
-    align-items: center;
-    padding: 16px;
-    border-radius: 12px;
-    background: #F8FAFC;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
-
-    &:hover {
-      background: #FFFFFF;
-      border-color: #E2E8F0;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-      transform: translateY(-2px);
-      
-      .link-arrow {
-        transform: translateX(4px);
-        color: #4F46E5;
-      }
-    }
-
-    .link-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      background: #FFFFFF;
-      color: #4F46E5;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      margin-right: 16px;
-    }
-
-    .link-text {
-      flex: 1;
-
-      h4 {
-        margin: 0 0 4px 0;
-        font-size: 15px;
-        color: #0F172A;
-        font-weight: 600;
-      }
-
-      p {
-        margin: 0;
-        font-size: 13px;
-        color: #64748B;
-      }
-    }
-
-    .link-arrow {
-      color: #94A3B8;
-      font-size: 16px;
-      transition: all 0.2s ease;
-    }
-  }
-}
-
-@media (max-width: 768px) {
-  .welcome-banner {
-    padding: 32px 24px;
-    
-    .welcome-illustration {
-      display: none;
-    }
-    
-    .welcome-content {
-      h1 { font-size: 28px; }
-      .welcome-actions { flex-direction: column; }
+  .update-log {
+    ol {
+      display: block;
+      list-style-type: decimal;
+      margin-block-start: 1em;
+      margin-block-end: 1em;
+      margin-inline-start: 0;
+      margin-inline-end: 0;
+      padding-inline-start: 40px;
     }
   }
 }

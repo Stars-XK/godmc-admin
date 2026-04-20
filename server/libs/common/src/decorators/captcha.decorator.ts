@@ -2,29 +2,21 @@ import { Inject } from '@nestjs/common';
 import { CacheEnum } from '@app/common/enum';
 import { paramsKeyGetObj } from '@app/common/utils/decorator';
 import { ResultData } from '@app/common/utils/result';
+import { ConfigService } from '@app/api-gateway/module/system/config/config.service';
 import { RedisService } from '@app/shared';
 
 export function Captcha(CACHE_KEY: string) {
   const injectRedis = Inject(RedisService);
+  const injectConfig = Inject(ConfigService);
 
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     injectRedis(target, 'redisService');
+    injectConfig(target, 'configService');
 
     const originMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
-      // First try to get from redis directly
-      let enable = await this.redisService.get(CacheEnum.SYS_CONFIG_KEY + 'sys.account.captchaEnabled');
-      
-      // If not in redis, fallback to configService if available, otherwise default to true
-      if (enable === null || enable === undefined) {
-        if (this.configService && typeof this.configService.getConfigValue === 'function') {
-          enable = await this.configService.getConfigValue('sys.account.captchaEnabled');
-        } else {
-          enable = 'true'; // default
-        }
-      }
-
+      const enable = await this.configService.getConfigValue('sys.account.captchaEnabled');
       const captchaEnabled: boolean = enable === 'true';
 
       if (captchaEnabled) {

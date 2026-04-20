@@ -1,5 +1,5 @@
 import { Repository, In, Not } from 'typeorm';
-import { Injectable, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { RedisService } from '@app/shared';
@@ -12,7 +12,7 @@ import { CacheEnum, DelFlagEnum, StatusEnum, DataScopeEnum } from '@app/common/e
 import { LOGIN_TOKEN_EXPIRESIN, SYS_USER_TYPE } from '@app/common/constant/index';
 import { ResultData } from '@app/common/utils/result';
 import { CreateUserDto, UpdateUserDto, ListUserDto, ChangeStatusDto, ResetPwdDto, AllocatedListDto, UpdateProfileDto, UpdatePwdDto } from './dto/index';
-import { RegisterDto, LoginDto } from '@app/common/dto/index';
+import { RegisterDto, LoginDto } from '@app/api-gateway/module/main/dto/index';
 import { AuthUserCancelDto, AuthUserCancelAllDto, AuthUserSelectAllDto } from '../role/dto/index';
 
 import { UserEntity } from '@app/common';
@@ -44,7 +44,6 @@ export class UserService {
     private readonly sysUserWithPostEntityRep: Repository<SysUserWithPostEntity>,
     @InjectRepository(SysUserWithRoleEntity)
     private readonly sysUserWithRoleEntityRep: Repository<SysUserWithRoleEntity>,
-    @Inject(forwardRef(() => RoleService))
     private readonly roleService: RoleService,
     private readonly deptService: DeptService,
     private readonly jwtService: JwtService,

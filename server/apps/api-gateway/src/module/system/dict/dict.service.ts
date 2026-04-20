@@ -1,5 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Response } from 'express';
+import { Repository, In } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
 import { CacheEnum } from '@app/common/enum/index';
 import { ExportTable } from '@app/common/utils/export';

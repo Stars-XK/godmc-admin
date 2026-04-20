@@ -2,11 +2,11 @@ import { Module, Global } from '@nestjs/common';
 import { OperlogService } from './operlog.service';
 import { OperlogController } from './operlog.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { SysOperlogEntity, SysDictDataEntity } from '@app/common';
+import { SysOperlogEntity } from '@app/common';
 
 @Global()
 @Module({
-  imports: [TypeOrmModule.forFeature([SysOperlogEntity, SysDictDataEntity])],
+  imports: [TypeOrmModule.forFeature([SysOperlogEntity])],
   controllers: [OperlogController],
   providers: [
     OperlogService,

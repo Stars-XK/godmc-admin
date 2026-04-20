@@ -8,7 +8,7 @@ import { JobLog } from '@app/common';
 import { TaskService } from './task.service';
 import { JobLogService } from './job-log.service';
 import { JobLogController } from './job-log.controller';
-import { BackupService } from './backup.service';
+import { BackupService } from '@app/api-gateway/module/backup/backup.service';
 
 @Module({
   imports: [NestScheduleModule.forRoot(), TypeOrmModule.forFeature([Job, JobLog])],

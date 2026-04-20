@@ -1,4 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
 import { SysDeptEntity } from '@app/common';
 import { CreateDeptDto, UpdateDeptDto, ListDeptDto } from './dto/index';
@@ -43,7 +45,7 @@ export class DeptService {
    * @param queryBuilder 查询构建器实例
    * @param deptId 部门ID
    */
-  private addQueryForDeptDataScope(queryBuilder: any, deptId: number) {
+  private addQueryForDeptDataScope(queryBuilder: SelectQueryBuilder<any>, deptId: number) {
     queryBuilder.andWhere('dept.deptId = :deptId', { deptId: deptId });
   }
 
@@ -52,7 +54,7 @@ export class DeptService {
    * @param queryBuilder 查询构建器实例
    * @param deptId 部门ID
    */
-  private addQueryForDeptAndChildDataScope(queryBuilder: any, deptId: number) {
+  private addQueryForDeptAndChildDataScope(queryBuilder: SelectQueryBuilder<any>, deptId: number) {
     // 使用参数化查询以防止SQL注入
     queryBuilder
       .andWhere('dept.ancestors LIKE :ancestors', {

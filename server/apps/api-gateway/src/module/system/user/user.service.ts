@@ -1,4 +1,6 @@
+import { Repository, In, Not } from 'typeorm';
 import { Injectable, BadRequestException, Inject } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { RedisService } from '@app/shared';
 import * as bcrypt from 'bcryptjs';
@@ -10,7 +12,7 @@ import { CacheEnum, DelFlagEnum, StatusEnum, DataScopeEnum } from '@app/common/e
 import { LOGIN_TOKEN_EXPIRESIN, SYS_USER_TYPE } from '@app/common/constant/index';
 import { ResultData } from '@app/common/utils/result';
 import { CreateUserDto, UpdateUserDto, ListUserDto, ChangeStatusDto, ResetPwdDto, AllocatedListDto, UpdateProfileDto, UpdatePwdDto } from './dto/index';
-import { RegisterDto, LoginDto } from '@app/common/dto/index';
+import { RegisterDto, LoginDto } from '../../main/dto/index';
 import { AuthUserCancelDto, AuthUserCancelAllDto, AuthUserSelectAllDto } from '../role/dto/index';
 
 import { UserEntity } from '@app/common';

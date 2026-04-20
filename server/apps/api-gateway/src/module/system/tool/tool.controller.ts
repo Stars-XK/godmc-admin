@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Param, Delete, Request, Query, Put, Res, I
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { TableName, GenDbTableList, GenTableList, GenTableUpdate } from './dto/create-genTable-dto';
 import { Response } from 'express';
-import { User, UserDto } from '@app/common';
+import { User, UserDto } from '@app/api-gateway/module/system/user/user.decorator';
 import { ClientProxy } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import * as fs from 'fs-extra';

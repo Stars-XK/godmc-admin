@@ -1,65 +1,34 @@
 import { Module, Global } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { ConfigService } from '@nestjs/config';
 
 @Global()
 @Module({
   imports: [
-    ClientsModule.registerAsync([
+    ClientsModule.register([
       {
         name: 'MICRO_AUTH',
-        inject: [ConfigService],
-        useFactory: (config: ConfigService) => ({
-          transport: Transport.TCP,
-          options: {
-            host: config.get<string>('microservices.auth.host') || '127.0.0.1',
-            port: config.get<number>('microservices.auth.port') || 3001,
-          },
-        }),
+        transport: Transport.TCP,
+        options: { host: process.env.MICRO_AUTH_HOST || '127.0.0.1', port: 3001 },
       },
       {
         name: 'MICRO_SYSTEM',
-        inject: [ConfigService],
-        useFactory: (config: ConfigService) => ({
-          transport: Transport.TCP,
-          options: {
-            host: config.get<string>('microservices.system.host') || '127.0.0.1',
-            port: config.get<number>('microservices.system.port') || 3002,
-          },
-        }),
+        transport: Transport.TCP,
+        options: { host: process.env.MICRO_SYSTEM_HOST || '127.0.0.1', port: 3002 },
       },
       {
         name: 'MICRO_MONITOR',
-        inject: [ConfigService],
-        useFactory: (config: ConfigService) => ({
-          transport: Transport.TCP,
-          options: {
-            host: config.get<string>('microservices.monitor.host') || '127.0.0.1',
-            port: config.get<number>('microservices.monitor.port') || 3003,
-          },
-        }),
+        transport: Transport.TCP,
+        options: { host: process.env.MICRO_MONITOR_HOST || '127.0.0.1', port: 3003 },
       },
       {
         name: 'MICRO_UPLOAD',
-        inject: [ConfigService],
-        useFactory: (config: ConfigService) => ({
-          transport: Transport.TCP,
-          options: {
-            host: config.get<string>('microservices.upload.host') || '127.0.0.1',
-            port: config.get<number>('microservices.upload.port') || 3004,
-          },
-        }),
+        transport: Transport.TCP,
+        options: { host: process.env.MICRO_UPLOAD_HOST || '127.0.0.1', port: 3004 },
       },
       {
         name: 'MICRO_TOOLS',
-        inject: [ConfigService],
-        useFactory: (config: ConfigService) => ({
-          transport: Transport.TCP,
-          options: {
-            host: config.get<string>('microservices.tools.host') || '127.0.0.1',
-            port: config.get<number>('microservices.tools.port') || 3005,
-          },
-        }),
+        transport: Transport.TCP,
+        options: { host: process.env.MICRO_TOOLS_HOST || '127.0.0.1', port: 3005 },
       },
     ]),
   ],

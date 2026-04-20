@@ -28,27 +28,26 @@ cos:
 # 数据库配置
 db:
   mysql:
-    type: 'mysql'
-    host: '139.224.26.134'
-    username: 'dma'
-    password: 'QzwTwHR3YT85AbNf'
-    database: 'dma'
+    host: '127.0.0.1'
+    username: 'root'
+    password: 'yehuozhili'
+    database: 'nest-admin'
     port: 3306
     charset: 'utf8mb4'
     logger: 'file'
     logging: true
     multipleStatements: true
     dropSchema: false
-    synchronize: false
+    synchronize: true
     supportBigNumbers: true
     bigNumberStrings: true
 
 # redis 配置
 redis:
   host: 'localhost'
-  password: '123456'
+  password: '*********'
   port: 6379
-  db: 0
+  db: 2
   keyPrefix: ''
 
 # jwt 配置
@@ -74,21 +73,3 @@ perm:
 # 初始密码， 重置密码
 user:
   initialPassword: '123456'
-
-# 微服务配置
-microservices:
-  auth:
-    host: '127.0.0.1'
-    port: 3001
-  system:
-    host: '127.0.0.1'
-    port: 3002
-  monitor:
-    host: '127.0.0.1'
-    port: 3003
-  upload:
-    host: '127.0.0.1'
-    port: 3004
-  tools:
-    host: '127.0.0.1'
-    port: 3005

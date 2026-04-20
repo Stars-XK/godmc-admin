@@ -1,20 +1,31 @@
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import { AuthGuard } from '@nestjs/passport';
 import { pathToRegexp } from 'path-to-regexp';
-import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
+import { ExecutionContext, ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
-export class JwtAuthGuard implements CanActivate {
+export class JwtAuthGuard extends AuthGuard('jwt') {
   private globalWhiteList = [];
   constructor(
     private readonly reflector: Reflector,
-    @Inject('MICRO_AUTH')
-    private readonly authClient: ClientProxy,
+    @Inject(JwtService)
+    private readonly jwtService: JwtService,
     private readonly config: ConfigService,
   ) {
+    super();
     this.globalWhiteList = [].concat(this.config.get('perm.router.whitelist') || []);
+  }
+
+  parseToken(token: string) {
+    try {
+      if (!token) return null;
+      const payload = this.jwtService.verify(token.replace('Bearer ', ''));
+      return payload;
+    } catch (error) {
+      return null;
+    }
   }
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -35,11 +46,13 @@ export class JwtAuthGuard implements CanActivate {
     const accessToken = req.get('Authorization');
 
     if (!accessToken) throw new ForbiddenException('请重新登录');
-    const user = await firstValueFrom(this.authClient.send('validateToken', accessToken));
-    if (!user) throw new UnauthorizedException('当前登录已过期，请重新登录');
-    
-    req.user = user;
-    return true;
+    const atUserId = this.parseToken(accessToken);
+    if (!atUserId) throw new UnauthorizedException('当前登录已过期，请重新登录');
+    return await this.activate(ctx);
+  }
+
+  async activate(ctx: ExecutionContext) {
+    return super.canActivate(ctx) as boolean;
   }
 
   /**
@@ -49,14 +62,7 @@ export class JwtAuthGuard implements CanActivate {
    */
   async jumpActivate(ctx: ExecutionContext) {
     try {
-      const req = ctx.switchToHttp().getRequest();
-      const accessToken = req.get('Authorization');
-      if (accessToken) {
-        const user = await firstValueFrom(this.authClient.send('validateToken', accessToken));
-        if (user) {
-          req.user = user;
-        }
-      }
+      await this.activate(ctx);
     } catch (e) {
       // 未登录不做任何处理，直接返回 true
     }

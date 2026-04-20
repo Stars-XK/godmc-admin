@@ -2,9 +2,9 @@ import { Controller, Get, Post, Body, HttpCode, Inject } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
-import { RegisterDto, LoginDto } from '@app/common/dto/index';
+import { RegisterDto, LoginDto } from '../../main/dto/index';
 import { ClientInfo, ClientInfoDto } from '@app/common/decorators/common.decorator';
-import { NotRequireAuth, User, UserDto } from '@app/common';
+import { NotRequireAuth, User, UserDto } from '@app/api-gateway/module/system/user/user.decorator';
 
 @ApiTags('Auth模块')
 @Controller('/')

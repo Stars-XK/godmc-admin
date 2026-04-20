@@ -7,7 +7,7 @@ import { RequireRole } from '@app/common/decorators/require-role.decorator';
 import { CreateUserDto, UpdateUserDto, ListUserDto, ChangeStatusDto, ResetPwdDto, UpdateProfileDto, UpdatePwdDto } from './dto/index';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ResultData } from '@app/common/utils/result';
-import { User, UserDto, UserTool, UserToolType } from '@app/common';
+import { User, UserDto, UserTool, UserToolType } from '@app/api-gateway/module/system/user/user.decorator';
 import { BusinessType } from '@app/common/constant/business.constant';
 import { Operlog } from '@app/common/decorators/operlog.decorator';
 import { ClientProxy } from '@nestjs/microservices';

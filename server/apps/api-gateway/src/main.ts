@@ -15,7 +15,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     cors: true, // 开启跨域访问
   });
-  const config = app.get<ConfigService>(ConfigService);
+  const config = app.get(ConfigService);
   // 设置访问频率
   app.use(
     rateLimit({
