@@ -5,6 +5,7 @@ import { configuration } from '@app/shared';
 import { SharedModule } from '@app/shared';
 import { UploadModule } from './module/upload/upload.module';
 import { RegistryModule } from '@app/common';
+import { MicroservicesModule } from '@app/api-gateway/microservices.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { RegistryModule } from '@app/common';
       },
     }),
     SharedModule,
+    MicroservicesModule,
     UploadModule,
     RegistryModule,
   ],

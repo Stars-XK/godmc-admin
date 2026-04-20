@@ -5,7 +5,7 @@ import { configuration } from '@app/shared';
 import { SharedModule } from '@app/shared';
 import { MonitorModule } from './module/monitor/monitor.module';
 import { RegistryModule } from '@app/common';
-import { MicroservicesModule } from './microservices.module';
+import { MicroservicesModule } from '@app/api-gateway/microservices.module';
 
 @Module({
   imports: [

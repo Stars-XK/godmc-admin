@@ -6,6 +6,7 @@ import { SharedModule } from '@app/shared';
 import { SystemModule } from './module/system/system.module';
 import { MainModule } from './module/main/main.module';
 import { RegistryModule } from '@app/common';
+import { MicroservicesModule } from '@app/api-gateway/microservices.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { RegistryModule } from '@app/common';
       },
     }),
     SharedModule,
+    MicroservicesModule,
     SystemModule,
     MainModule,
     RegistryModule,
