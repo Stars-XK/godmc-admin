@@ -4,6 +4,7 @@ import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { configuration } from '@app/shared';
 import { SharedModule } from '@app/shared';
 import { SystemModule } from './module/system/system.module';
+import { RegistryModule } from '@app/common';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { SystemModule } from './module/system/system.module';
     }),
     SharedModule,
     SystemModule,
+    RegistryModule,
   ],
 })
 export class MicroSystemModule {}

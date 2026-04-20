@@ -3,7 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { configuration } from '@app/shared';
 import { SharedModule } from '@app/shared';
-import { UploadModule } from './upload/upload.module';
+import { UploadModule } from './module/upload/upload.module';
+import { RegistryModule } from '@app/common';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { UploadModule } from './upload/upload.module';
     }),
     SharedModule,
     UploadModule,
+    RegistryModule,
   ],
 })
 export class MicroUploadModule {}

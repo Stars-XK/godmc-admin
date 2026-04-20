@@ -3,7 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { configuration } from '@app/shared';
 import { SharedModule } from '@app/shared';
-import { ToolModule } from './tool/tool.module';
+import { ToolModule } from './module/tool/tool.module';
+import { RegistryModule } from '@app/common';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ToolModule } from './tool/tool.module';
     }),
     SharedModule,
     ToolModule,
+    RegistryModule,
   ],
 })
 export class MicroToolsModule {}

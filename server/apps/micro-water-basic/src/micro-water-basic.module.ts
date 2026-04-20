@@ -9,6 +9,7 @@ import { JwtAuthGuard } from '@app/common/guards/auth.guard';
 import { PermissionGuard } from '@app/common/guards/permission.guard';
 import { RolesGuard } from '@app/common/guards/roles.guard';
 import { JwtModule } from '@nestjs/jwt';
+import { RegistryModule } from '@app/common';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { JwtModule } from '@nestjs/jwt';
     }),
     SharedModule,
     ZoneModule,
+    RegistryModule,
   ],
   providers: [
     {

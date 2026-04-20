@@ -4,6 +4,7 @@ import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { configuration } from '@app/shared';
 import { SharedModule } from '@app/shared';
 import { MonitorModule } from './module/monitor/monitor.module';
+import { RegistryModule } from '@app/common';
 import { MicroservicesModule } from './microservices.module';
 
 @Module({
@@ -30,6 +31,7 @@ import { MicroservicesModule } from './microservices.module';
     SharedModule,
     MicroservicesModule,
     MonitorModule,
+    RegistryModule,
   ],
 })
 export class MicroMonitorModule {}

@@ -21,6 +21,7 @@ import {
   SysConfigEntity,
   MonitorLoginlogEntity,
 } from '@app/common';
+import { RegistryModule } from '@app/common';
 
 @Module({
   imports: [
@@ -77,6 +78,7 @@ import {
     }),
     SharedModule,
     AuthModule,
+    RegistryModule,
   ],
   controllers: [MicroAuthController],
   providers: [MicroAuthService],

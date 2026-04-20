@@ -14,6 +14,7 @@ import { SystemModule } from './module/system/system.module';
 import { SharedModule } from '@app/shared';
 import { MonitorModule } from './module/monitor/monitor.module';
 import { MicroservicesModule } from './microservices.module';
+import { RegistryModule } from '@app/common';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Global()
@@ -59,6 +60,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     SharedModule,
     SystemModule,
     MonitorModule,
+    RegistryModule,
   ],
   providers: [
     {
