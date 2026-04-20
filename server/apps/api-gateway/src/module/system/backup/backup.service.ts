@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 
 const execAsync = promisify(exec);
 

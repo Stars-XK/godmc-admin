@@ -28,7 +28,7 @@ export class BackupTask {
       } catch (e) {
         this.logger.error('Automated backup failed', e);
       }
-    });
+    }) as any;
 
     this.schedulerRegistry.addCronJob('database_backup', job);
     job.start();
