@@ -54,12 +54,12 @@ export class DbUpdaterService implements OnModuleInit {
         const cmd = `mysql --default-character-set=utf8mb4 -h${dbConfig.host} -P${dbConfig.port} -u${dbConfig.username} -p"${dbConfig.password}" ${dbConfig.database} < "${filePath}"`;
         await execAsync(cmd);
         
-        await this.dbUpdateRepo.save({
-          filename: file,
-          status: 'SUCCESS',
-          errorMsg: null,
-          executedAt: new Date()
-        });
+        const record = existing || new SysDbUpdateEntity();
+        record.filename = file;
+        record.status = 'SUCCESS';
+        record.errorMsg = null;
+        record.executedAt = new Date();
+        await this.dbUpdateRepo.save(record);
         this.logger.log(`Successfully executed ${file}`);
       } catch (error) {
         this.logger.error(`Failed to execute ${file}`, error.message);
