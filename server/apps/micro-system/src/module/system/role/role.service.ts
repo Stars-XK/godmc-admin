@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, FindManyOptions } from 'typeorm';
 import { Response } from 'express';
@@ -25,6 +25,7 @@ export class RoleService {
     private readonly sysRoleWithDeptEntityRep: Repository<SysRoleWithDeptEntity>,
     @InjectRepository(SysDeptEntity)
     private readonly sysDeptEntityRep: Repository<SysDeptEntity>,
+    @Inject(forwardRef(() => MenuService))
     private readonly menuService: MenuService,
   ) {}
   async create(createRoleDto: CreateRoleDto) {

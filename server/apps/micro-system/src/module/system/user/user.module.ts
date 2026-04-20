@@ -1,4 +1,4 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -10,11 +10,13 @@ import { SysUserWithRoleEntity } from '@app/common';
 import { SysDeptEntity } from '@app/common';
 import { SysRoleEntity } from '@app/common';
 import { SysPostEntity } from '@app/common';
+import { RoleModule } from '../role/role.module';
 
 @Global()
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserEntity, SysDeptEntity, SysRoleEntity, SysPostEntity, SysUserWithPostEntity, SysUserWithRoleEntity]),
+    forwardRef(() => RoleModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (config: ConfigService) => ({
