@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
 import { WaterZoneEntity } from '@app/common';
-import { BuildTree } from '@app/common/utils/index';
+import { ListToTree } from '@app/common/utils/index';
 import { Response } from 'express';
 import { ExportTable } from '@app/common/utils/export';
 import * as exceljs from 'exceljs';
@@ -95,7 +95,7 @@ export class ZoneService {
 
     const res = await entity.getMany();
     // 使用优化后的 BuildTree 转换，限制最大层级为3
-    const tree = BuildTree(
+    const tree = ListToTree(
       res,
       (m) => m.code,
       (m) => m.parentId,

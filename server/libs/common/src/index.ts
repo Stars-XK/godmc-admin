@@ -7,6 +7,7 @@ export * from './decorators/redis.decorator';
 export * from './decorators/require-premission.decorator';
 export * from './decorators/require-role.decorator';
 export * from './decorators/task.decorator';
+export * from './decorators/user.decorator';
 export * from './dto/index';
 export * from './entities/base';
 export * from './entities/config.entity';
