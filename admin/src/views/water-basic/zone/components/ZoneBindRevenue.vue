@@ -3,7 +3,7 @@
     :title="`关联营收基础用户 - ${zoneName}`"
     v-model="visible"
     direction="rtl"
-    size="1000px"
+    size="1200px"
     @close="handleClose"
     append-to-body
     class="custom-drawer"
@@ -15,13 +15,23 @@
           <div class="filter-bar">
             <el-form :model="queryParams" ref="queryRef" :inline="true">
               <el-form-item label="用户编号" prop="userNo">
-                <el-input v-model="queryParams.userNo" placeholder="请输入编号" clearable style="width: 150px" @keyup.enter="handleQuery" />
+                <el-input v-model="queryParams.userNo" placeholder="请输入编号" clearable style="width: 150px" @keyup.enter="getList" />
               </el-form-item>
               <el-form-item label="用户名称" prop="name">
-                <el-input v-model="queryParams.name" placeholder="请输入名称" clearable style="width: 150px" @keyup.enter="handleQuery" />
+                <el-input v-model="queryParams.name" placeholder="请输入名称" clearable style="width: 150px" @keyup.enter="getList" />
+              </el-form-item>
+              <el-form-item label="用户分类" prop="userCategory">
+                <el-select v-model="queryParams.userCategory" placeholder="请选择用户分类" clearable style="width: 150px" @change="getList">
+                  <el-option
+                    v-for="dict in water_user_category"
+                    :key="dict.value"
+                    :label="dict.label"
+                    :value="dict.value"
+                  />
+                </el-select>
               </el-form-item>
               <el-form-item>
-                <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+                <el-button type="primary" icon="Search" @click="getList">搜索</el-button>
               </el-form-item>
             </el-form>
             <div class="action-btn">
@@ -141,7 +151,7 @@ const pageNum = ref(1)
 const pageSize = ref(20)
 const pageSizes = [20, 50, 100, 200, 500]
 const selectedIds = ref([])
-const queryParams = ref({ name: undefined, userNo: undefined })
+const queryParams = ref({ name: undefined, userNo: undefined, userCategory: undefined })
 
 // 导入相关
 const importMode = ref('append')
@@ -165,7 +175,7 @@ watch(() => props.modelValue, (val) => {
 function handleClose() {
   emit('update:modelValue', false)
   userList.value = []
-  queryParams.value = { name: undefined, userNo: undefined }
+  queryParams.value = { name: undefined, userNo: undefined, userCategory: undefined }
 }
 
 function handleQuery() {
@@ -363,7 +373,7 @@ function exportResultExcel(results) {
 }
 .bind-tabs {
   padding: 0 20px;
-  height: calc(100vh - 100px);
+  height: calc(100vh - 180px);
   display: flex;
   flex-direction: column;
 }

@@ -352,7 +352,7 @@ export class ZoneService {
   // ================= 关联设备 =================
 
   async unboundDeviceList(query: any) {
-    const { name, code, pageNum = 1, pageSize = 20 } = query;
+    const { name, code, type, pageNum = 1, pageSize = 20 } = query;
     const pn = Math.max(parseInt(pageNum, 10) || 1, 1);
     const ps = Math.min(Math.max(parseInt(pageSize, 10) || 20, 1), 500);
     const qb = this.deviceRep.createQueryBuilder('device')
@@ -361,6 +361,7 @@ export class ZoneService {
 
     if (name) qb.andWhere(`device.name LIKE "%${name}%"`);
     if (code) qb.andWhere(`device.code LIKE "%${code}%"`);
+    if (type) qb.andWhere('device.type = :type', { type });
 
     const [list, total] = await qb
       .orderBy('device.createTime', 'DESC')
@@ -423,7 +424,7 @@ export class ZoneService {
   // ================= 关联营收 =================
 
   async unboundRevenueList(query: any) {
-    const { name, userNo, pageNum = 1, pageSize = 20 } = query;
+    const { name, userNo, userCategory, pageNum = 1, pageSize = 20 } = query;
     const pn = Math.max(parseInt(pageNum, 10) || 1, 1);
     const ps = Math.min(Math.max(parseInt(pageSize, 10) || 20, 1), 500);
     const qb = this.revenueUserRep.createQueryBuilder('user')
@@ -432,6 +433,7 @@ export class ZoneService {
 
     if (name) qb.andWhere(`user.userName LIKE "%${name}%"`);
     if (userNo) qb.andWhere(`user.userNo LIKE "%${userNo}%"`);
+    if (userCategory) qb.andWhere('user.userCategory = :userCategory', { userCategory });
 
     const [list, total] = await qb
       .orderBy('user.createTime', 'DESC')
