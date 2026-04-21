@@ -33,6 +33,7 @@ export * from './entities/user-width-role.entity';
 export * from './enum/index';
 export * from './filters/http-exceptions-filter';
 export * from './guards/auth.guard';
+export * from './guards/jwt.strategy';
 export * from './guards/permission.guard';
 export * from './guards/roles.guard';
 export * from './interceptor/operlog.interceptor';

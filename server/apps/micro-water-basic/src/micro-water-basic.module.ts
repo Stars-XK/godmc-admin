@@ -6,6 +6,7 @@ import { SharedModule } from '@app/shared';
 import { ZoneModule } from './module/zone/zone.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from '@app/common/guards/auth.guard';
+import { JwtStrategy } from '@app/common/guards/jwt.strategy';
 import { PermissionGuard } from '@app/common/guards/permission.guard';
 import { RolesGuard } from '@app/common/guards/roles.guard';
 import { JwtModule } from '@nestjs/jwt';
@@ -47,6 +48,7 @@ import { RegistryModule } from '@app/common';
     RegistryModule,
   ],
   providers: [
+    JwtStrategy,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
