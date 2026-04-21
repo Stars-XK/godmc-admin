@@ -160,8 +160,9 @@ export class ZoneService {
     // 给 children 补充 childCount 和 hasChildren 属性
     const mappedChildren = [];
     for (const child of children) {
-      const childCode = String(child.code);
-      const childCount = await this.zoneRep.count({ where: { parentId: childCode, delFlag: '0' } });
+      const childCodeStr = String(child.code);
+      const childCodeNum = Number(child.code);
+      const childCount = await this.zoneRep.count({ where: { parentId: childCodeNum, delFlag: '0' } });
       const mappedChild = {
         ...child,
         childCount,
