@@ -8,7 +8,7 @@ import { User } from '@app/common/decorators/user.decorator';
 
 @ApiTags('水务基础-分区管理')
 @ApiBearerAuth()
-@Controller('zone')
+@Controller('water-basic/zone')
 export class ZoneController {
   constructor(private readonly zoneService: ZoneService) {}
 

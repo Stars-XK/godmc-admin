@@ -87,6 +87,12 @@ async function bootstrap() {
   // 获取真实 ip
   app.use(requestIpMw({ attributeName: 'ip' }));
 
+  // 解决 http-proxy-middleware 绑定过多 close 事件导致的 MaxListenersExceededWarning
+  const server = app.getHttpServer();
+  if (server) {
+    server.setMaxListeners(20);
+  }
+
   // 反向代理 - 微服务集群
   const proxies = [
     // 将不需要加模块前缀的根级接口直接打给 micro-system 处理
