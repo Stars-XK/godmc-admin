@@ -79,9 +79,10 @@
       v-loading="loading"
       :data="zoneList"
       row-key="id"
-      :default-expand-all="isExpandAll"
+      :expand-row-keys="expandedRowKeys"
       :tree-props="{children: 'children'}"
       class="flex-table"
+      @expand-change="handleExpandChange"
     >
       <el-table-column prop="name" label="分区名称" min-width="260" show-overflow-tooltip>
         <template #default="scope">
@@ -273,8 +274,8 @@ const zoneList = ref([]);
 const zoneOptions = ref([]);
 const loading = ref(true);
 const showSearch = ref(true);
-const isExpandAll = ref(true);
 const refreshTable = ref(true);
+const expandedRowKeys = ref([]);
 const open = ref(false);
 const title = ref("");
 
@@ -314,6 +315,31 @@ function cleanHasChildren(list) {
   });
 }
 
+// 记录用户手动展开/折叠的状态，防止表格刷新时重置
+const userExpandedKeys = ref(new Set());
+
+// 监听 el-table 的展开折叠事件
+function handleExpandChange(row, expanded) {
+  if (expanded) {
+    userExpandedKeys.value.add(row.id);
+  } else {
+    userExpandedKeys.value.delete(row.id);
+  }
+}
+
+// 获取前N层的所有节点ID
+function getExpandedKeys(data, maxLevel, currentLevel = 1) {
+  let keys = [];
+  if (currentLevel > maxLevel) return keys;
+  data.forEach(item => {
+    keys.push(item.id);
+    if (item.children && item.children.length > 0) {
+      keys = keys.concat(getExpandedKeys(item.children, maxLevel, currentLevel + 1));
+    }
+  });
+  return keys;
+}
+
 /** 查询分区列表 */
 function getList() {
   loading.value = true;
@@ -327,6 +353,15 @@ function getList() {
     
     zoneList.value = cleanData;
     zoneOptions.value = cleanData;
+
+    // 如果用户还没有手动展开过任何节点，就默认展开前 2 层
+    // 如果已经手动操作过，就保持用户的展开状态
+    if (userExpandedKeys.value.size === 0) {
+      const defaultKeys = getExpandedKeys(cleanData, 2);
+      defaultKeys.forEach(key => userExpandedKeys.value.add(key));
+    }
+    expandedRowKeys.value = Array.from(userExpandedKeys.value);
+    
     loading.value = false;
     
     // 利用 nextTick 让浏览器有机会重绘，然后再挂载新的 el-table
@@ -340,6 +375,8 @@ function getList() {
 
 /** 搜索按钮操作 */
 function handleQuery() {
+  // 搜索时重置展开状态，以便重新计算前两层
+  userExpandedKeys.value.clear();
   getList();
 }
 
@@ -349,10 +386,21 @@ function resetQuery() {
   handleQuery();
 }
 
-/** 展开/折叠操作 */
+/** 展开/折叠全部操作 */
+const isExpandAll = ref(false);
 function toggleExpandAll() {
   refreshTable.value = false;
   isExpandAll.value = !isExpandAll.value;
+  if (isExpandAll.value) {
+    // 展开全部
+    const allKeys = getExpandedKeys(zoneList.value, 999);
+    allKeys.forEach(key => userExpandedKeys.value.add(key));
+  } else {
+    // 折叠全部
+    userExpandedKeys.value.clear();
+  }
+  expandedRowKeys.value = Array.from(userExpandedKeys.value);
+  
   nextTick(() => {
     refreshTable.value = true;
   });
