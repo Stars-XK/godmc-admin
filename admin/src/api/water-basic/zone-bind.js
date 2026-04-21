@@ -54,20 +54,20 @@ export function importBindRevenueUsers(data) {
 
 // --- 全局批量导入 ---
 
-export function importGlobalBindDevices(data) {
+export function importGlobalBindDevices(dataList) {
   return request({
     url: '/water-basic/zone/global-bind/device/import',
     method: 'post',
-    data: data,
+    data: { dataList },
     timeout: 600000
   })
 }
 
-export function importGlobalBindRevenueUsers(data) {
+export function importGlobalBindRevenueUsers(dataList) {
   return request({
     url: '/water-basic/zone/global-bind/revenue/import',
     method: 'post',
-    data: data,
+    data: { dataList },
     timeout: 600000
   })
 }
