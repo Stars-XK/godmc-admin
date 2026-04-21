@@ -267,7 +267,7 @@ const title = ref("")
 
 function reset() {
   form.value = {
-    id: undefined, name: undefined, code: undefined, deviceCode: undefined, type: "1",
+    id: undefined, name: undefined, code: undefined, deviceCode: undefined, type: "PRESSURE",
     rangeMax: undefined, rangeMin: undefined, alarmMax: undefined, alarmMin: undefined,
     unit: undefined, dataType: "float", rwAttr: "R", status: "0"
   }
@@ -401,7 +401,7 @@ function processFile(file) {
           deviceCode: row['所属设备编码(必填)'] || row['所属设备编码'] || '',
           name: row['测点名称(必填)'] || row['测点名称'] || '',
           code: row['测点编码(必填)'] || row['测点编码'] || '',
-          type: row['测点类型(1/2/3/4/5)'] || row['测点类型'] || '1',
+          type: row['测点类型(填写字典值如 PRESSURE)'] || row['测点类型'] || 'PRESSURE',
           rangeMax: parseFloat(row['量程上限']) || null,
           rangeMin: parseFloat(row['量程下限']) || null,
           alarmMax: parseFloat(row['报警上限']) || null,

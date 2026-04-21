@@ -263,7 +263,7 @@ const title = ref("")
 
 function reset() {
   form.value = {
-    id: undefined, name: undefined, code: undefined, stationCode: undefined, type: "1",
+    id: undefined, name: undefined, code: undefined, stationCode: undefined, type: "PUMP",
     model: undefined, manufacturer: undefined, installDate: undefined, lifespan: undefined, power: undefined,
     managerName: undefined, managerPhone: undefined, status: "0", userId: undefined
   }
@@ -397,7 +397,7 @@ function processFile(file) {
           stationCode: row['所属站点编码(必填)'] || row['所属站点编码'] || '',
           name: row['设备名称(必填)'] || row['设备名称'] || '',
           code: row['设备编码(必填)'] || row['设备编码'] || '',
-          type: row['设备类型(1/2/3/4/5)'] || row['设备类型'] || '1',
+          type: row['设备类型(填写字典值如 PUMP)'] || row['设备类型'] || 'PUMP',
           model: row['型号'] || '',
           manufacturer: row['厂家'] || '',
           installDate: row['安装日期(YYYY-MM-DD)'] || row['安装日期'] || null,

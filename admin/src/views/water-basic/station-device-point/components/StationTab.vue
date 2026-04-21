@@ -263,7 +263,7 @@ const title = ref("")
 
 function reset() {
   form.value = {
-    id: undefined, name: undefined, code: undefined, zoneCode: undefined, type: "1",
+    id: undefined, name: undefined, code: undefined, zoneCode: undefined, type: "WATER_PLANT",
     longitude: undefined, latitude: undefined, designCapacity: undefined, commissioningDate: undefined,
     managerName: undefined, managerPhone: undefined, constructionUnit: undefined, address: undefined,
     status: "0", userId: undefined
@@ -404,7 +404,7 @@ function processFile(file) {
           zoneCode: row['所属分区编码'] || row['所属分区'] || '',
           name: row['站点名称(必填)'] || row['站点名称'] || '',
           code: row['站点编码(必填)'] || row['站点编码'] || '',
-          type: row['站点类型(1水厂/2泵站/3水库)'] || row['站点类型'] || '1',
+          type: row['站点类型(填写字典值如 WATER_PLANT)'] || row['站点类型'] || 'WATER_PLANT',
           longitude: row['经度(X)'] || '',
           latitude: row['纬度(Y)'] || '',
           designCapacity: parseFloat(row['设计能力']) || null,
