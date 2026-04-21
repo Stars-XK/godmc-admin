@@ -327,7 +327,9 @@ export class ZoneService {
   // ================= 关联设备 =================
 
   async unboundDeviceList(query: any) {
-    const { name, code } = query;
+    const { name, code, pageNum = 1, pageSize = 20 } = query;
+    const pn = Math.max(parseInt(pageNum, 10) || 1, 1);
+    const ps = Math.min(Math.max(parseInt(pageSize, 10) || 20, 1), 500);
     const qb = this.deviceRep.createQueryBuilder('device')
       .where('device.delFlag = :delFlag', { delFlag: '0' })
       .andWhere('device.zoneCode IS NULL');
@@ -335,8 +337,12 @@ export class ZoneService {
     if (name) qb.andWhere(`device.name LIKE "%${name}%"`);
     if (code) qb.andWhere(`device.code LIKE "%${code}%"`);
 
-    const list = await qb.orderBy('device.createTime', 'DESC').getMany();
-    return ResultData.ok(list);
+    const [list, total] = await qb
+      .orderBy('device.createTime', 'DESC')
+      .skip((pn - 1) * ps)
+      .take(ps)
+      .getManyAndCount();
+    return ResultData.ok({ list, total });
   }
 
   async bindDevices(zoneCode: string, deviceIds: string[]) {
@@ -392,7 +398,9 @@ export class ZoneService {
   // ================= 关联营收 =================
 
   async unboundRevenueList(query: any) {
-    const { name, userNo } = query;
+    const { name, userNo, pageNum = 1, pageSize = 20 } = query;
+    const pn = Math.max(parseInt(pageNum, 10) || 1, 1);
+    const ps = Math.min(Math.max(parseInt(pageSize, 10) || 20, 1), 500);
     const qb = this.revenueUserRep.createQueryBuilder('user')
       .where('user.delFlag = :delFlag', { delFlag: '0' })
       .andWhere('user.zoneCode IS NULL');
@@ -400,8 +408,12 @@ export class ZoneService {
     if (name) qb.andWhere(`user.userName LIKE "%${name}%"`);
     if (userNo) qb.andWhere(`user.userNo LIKE "%${userNo}%"`);
 
-    const list = await qb.orderBy('user.createTime', 'DESC').getMany();
-    return ResultData.ok(list);
+    const [list, total] = await qb
+      .orderBy('user.createTime', 'DESC')
+      .skip((pn - 1) * ps)
+      .take(ps)
+      .getManyAndCount();
+    return ResultData.ok({ list, total });
   }
 
   async bindRevenueUsers(zoneCode: string, userIds: string[]) {
@@ -452,5 +464,31 @@ export class ZoneService {
     }
 
     return ResultData.ok({ successCount, failCount, results });
+  }
+
+  async bindDeviceTemplate(res: Response) {
+    const workbook = new exceljs.Workbook();
+    const worksheet = workbook.addWorksheet('设备关联模板');
+    worksheet.columns = [
+      { header: '设备编码', key: 'code', width: 30 },
+    ];
+    worksheet.addRow({ code: 'DEV001' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=ZoneBindDeviceTemplate.xlsx');
+    await workbook.xlsx.write(res);
+    res.end();
+  }
+
+  async bindRevenueTemplate(res: Response) {
+    const workbook = new exceljs.Workbook();
+    const worksheet = workbook.addWorksheet('营收关联模板');
+    worksheet.columns = [
+      { header: '用户编号', key: 'userNo', width: 30 },
+    ];
+    worksheet.addRow({ userNo: 'U0001' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=ZoneBindRevenueTemplate.xlsx');
+    await workbook.xlsx.write(res);
+    res.end();
   }
 }

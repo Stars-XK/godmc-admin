@@ -105,7 +105,7 @@
           <span>{{ parseTime(scope.row.createTime) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" width="300" class-name="small-padding fixed-width">
+      <el-table-column label="操作" align="center" width="420" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="success" icon="Link" @click="handleBindDevice(scope.row)" v-hasPermi="['water-basic:zone:edit']">关联设备</el-button>
           <el-button link type="warning" icon="Link" @click="handleBindRevenue(scope.row)" v-hasPermi="['water-basic:zone:edit']">关联营收</el-button>

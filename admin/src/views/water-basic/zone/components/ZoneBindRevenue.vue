@@ -13,13 +13,13 @@
         <div class="manual-container">
           <el-form :model="queryParams" ref="queryRef" :inline="true">
             <el-form-item label="用户编号" prop="userNo">
-              <el-input v-model="queryParams.userNo" placeholder="请输入编号" clearable style="width: 150px" @keyup.enter="getList" />
+              <el-input v-model="queryParams.userNo" placeholder="请输入编号" clearable style="width: 150px" @keyup.enter="handleQuery" />
             </el-form-item>
             <el-form-item label="用户名称" prop="name">
-              <el-input v-model="queryParams.name" placeholder="请输入名称" clearable style="width: 150px" @keyup.enter="getList" />
+              <el-input v-model="queryParams.name" placeholder="请输入名称" clearable style="width: 150px" @keyup.enter="handleQuery" />
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" icon="Search" @click="getList">搜索</el-button>
+              <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
             </el-form-item>
           </el-form>
           
@@ -43,6 +43,15 @@
             <el-table-column label="手机号" prop="phone" width="120" />
             <el-table-column label="详细地址" prop="address" show-overflow-tooltip />
           </el-table>
+
+          <pagination
+            v-show="total > 0"
+            :total="total"
+            v-model:page="pageNum"
+            v-model:limit="pageSize"
+            :page-sizes="pageSizes"
+            @pagination="getList"
+          />
           
           <div class="bottom-action">
             <el-button type="primary" :disabled="!selectedIds.length" @click="submitManualBind">
@@ -64,8 +73,18 @@
                 <el-radio label="replace" border>覆盖替换（先清空该分区下所有用户）</el-radio>
               </el-radio-group>
             </el-form-item>
+
+            <el-alert
+              title="模式说明：追加=保留现有关联，仅新增本次导入/勾选的用户；替换=先解绑该分区下所有用户，再按本次导入/勾选重新绑定。"
+              type="info"
+              show-icon
+              style="margin-bottom: 12px;"
+            />
             
             <el-form-item label="上传文件">
+              <el-button type="primary" plain icon="Download" @click="downloadTemplate" style="margin-bottom: 12px;">
+                下载模板
+              </el-button>
               <div class="upload-zone" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleDrop">
                 <el-icon class="upload-icon"><UploadFilled /></el-icon>
                 <h3>点击或拖拽 Excel 文件到此区域</h3>
@@ -110,6 +129,10 @@ const visible = ref(false)
 const activeTab = ref('manual')
 const loading = ref(false)
 const userList = ref([])
+const total = ref(0)
+const pageNum = ref(1)
+const pageSize = ref(20)
+const pageSizes = [20, 50, 100, 200, 500]
 const selectedIds = ref([])
 const queryParams = ref({ name: undefined, userNo: undefined })
 
@@ -125,6 +148,9 @@ watch(() => props.modelValue, (val) => {
   if (val) {
     activeTab.value = 'manual'
     importMode.value = 'append'
+    pageNum.value = 1
+    pageSize.value = 20
+    selectedIds.value = []
     getList()
   }
 })
@@ -135,12 +161,26 @@ function handleClose() {
   queryParams.value = { name: undefined, userNo: undefined }
 }
 
-function getList() {
+function handleQuery() {
+  pageNum.value = 1
+  getList()
+}
+
+async function getList() {
   loading.value = true
-  getUnboundRevenueList(queryParams.value).then(res => {
-    userList.value = res.data || []
+  try {
+    const res = await getUnboundRevenueList({
+      ...queryParams.value,
+      pageNum: pageNum.value,
+      pageSize: pageSize.value
+    })
+    const data = res.data || {}
+    userList.value = data.list || []
+    total.value = data.total || 0
+    selectedIds.value = []
+  } finally {
     loading.value = false
-  })
+  }
 }
 
 function handleSelectionChange(selection) {
@@ -153,6 +193,10 @@ function submitManualBind() {
     emit('success')
     getList()
   })
+}
+
+function downloadTemplate() {
+  proxy.download('/water-basic/zone/bind/revenue/template', {}, `营收关联模板_${new Date().getTime()}.xlsx`)
 }
 
 // ============== 极速导入解析 ==============
@@ -176,7 +220,18 @@ function processFile(file) {
     proxy.$modal.msgError("仅支持 xls, xlsx 格式的文件")
     return
   }
-  
+
+  if (importMode.value === 'replace') {
+    proxy.$modal.confirm('覆盖替换：将先解绑该分区下所有已关联营收用户，再按本次文件重新绑定。是否继续？').then(() => {
+      startImport(file)
+    }).catch(() => {})
+    return
+  }
+
+  startImport(file)
+}
+
+function startImport(file) {
   isUploading.value = true
   progress.value = 10
   

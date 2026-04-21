@@ -104,6 +104,12 @@ export class ZoneController {
     return this.zoneService.importBindDevices(body.zoneCode, body.mode, body.dataList);
   }
 
+  @ApiOperation({ summary: '下载设备关联模板' })
+  @Post('bind/device/template')
+  bindDeviceTemplate(@Res() res: Response) {
+    return this.zoneService.bindDeviceTemplate(res);
+  }
+
   // ================= 关联营收接口 =================
 
   @ApiOperation({ summary: '查询未关联任何分区的营收用户列表' })
@@ -122,5 +128,11 @@ export class ZoneController {
   @Post('bind/revenue/import')
   importBindRevenueUsers(@Body() body: { zoneCode: string, mode: string, dataList: any[] }) {
     return this.zoneService.importBindRevenueUsers(body.zoneCode, body.mode, body.dataList);
+  }
+
+  @ApiOperation({ summary: '下载营收关联模板' })
+  @Post('bind/revenue/template')
+  bindRevenueTemplate(@Res() res: Response) {
+    return this.zoneService.bindRevenueTemplate(res);
   }
 }
