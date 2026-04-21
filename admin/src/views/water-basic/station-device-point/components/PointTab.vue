@@ -1,7 +1,7 @@
 <template>
-  <div class="point-tab">
-    <el-row :gutter="20">
-      <el-col :span="24">
+  <div class="point-tab full-height-tab">
+    <el-row :gutter="20" class="full-height-row">
+      <el-col :span="24" class="full-height-col">
         <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch">
           <el-form-item label="测点名称" prop="name">
             <el-input v-model="queryParams.name" placeholder="请输入测点名称" clearable @keyup.enter="handleQuery" />
@@ -33,7 +33,7 @@
           <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
         </el-row>
 
-        <el-table v-loading="loading" :data="pointList">
+        <el-table v-loading="loading" :data="pointList" height="100%" class="flex-table">
           <el-table-column type="index" width="50" align="center" />
           <el-table-column label="测点名称" align="left" prop="name" min-width="180">
             <template #default="scope">
@@ -239,7 +239,7 @@ const userOptions = ref([])
 const pointList = ref([])
 
 const form = ref({})
-const queryParams = ref({ pageNum: 1, pageSize: 10, name: undefined, code: undefined, type: undefined })
+const queryParams = ref({ pageNum: 1, pageSize: 20, name: undefined, code: undefined, type: undefined })
 const upload = ref({
   open: false, title: "", isUploading: false, progress: 0,
   headers: { Authorization: "Bearer " + getToken() },
@@ -381,4 +381,35 @@ onMounted(() => {
 
 <style scoped>
 .mr-1 { margin-right: 5px; vertical-align: middle; }
+
+.full-height-tab {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.full-height-row {
+  flex: 1;
+  margin: 0 !important;
+  display: flex;
+}
+
+.full-height-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 !important;
+}
+
+.flex-table {
+  flex: 1;
+}
+
+:deep(.el-table) {
+  height: 100% !important;
+}
+
+:deep(.el-table__inner-wrapper) {
+  height: 100% !important;
+}
 </style>
