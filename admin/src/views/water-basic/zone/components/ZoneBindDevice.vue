@@ -3,9 +3,10 @@
     :title="`关联设备台账 - ${zoneName}`"
     v-model="visible"
     direction="rtl"
-    size="800px"
+    size="1000px"
     @close="handleClose"
     append-to-body
+    class="custom-drawer"
   >
     <el-tabs v-model="activeTab" class="bind-tabs">
       <!-- 模式1：手动勾选关联 -->
@@ -33,23 +34,25 @@
           
           <el-alert title="列表中仅显示当前未关联任何分区的独立设备" type="info" show-icon style="margin-bottom: 15px; border-radius: 8px;" />
 
-          <el-table
-            v-loading="loading"
-            :data="deviceList"
-            @selection-change="handleSelectionChange"
-            height="calc(100vh - 350px)"
-            style="width: 100%"
-          >
-            <el-table-column type="selection" width="55" align="center" />
-            <el-table-column label="设备编码" prop="code" width="150" />
-            <el-table-column label="设备名称" prop="name" show-overflow-tooltip />
-            <el-table-column label="设备类型" prop="type" width="100">
-              <template #default="scope">
-                <dict-tag :options="water_device_type" :value="scope.row.type" />
-              </template>
-            </el-table-column>
-            <el-table-column label="生产厂家" prop="manufacturer" show-overflow-tooltip />
-          </el-table>
+          <div class="table-wrapper">
+            <el-table
+              v-loading="loading"
+              :data="deviceList"
+              @selection-change="handleSelectionChange"
+              height="100%"
+              style="width: 100%"
+            >
+              <el-table-column type="selection" width="55" align="center" />
+              <el-table-column label="设备编码" prop="code" width="150" />
+              <el-table-column label="设备名称" prop="name" show-overflow-tooltip />
+              <el-table-column label="设备类型" prop="type" width="100">
+                <template #default="scope">
+                  <dict-tag :options="water_device_type" :value="scope.row.type" />
+                </template>
+              </el-table-column>
+              <el-table-column label="生产厂家" prop="manufacturer" show-overflow-tooltip />
+            </el-table>
+          </div>
 
           <pagination
             v-show="total > 0"
@@ -347,8 +350,21 @@ function exportResultExcel(results) {
   box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
 }
 
+.manual-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+}
+.table-wrapper {
+  flex: 1;
+  min-height: 0; /* 必须加这个，防止 flex 子项溢出 */
+}
 .bind-tabs {
   padding: 0 20px;
+  height: 100%;
+}
+.bind-tabs :deep(.el-tabs__content) {
+  height: calc(100% - 60px);
 }
 .upload-wrapper {
   display: flex;
