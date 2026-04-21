@@ -55,7 +55,7 @@ export class ZoneController {
   }
 
   @ApiOperation({ summary: '下载导入模板' })
-  @Get('importTemplate')
+  @Post('importTemplate')
   importTemplate(@Res() res: Response) {
     return this.zoneService.importTemplate(res);
   }

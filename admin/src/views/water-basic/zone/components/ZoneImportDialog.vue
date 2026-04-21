@@ -88,7 +88,7 @@ function openDialog() {
 
 /** 下载模板操作 */
 function importTemplate() {
-  proxy.download("water-basic/zone/importTemplate", {}, `zone_template_${new Date().getTime()}.xlsx`);
+  proxy.download("/water-basic/zone/importTemplate", {}, `zone_template_${new Date().getTime()}.xlsx`);
 }
 
 /** 文件上传中处理 */

@@ -186,7 +186,7 @@ function handleImport() {
 
 /** 导出操作 */
 function handleExport() {
-  proxy.download('water-basic/zone/export', {
+  proxy.download('/water-basic/zone/export', {
     ...queryParams.value
   }, `zone_${new Date().getTime()}.xlsx`)
 }
