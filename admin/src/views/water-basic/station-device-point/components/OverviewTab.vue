@@ -1,15 +1,19 @@
 <template>
-  <div class="overview-tab">
-    <el-row :gutter="20">
-      <el-col :span="8">
-        <el-card class="box-card tree-card" shadow="hover">
+  <div class="overview-container">
+    <el-row :gutter="20" class="full-height-row">
+      <!-- 左侧：拓扑树 -->
+      <el-col :span="8" class="left-col">
+        <el-card class="box-card tree-card" shadow="never">
           <template #header>
             <div class="card-header">
-              <span>物联拓扑结构</span>
-              <el-tag size="small" type="primary">{{ treeData.length }} 站点</el-tag>
+              <div class="header-title">
+                <div class="title-accent"></div>
+                <span>物联拓扑结构</span>
+              </div>
+              <el-tag size="small" effect="light" class="custom-tag">{{ treeData.length }} 站点</el-tag>
             </div>
           </template>
-          <div class="tree-container">
+          <div class="tree-container custom-scrollbar">
             <el-tree
               :data="treeData"
               :props="defaultProps"
@@ -19,64 +23,89 @@
               class="custom-tree"
             >
               <template #default="{ node, data }">
-                <span class="custom-tree-node">
-                  <el-icon :color="getIconColor(data.nodeType)">
-                    <component :is="getIcon(data.nodeType)" />
-                  </el-icon>
-                  <span class="node-label">{{ node.label }}</span>
-                  <el-tag v-if="data.nodeType === 'station'" size="small" type="success" effect="plain" class="node-badge">
-                    {{ data.children?.length || 0 }} 设备
-                  </el-tag>
-                  <el-tag v-if="data.nodeType === 'device'" size="small" type="warning" effect="plain" class="node-badge">
-                    {{ data.children?.length || 0 }} 测点
-                  </el-tag>
-                </span>
+                <div class="custom-tree-node">
+                  <div class="node-icon-wrapper" :class="'icon-' + data.nodeType">
+                    <el-icon><component :is="getIcon(data.nodeType)" /></el-icon>
+                  </div>
+                  <span class="node-label" :title="node.label">{{ node.label }}</span>
+                  <div class="node-badges">
+                    <span v-if="data.nodeType === 'station'" class="badge badge-station">
+                      {{ data.children?.length || 0 }} 设备
+                    </span>
+                    <span v-if="data.nodeType === 'device'" class="badge badge-device">
+                      {{ data.children?.length || 0 }} 测点
+                    </span>
+                  </div>
+                </div>
               </template>
             </el-tree>
+            <el-empty v-if="treeData.length === 0" description="暂无拓扑数据" :image-size="100"></el-empty>
           </div>
         </el-card>
       </el-col>
-      <el-col :span="16">
-        <el-row :gutter="20" class="mb-4">
+
+      <!-- 右侧：统计与图表 -->
+      <el-col :span="16" class="right-col">
+        <el-row :gutter="20" class="stat-row">
           <el-col :span="8">
-            <el-card shadow="hover" class="stat-card stat-blue">
-              <div class="stat-icon"><el-icon><OfficeBuilding /></el-icon></div>
+            <div class="stat-card stat-station">
+              <div class="stat-bg-shape"></div>
               <div class="stat-content">
-                <div class="stat-title">站点总数</div>
-                <div class="stat-value">{{ stats.stationCount }}</div>
+                <div class="stat-info">
+                  <div class="stat-title">接入站点</div>
+                  <div class="stat-value">{{ stats.stationCount }}</div>
+                </div>
+                <div class="stat-icon-box">
+                  <el-icon><OfficeBuilding /></el-icon>
+                </div>
               </div>
-            </el-card>
+            </div>
           </el-col>
           <el-col :span="8">
-            <el-card shadow="hover" class="stat-card stat-green">
-              <div class="stat-icon"><el-icon><Cpu /></el-icon></div>
+            <div class="stat-card stat-device">
+              <div class="stat-bg-shape"></div>
               <div class="stat-content">
-                <div class="stat-title">设备总数</div>
-                <div class="stat-value">{{ stats.deviceCount }}</div>
+                <div class="stat-info">
+                  <div class="stat-title">监测设备</div>
+                  <div class="stat-value">{{ stats.deviceCount }}</div>
+                </div>
+                <div class="stat-icon-box">
+                  <el-icon><Cpu /></el-icon>
+                </div>
               </div>
-            </el-card>
+            </div>
           </el-col>
           <el-col :span="8">
-            <el-card shadow="hover" class="stat-card stat-orange">
-              <div class="stat-icon"><el-icon><Odometer /></el-icon></div>
+            <div class="stat-card stat-point">
+              <div class="stat-bg-shape"></div>
               <div class="stat-content">
-                <div class="stat-title">测点总数</div>
-                <div class="stat-value">{{ stats.pointCount }}</div>
+                <div class="stat-info">
+                  <div class="stat-title">感知测点</div>
+                  <div class="stat-value">{{ stats.pointCount }}</div>
+                </div>
+                <div class="stat-icon-box">
+                  <el-icon><Odometer /></el-icon>
+                </div>
               </div>
-            </el-card>
+            </div>
           </el-col>
         </el-row>
 
-        <el-card class="box-card chart-card" shadow="hover">
+        <el-card class="box-card chart-card" shadow="never">
           <template #header>
             <div class="card-header">
-              <span>状态分布</span>
+              <div class="header-title">
+                <div class="title-accent accent-purple"></div>
+                <span>设备状态分布</span>
+              </div>
             </div>
           </template>
-          <div class="chart-placeholder">
-            <div class="empty-chart">
-              <el-icon :size="40" color="#c0c4cc"><PieChart /></el-icon>
-              <p>暂无足够数据生成图表</p>
+          <div class="chart-container">
+            <div class="empty-state-modern">
+              <div class="pulse-ring"></div>
+              <el-icon class="empty-icon"><PieChart /></el-icon>
+              <h3>图表数据采集中</h3>
+              <p>接入更多测点数据后将在此处生成多维可视化分析</p>
             </div>
           </div>
         </el-card>
@@ -161,79 +190,315 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.mb-4 { margin-bottom: 20px; }
-.tree-card { min-height: 600px; }
-.tree-container { max-height: 520px; overflow-y: auto; }
-.card-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+.overview-container {
+  height: calc(100vh - 170px);
+  min-height: 600px;
+  box-sizing: border-box;
+}
+
+.full-height-row {
+  height: 100%;
+  margin: 0 !important;
+}
+
+.left-col, .right-col {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 通用卡片样式 */
+.box-card {
+  border-radius: 12px;
+  border: 1px solid #ebeef5;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.box-card :deep(.el-card__header) {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f2f5;
+  background-color: #fafafa;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  font-size: 16px;
+  color: #303133;
+}
+
+.title-accent {
+  width: 4px;
+  height: 16px;
+  background-color: #409EFF;
+  border-radius: 2px;
+  margin-right: 10px;
+}
+
+.title-accent.accent-purple {
+  background-color: #8a2be2;
+}
+
+.custom-tag {
+  border-radius: 12px;
+  padding: 0 10px;
+  font-weight: 500;
+}
+
+/* 树形组件区 */
+.tree-card {
+  flex: 1;
+  overflow: hidden;
+}
+
+.tree-card :deep(.el-card__body) {
+  flex: 1;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-container {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
 
 .custom-tree {
   background: transparent;
 }
+
+.custom-tree :deep(.el-tree-node__content) {
+  height: 40px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  transition: all 0.2s;
+}
+
+.custom-tree :deep(.el-tree-node__content:hover) {
+  background-color: #f2f6fc;
+}
+
 .custom-tree-node {
   flex: 1;
   display: flex;
   align-items: center;
   font-size: 14px;
-  padding-right: 8px;
+  padding-right: 12px;
+  width: 0; /* 让 flex 截断生效 */
 }
+
+.node-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  margin-right: 10px;
+  font-size: 14px;
+}
+
+.icon-station { background: #ecf5ff; color: #409EFF; }
+.icon-device { background: #f0f9eb; color: #67C23A; }
+.icon-point { background: #fdf6ec; color: #E6A23C; }
+
 .node-label {
-  margin-left: 8px;
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #606266;
+  font-weight: 500;
 }
-.node-badge {
-  transform: scale(0.8);
+
+.node-badges {
+  display: flex;
+  gap: 6px;
+  margin-left: 8px;
+}
+
+.badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.badge-station { background: #e1f3d8; color: #67C23A; }
+.badge-device { background: #faecd8; color: #E6A23C; }
+
+/* 右侧统计卡片区 */
+.stat-row {
+  margin-bottom: 20px;
 }
 
 .stat-card {
-  border-radius: 8px;
-  color: #fff;
-  border: none;
+  position: relative;
+  height: 100px;
+  border-radius: 12px;
+  background-color: #fff;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  border: 1px solid #ebeef5;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
-.stat-blue { background: linear-gradient(135deg, #409EFF, #73b8ff); }
-.stat-green { background: linear-gradient(135deg, #67C23A, #95d475); }
-.stat-orange { background: linear-gradient(135deg, #E6A23C, #f3d19e); }
 
-.stat-card :deep(.el-card__body) {
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.stat-bg-shape {
+  position: absolute;
+  right: -20px;
+  top: -20px;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  opacity: 0.1;
+  z-index: 0;
+}
+
+.stat-station .stat-bg-shape { background: #409EFF; }
+.stat-device .stat-bg-shape { background: #67C23A; }
+.stat-point .stat-bg-shape { background: #E6A23C; }
+
+.stat-content {
+  position: relative;
+  z-index: 1;
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding: 20px;
+  height: 100%;
+  padding: 0 24px;
 }
-.stat-icon {
-  font-size: 48px;
-  opacity: 0.8;
-  margin-right: 20px;
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
 }
+
 .stat-title {
   font-size: 14px;
-  opacity: 0.9;
+  color: #909399;
   margin-bottom: 8px;
+  font-weight: 500;
 }
+
 .stat-value {
   font-size: 28px;
   font-weight: bold;
+  color: #303133;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  line-height: 1;
 }
 
-.chart-card {
-  height: 460px;
-}
-.chart-placeholder {
+.stat-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 380px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px dashed #e4e7ed;
+  font-size: 24px;
 }
-.empty-chart {
+
+.stat-station .stat-icon-box { background: #ecf5ff; color: #409EFF; }
+.stat-device .stat-icon-box { background: #f0f9eb; color: #67C23A; }
+.stat-point .stat-icon-box { background: #fdf6ec; color: #E6A23C; }
+
+/* 右侧图表区 */
+.chart-card {
+  flex: 1;
+}
+
+.chart-card :deep(.el-card__body) {
+  flex: 1;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #fafbfc;
+  background-image: radial-gradient(#e4e7ed 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.empty-state-modern {
   text-align: center;
-  color: #909399;
+  position: relative;
+  z-index: 1;
 }
-.empty-chart p {
-  margin-top: 10px;
-  font-size: 14px;
+
+.pulse-ring {
+  position: absolute;
+  left: 50%;
+  top: 30px;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(138, 43, 226, 0.1);
+  animation: pulse 2s infinite;
+  z-index: -1;
+}
+
+@keyframes pulse {
+  0% { transform: translateX(-50%) scale(0.8); opacity: 0.8; }
+  100% { transform: translateX(-50%) scale(1.5); opacity: 0; }
+}
+
+.empty-icon {
+  font-size: 48px;
+  color: #8a2be2;
+  margin-bottom: 16px;
+  opacity: 0.8;
+}
+
+.empty-state-modern h3 {
+  font-size: 18px;
+  color: #303133;
+  margin: 0 0 8px 0;
+  font-weight: 600;
+}
+
+.empty-state-modern p {
+  font-size: 13px;
+  color: #909399;
+  margin: 0;
+  max-width: 250px;
+  line-height: 1.5;
+}
+
+/* 滚动条美化 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #dcdfe6;
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
 }
 </style>
