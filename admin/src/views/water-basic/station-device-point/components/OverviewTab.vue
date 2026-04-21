@@ -558,6 +558,8 @@ onBeforeUnmount(() => {
   border-radius: 8px;
   margin-bottom: 4px;
   transition: all 0.2s;
+  overflow: hidden; /* 防止展开时子元素溢出 */
+  padding-right: 8px;
 }
 
 .custom-tree :deep(.el-tree-node__content:hover) {
@@ -570,7 +572,7 @@ onBeforeUnmount(() => {
   align-items: center;
   font-size: 14px;
   padding-right: 12px;
-  width: 0; /* 让 flex 截断生效 */
+  min-width: 0; /* 让 flex 截断生效 */
 }
 
 .node-icon-wrapper {
@@ -581,6 +583,7 @@ onBeforeUnmount(() => {
   height: 24px;
   border-radius: 6px;
   margin-right: 10px;
+  flex-shrink: 0; /* 防止图标被压缩 */
   font-size: 14px;
 }
 
@@ -595,12 +598,14 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   color: #606266;
   font-weight: 500;
+  min-width: 0; /* 防止长文本撑开 flex 容器 */
 }
 
 .node-badges {
   display: flex;
   gap: 6px;
   margin-left: 8px;
+  flex-shrink: 0; /* 防止徽章被压缩 */
 }
 
 .badge {
@@ -608,10 +613,12 @@ onBeforeUnmount(() => {
   padding: 2px 8px;
   border-radius: 10px;
   font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
 }
 
-.badge-station { background: #e1f3d8; color: #67C23A; }
-.badge-device { background: #faecd8; color: #E6A23C; }
+.badge-station { background: #f4f4f5; color: #909399; border-color: #e9e9eb; }
+.badge-device { background: #fdf6ec; color: #E6A23C; border-color: #faecd8; }
 
 /* 右侧统计卡片区 */
 .stat-row {
