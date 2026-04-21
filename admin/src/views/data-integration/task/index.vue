@@ -38,15 +38,28 @@
           <el-input v-model="form.name" placeholder="请输入任务名称" />
         </el-form-item>
         <el-form-item label="数据源" prop="sourceId">
-          <el-select v-model="form.sourceId" placeholder="请选择数据源" style="width: 100%">
+          <el-select v-model="form.sourceId" placeholder="请选择数据源" style="width: 100%" @change="handleSourceChange">
             <el-option v-for="s in sourceList" :key="s.id" :label="s.name" :value="s.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Cron表达式" prop="cronExpression">
-          <el-input v-model="form.cronExpression" placeholder="请输入Cron表达式(DB/文件任务需要)" />
+        <el-form-item label="Cron表达式" prop="cronExpression" v-if="isTimingTask(form.sourceId)">
+          <el-row :gutter="10" style="width: 100%">
+            <el-col :span="8">
+              <el-select v-model="quickCron" placeholder="快捷选择" @change="val => form.cronExpression = val">
+                <el-option label="每 10 秒" value="0/10 * * * * ?" />
+                <el-option label="每 1 分钟" value="0 * * * * ?" />
+                <el-option label="每 5 分钟" value="0 0/5 * * * ?" />
+                <el-option label="每 1 小时" value="0 0 * * * ?" />
+                <el-option label="每天凌晨0点" value="0 0 0 * * ?" />
+              </el-select>
+            </el-col>
+            <el-col :span="16">
+              <el-input v-model="form.cronExpression" placeholder="或者手动输入(如: 0 * * * * ?)" />
+            </el-col>
+          </el-row>
         </el-form-item>
-        <el-form-item label="提取指令" prop="querySqlOrTopic">
-          <el-input v-model="form.querySqlOrTopic" type="textarea" placeholder="请输入SQL查询语句、Kafka Topic名称或文件匹配模式" />
+        <el-form-item :label="getQueryLabel(form.sourceId)" prop="querySqlOrTopic">
+          <el-input v-model="form.querySqlOrTopic" type="textarea" :placeholder="getQueryPlaceholder(form.sourceId)" />
         </el-form-item>
         <el-form-item label="任务状态" prop="status">
           <el-radio-group v-model="form.status">
@@ -115,6 +128,7 @@ const title = ref('');
 const mappingOpen = ref(false);
 const mappingList = ref([]);
 const currentTaskId = ref(null);
+const quickCron = ref(null);
 
 const data = reactive({
   form: {
@@ -148,6 +162,54 @@ function getSourceName(sourceId) {
   return s ? s.name : sourceId;
 }
 
+function getSourceType(sourceId) {
+  const s = sourceList.value.find(item => item.id === sourceId);
+  return s ? s.type : '';
+}
+
+function isTimingTask(sourceId) {
+  const type = getSourceType(sourceId);
+  return type === 'MYSQL' || type === 'POSTGRESQL' || type === 'FILE';
+}
+
+function getQueryLabel(sourceId) {
+  const type = getSourceType(sourceId);
+  switch (type) {
+    case 'MYSQL':
+    case 'POSTGRESQL':
+      return 'SQL 查询语句';
+    case 'KAFKA':
+      return 'Topic 名称';
+    case 'FILE':
+      return '文件匹配模式';
+    case 'HTTP':
+      return '推送标识后缀';
+    default:
+      return '提取指令';
+  }
+}
+
+function getQueryPlaceholder(sourceId) {
+  const type = getSourceType(sourceId);
+  switch (type) {
+    case 'MYSQL':
+    case 'POSTGRESQL':
+      return '例如: SELECT * FROM device_data WHERE sync_flag = 0';
+    case 'KAFKA':
+      return '例如: water_device_topic';
+    case 'FILE':
+      return '例如: *.csv 或 data_2023.json';
+    case 'HTTP':
+      return '选填。如果留空，推送地址为 /receiver/push/{taskId}';
+    default:
+      return '请选择数据源类型';
+  }
+}
+
+function handleSourceChange() {
+  form.querySqlOrTopic = '';
+}
+
 function cancel() {
   open.value = false;
   reset();
@@ -160,6 +222,7 @@ function reset() {
   form.cronExpression = undefined;
   form.querySqlOrTopic = undefined;
   form.status = '0';
+  quickCron.value = null;
   if (taskRef.value) taskRef.value.resetFields();
 }
 

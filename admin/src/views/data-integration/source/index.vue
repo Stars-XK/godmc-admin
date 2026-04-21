@@ -40,7 +40,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="连接字符串" prop="connectionStr">
-          <el-input v-model="form.connectionStr" type="textarea" placeholder="如 JDBC URL, 文件路径, Kafka Broker 列表" />
+          <el-input v-model="form.connectionStr" type="textarea" :placeholder="getConnectionPlaceholder(form.type)" />
         </el-form-item>
         <el-form-item label="用户名" prop="username">
           <el-input v-model="form.username" placeholder="请输入用户名" />
@@ -80,6 +80,23 @@ const data = reactive({
 
 const { form, rules } = data;
 const sourceRef = ref(null);
+
+function getConnectionPlaceholder(type) {
+  switch (type) {
+    case 'MYSQL':
+      return 'jdbc:mysql://127.0.0.1:3306/db_name 或只写 127.0.0.1:3306/db_name';
+    case 'POSTGRESQL':
+      return 'jdbc:postgresql://127.0.0.1:5432/db_name 或只写 127.0.0.1:5432/db_name';
+    case 'KAFKA':
+      return '例如: 127.0.0.1:9092,127.0.0.1:9093 (逗号分隔的Broker列表)';
+    case 'FILE':
+      return '输入监控的目录绝对路径, 例如: /data/upload/csv/';
+    case 'HTTP':
+      return '输入接收推送的根URL (可选), 如 http://api.example.com';
+    default:
+      return '请选择数据源类型以查看填写提示';
+  }
+}
 
 function getList() {
   loading.value = true;

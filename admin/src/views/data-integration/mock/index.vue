@@ -22,13 +22,22 @@
             <el-form-item label="数值范围 (Max)" prop="max">
               <el-input-number v-model="form.max" :min="0" :max="10000" style="width: 100%" />
             </el-form-item>
-            <el-form-item label="生成条数" prop="count">
-              <el-input-number v-model="form.count" :min="1" :max="1000" style="width: 100%" />
+            <el-form-item label="单次生成条数" prop="count">
+              <el-input-number v-model="form.count" :min="1" :max="1000" style="width: 100%" :disabled="isAuto" />
               <div class="el-upload__tip">生成数据会直接写入TDengine时序数据库的超级表中。</div>
             </el-form-item>
+            <el-form-item label="自动定时生成">
+              <el-switch v-model="isAuto" active-text="开启" inactive-text="关闭" />
+              <span v-if="isAuto" style="margin-left: 15px;">
+                频率(秒): <el-input-number v-model="autoInterval" :min="1" :max="60" style="width: 100px" />
+              </span>
+            </el-form-item>
             <el-form-item>
-              <el-button type="primary" :loading="loading" @click="submitMockData">开始生成</el-button>
-              <el-button @click="resetForm">重置表单</el-button>
+              <el-button v-if="!isAuto" type="primary" :loading="loading" @click="submitMockData">开始生成</el-button>
+              <el-button v-else type="success" :loading="loading" @click="toggleAutoMock">
+                {{ autoTimer ? '停止定时生成' : '启动定时生成' }}
+              </el-button>
+              <el-button @click="resetForm" :disabled="autoTimer !== null">重置表单</el-button>
             </el-form-item>
           </el-form>
         </el-col>
@@ -59,6 +68,10 @@ const mockRef = ref(null);
 const loading = ref(false);
 const results = ref([]);
 
+const isAuto = ref(false);
+const autoInterval = ref(5);
+const autoTimer = ref(null);
+
 const data = reactive({
   form: {
     deviceCode: '',
@@ -88,14 +101,54 @@ function submitMockData() {
       loading.value = true;
       generateMockData(form).then(response => {
         loading.value = false;
-        ElMessage.success('生成成功');
-        results.value = response.data || [];
+        if (!isAuto.value) {
+          ElMessage.success('生成成功');
+        }
+        // 将新数据追加到列表顶部，最多保留 100 条显示
+        results.value = [...(response.data || []), ...results.value].slice(0, 100);
       }).catch(() => {
         loading.value = false;
+        if (isAuto.value) {
+          stopAutoMock(); // 发生错误自动停止
+        }
       });
     }
   });
 }
+
+function toggleAutoMock() {
+  if (autoTimer.value) {
+    stopAutoMock();
+  } else {
+    mockRef.value.validate(valid => {
+      if (valid) {
+        if (form.min > form.max) {
+          ElMessage.error('最小值不能大于最大值');
+          return;
+        }
+        form.count = 1; // 自动模式下每次只生成 1 条
+        ElMessage.success(`已启动定时生成，每 ${autoInterval.value} 秒生成一次`);
+        submitMockData(); // 先执行一次
+        autoTimer.value = setInterval(() => {
+          submitMockData();
+        }, autoInterval.value * 1000);
+      }
+    });
+  }
+}
+
+function stopAutoMock() {
+  if (autoTimer.value) {
+    clearInterval(autoTimer.value);
+    autoTimer.value = null;
+    ElMessage.info('已停止定时生成');
+  }
+}
+
+import { onBeforeUnmount } from 'vue';
+onBeforeUnmount(() => {
+  stopAutoMock();
+});
 
 function resetForm() {
   if (mockRef.value) {
