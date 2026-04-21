@@ -50,7 +50,7 @@
           </el-table-column>
           <el-table-column label="经纬度" align="center" width="150">
             <template #default="scope">
-              <span v-if="scope.row.longitude && scope.row.latitude">{{ scope.row.longitude }}, {{ scope.row.latitude }}</span>
+              <span v-if="$any(scope.row).longitude && $any(scope.row).latitude">{{ $any(scope.row).longitude }}, {{ $any(scope.row).latitude }}</span>
               <span v-else>-</span>
             </template>
           </el-table-column>
