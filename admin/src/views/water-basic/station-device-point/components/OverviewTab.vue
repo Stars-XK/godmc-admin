@@ -10,15 +10,25 @@
                 <div class="title-accent"></div>
                 <span>物联拓扑结构</span>
               </div>
-              <el-tag size="small" effect="light" class="custom-tag">{{ treeData.length }} 站点</el-tag>
+              <el-tag size="small" effect="light" class="custom-tag">{{ stats.stationCount }} 站点</el-tag>
+            </div>
+            <div class="search-box">
+              <el-input
+                v-model="searchName"
+                placeholder="输入站点名称搜索"
+                prefix-icon="Search"
+                clearable
+                @change="handleSearch"
+              />
             </div>
           </template>
           <div class="tree-container custom-scrollbar">
             <el-tree
-              :data="treeData"
-              :props="defaultProps"
+              :key="treeKey"
+              lazy
+              :load="loadNode"
+              :props="treeProps"
               node-key="id"
-              default-expand-all
               :expand-on-click-node="false"
               class="custom-tree"
             >
@@ -28,18 +38,12 @@
                     <el-icon><component :is="getIcon(data.nodeType)" /></el-icon>
                   </div>
                   <span class="node-label" :title="node.label">{{ node.label }}</span>
-                  <div class="node-badges">
-                    <span v-if="data.nodeType === 'station'" class="badge badge-station">
-                      {{ data.children?.length || 0 }} 设备
-                    </span>
-                    <span v-if="data.nodeType === 'device'" class="badge badge-device">
-                      {{ data.children?.length || 0 }} 测点
-                    </span>
-                  </div>
+                  <!-- 为了极致的懒加载性能，这里移除了深层节点的子级数量徽章计算，只保留类型标识 -->
+                  <el-tag v-if="data.nodeType === 'device'" size="small" type="info" class="badge" effect="plain">设备</el-tag>
+                  <el-tag v-if="data.nodeType === 'point'" size="small" type="warning" class="badge" effect="plain">测点</el-tag>
                 </div>
               </template>
             </el-tree>
-            <el-empty v-if="treeData.length === 0" description="暂无拓扑数据" :image-size="100"></el-empty>
           </div>
         </el-card>
       </el-col>
@@ -118,12 +122,14 @@
 import { ref, onMounted } from 'vue'
 import { listStation, listDevice, listPoint } from '@/api/water-basic/equipment'
 
-const treeData = ref([])
 const stats = ref({ stationCount: 0, deviceCount: 0, pointCount: 0 })
+const searchName = ref('')
+const treeKey = ref(1)
 
-const defaultProps = {
+const treeProps = {
+  label: 'label',
   children: 'children',
-  label: 'name'
+  isLeaf: 'isLeaf'
 }
 
 function getIcon(type) {
@@ -140,52 +146,81 @@ function getIconColor(type) {
   return '#909399'
 }
 
-async function loadTopology() {
-  // Fetch all for overview demo
-  const [stationRes, deviceRes, pointRes] = await Promise.all([
-    listStation({ pageNum: 1, pageSize: 1000 }),
-    listDevice({ pageNum: 1, pageSize: 1000 }),
-    listPoint({ pageNum: 1, pageSize: 1000 })
-  ])
+async function loadStats() {
+  try {
+    const [sRes, dRes, pRes] = await Promise.all([
+      listStation({ pageNum: 1, pageSize: 1 }),
+      listDevice({ pageNum: 1, pageSize: 1 }),
+      listPoint({ pageNum: 1, pageSize: 1 })
+    ])
+    stats.value.stationCount = sRes.total || (sRes.data && sRes.data.total) || 0
+    stats.value.deviceCount = dRes.total || (dRes.data && dRes.data.total) || 0
+    stats.value.pointCount = pRes.total || (pRes.data && pRes.data.total) || 0
+  } catch (error) {
+    console.error('获取统计数据失败', error)
+  }
+}
 
-  const stations = stationRes.data?.list || []
-  const devices = deviceRes.data?.list || []
-  const points = pointRes.data?.list || []
+async function loadNode(node, resolve) {
+  if (node.level === 0) {
+    // 懒加载第一层：站点（为应对海量数据，这里最大加载 10000 条顶级站点，并支持前端按名字搜索）
+    try {
+      const res = await listStation({ pageNum: 1, pageSize: 10000, name: searchName.value })
+      const list = res.rows || (res.data && res.data.list) || []
+      const stations = list.map(s => ({
+        ...s,
+        label: s.name,
+        nodeType: 'station',
+        id: `s_${s.id}`,
+        isLeaf: false
+      }))
+      resolve(stations)
+    } catch (error) {
+      resolve([])
+    }
+  } else if (node.level === 1) {
+    // 懒加载第二层：设备
+    try {
+      const res = await listDevice({ stationCode: node.data.code, pageNum: 1, pageSize: 1000 })
+      const list = res.rows || (res.data && res.data.list) || []
+      const devices = list.map(d => ({
+        ...d,
+        label: d.name,
+        nodeType: 'device',
+        id: `d_${d.id}`,
+        isLeaf: false
+      }))
+      resolve(devices)
+    } catch (error) {
+      resolve([])
+    }
+  } else if (node.level === 2) {
+    // 懒加载第三层：测点
+    try {
+      const res = await listPoint({ deviceCode: node.data.code, pageNum: 1, pageSize: 1000 })
+      const list = res.rows || (res.data && res.data.list) || []
+      const points = list.map(p => ({
+        ...p,
+        label: p.name,
+        nodeType: 'point',
+        id: `p_${p.id}`,
+        isLeaf: true
+      }))
+      resolve(points)
+    } catch (error) {
+      resolve([])
+    }
+  } else {
+    resolve([])
+  }
+}
 
-  stats.value.stationCount = stations.length
-  stats.value.deviceCount = devices.length
-  stats.value.pointCount = points.length
-
-  // Build Tree
-  const pointMap = {}
-  points.forEach(p => {
-    if (!pointMap[p.deviceCode]) pointMap[p.deviceCode] = []
-    pointMap[p.deviceCode].push({ ...p, nodeType: 'point', id: `p_${p.id}` })
-  })
-
-  const deviceMap = {}
-  devices.forEach(d => {
-    if (!deviceMap[d.stationCode]) deviceMap[d.stationCode] = []
-    deviceMap[d.stationCode].push({
-      ...d,
-      nodeType: 'device',
-      id: `d_${d.id}`,
-      children: pointMap[d.code] || []
-    })
-  })
-
-  const tree = stations.map(s => ({
-    ...s,
-    nodeType: 'station',
-    id: `s_${s.id}`,
-    children: deviceMap[s.code] || []
-  }))
-
-  treeData.value = tree
+function handleSearch() {
+  treeKey.value++ // 重置 key 触发 tree 重新加载 root 节点
 }
 
 onMounted(() => {
-  loadTopology()
+  loadStats()
 })
 </script>
 
