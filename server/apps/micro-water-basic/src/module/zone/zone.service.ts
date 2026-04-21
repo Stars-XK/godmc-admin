@@ -55,7 +55,7 @@ export class ZoneService {
       entity.andWhere('zone.status = :status', { status: query.status });
     }
 
-    const isAdmin = user.roles?.some((r) => r.roleKey === 'admin' || r.roleId === 1);
+    const isAdmin = user.roles?.includes('admin') || user.user?.roles?.some((r) => r.roleKey === 'admin' || r.roleId === 1);
     if (!isAdmin && user.deptId) {
       entity.andWhere('zone.deptId = :deptId', { deptId: user.deptId });
     }
@@ -86,7 +86,7 @@ export class ZoneService {
     // 简单的数据权限过滤：这里只过滤属于当前用户部门及子部门的数据
     // 如果系统没有完善的 deptService 共享方法，这里退化为只看本部门数据或全部数据
     // 由于业务系统管理员看全部，普通人员看自己部门，可以通过用户 role 进行简单判定
-    const isAdmin = user.roles?.some((r) => r.roleKey === 'admin' || r.roleId === 1);
+    const isAdmin = user.roles?.includes('admin') || user.user?.roles?.some((r) => r.roleKey === 'admin' || r.roleId === 1);
     if (!isAdmin && user.deptId) {
       // 假设当前用户只能看本部门的数据
       entity.andWhere('zone.deptId = :deptId', { deptId: user.deptId });
