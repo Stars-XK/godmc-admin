@@ -217,6 +217,22 @@ const total = ref(0)
 const uploadRef = ref(null)
 const userOptions = ref([])
 
+/**
+ * @typedef {Object} StationRecord
+ * @property {number} [id]
+ * @property {string} [name]
+ * @property {string} [code]
+ * @property {string} [zoneCode]
+ * @property {string|number} [type]
+ * @property {string} [longitude]
+ * @property {string} [latitude]
+ * @property {number} [designCapacity]
+ * @property {string} [managerName]
+ * @property {string} [managerPhone]
+ * @property {string} [status]
+ */
+
+/** @type {import('vue').Ref<StationRecord[]>} */
 const stationList = ref([])
 
 const form = ref({})

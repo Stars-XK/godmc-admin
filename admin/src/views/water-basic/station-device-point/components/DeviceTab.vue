@@ -214,6 +214,24 @@ const total = ref(0)
 const uploadRef = ref(null)
 const userOptions = ref([])
 
+/**
+ * @typedef {Object} DeviceRecord
+ * @property {number} [id]
+ * @property {string} [name]
+ * @property {string} [code]
+ * @property {string} [stationCode]
+ * @property {string|number} [type]
+ * @property {string} [model]
+ * @property {string} [manufacturer]
+ * @property {string} [installDate]
+ * @property {number} [lifespan]
+ * @property {string|number} [power]
+ * @property {string} [managerName]
+ * @property {string} [managerPhone]
+ * @property {string} [status]
+ */
+
+/** @type {import('vue').Ref<DeviceRecord[]>} */
 const deviceList = ref([])
 
 const form = ref({})

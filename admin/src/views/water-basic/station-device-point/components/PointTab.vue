@@ -218,6 +218,24 @@ const total = ref(0)
 const uploadRef = ref(null)
 const userOptions = ref([])
 
+/**
+ * @typedef {Object} PointRecord
+ * @property {number} [id]
+ * @property {string} [name]
+ * @property {string} [code]
+ * @property {string} [deviceCode]
+ * @property {string|number} [type]
+ * @property {number} [rangeMax]
+ * @property {number} [rangeMin]
+ * @property {number} [alarmMax]
+ * @property {number} [alarmMin]
+ * @property {string} [unit]
+ * @property {string} [dataType]
+ * @property {string} [rwAttr]
+ * @property {string} [status]
+ */
+
+/** @type {import('vue').Ref<PointRecord[]>} */
 const pointList = ref([])
 
 const form = ref({})
