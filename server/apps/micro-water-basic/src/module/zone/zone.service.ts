@@ -528,14 +528,18 @@ export class ZoneService {
 
   async globalBindDeviceTemplate(res: Response) {
     const workbook = new exceljs.Workbook();
-    const worksheet = workbook.addWorksheet('全局设备关联模板');
+    const worksheet = workbook.addWorksheet('全局设备与指标关联模板');
     worksheet.columns = [
-      { header: '分区编码', key: 'zoneCode', width: 30 },
-      { header: '设备编码', key: 'deviceCode', width: 30 },
+      { header: '分区编码(必填)', key: 'zoneCode', width: 25 },
+      { header: '设备编码(必填)', key: 'deviceCode', width: 25 },
+      { header: '测点编码(选填)', key: 'pointCode', width: 25 },
+      { header: '指标类型(选填: water_supply/min_flow)', key: 'metricType', width: 35 },
+      { header: '计算符号(选填: 1进水/-1出水)', key: 'calcSign', width: 30 },
     ];
-    worksheet.addRow({ zoneCode: 'ZONE_001', deviceCode: 'DEV_001' });
+    worksheet.addRow({ zoneCode: 'ZONE_001', deviceCode: 'DEV_001', pointCode: 'PT_001_TOTAL', metricType: 'water_supply', calcSign: 1 });
+    worksheet.addRow({ zoneCode: 'ZONE_001', deviceCode: 'DEV_001', pointCode: '', metricType: '', calcSign: '' });
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=GlobalBindDeviceTemplate.xlsx');
+    res.setHeader('Content-Disposition', 'attachment; filename=GlobalBindDeviceAndMetricTemplate.xlsx');
     await workbook.xlsx.write(res);
     res.end();
   }
@@ -559,9 +563,15 @@ export class ZoneService {
     let failCount = 0;
     const results = [];
 
+    // 用于记录已经被处理过的物理绑定，避免重复绑定（多行合并的情况）
+    const processedDeviceBindings = new Set<string>();
+
     for (const item of dataList) {
-      const zoneCode = item.zoneCode || item['分区编码'];
-      const deviceCode = item.deviceCode || item['设备编码'];
+      const zoneCode = item.zoneCode || item['分区编码(必填)'];
+      const deviceCode = item.deviceCode || item['设备编码(必填)'];
+      const pointCode = item.pointCode || item['测点编码(选填)'];
+      const metricType = item.metricType || item['指标类型(选填: water_supply/min_flow)'];
+      const calcSignStr = item.calcSign !== undefined ? item.calcSign : item['计算符号(选填: 1进水/-1出水)'];
 
       if (!zoneCode || !deviceCode) {
         failCount++;
@@ -583,9 +593,47 @@ export class ZoneService {
         continue;
       }
 
-      await this.deviceRep.update(device.id, { zoneCode });
+      // 步骤1：物理绑定 (如果同一设备在多行出现，只执行一次 Update)
+      const bindKey = `${zoneCode}_${deviceCode}`;
+      if (!processedDeviceBindings.has(bindKey)) {
+        await this.deviceRep.update(device.id, { zoneCode });
+        processedDeviceBindings.add(bindKey);
+      }
+
+      // 步骤2：逻辑指标计算绑定 (选填)
+      let metricReason = '';
+      if (pointCode && metricType && calcSignStr !== undefined && calcSignStr !== null && calcSignStr !== '') {
+        const calcSign = Number(calcSignStr);
+        if (calcSign !== 1 && calcSign !== -1) {
+          failCount++;
+          results.push({ code: pointCode, success: false, reason: `测点(${pointCode})配置失败: 计算符号必须为 1 或 -1` });
+          continue;
+        }
+
+        const point = await this.pointRep.findOne({ where: { code: pointCode, delFlag: '0' } });
+        if (!point) {
+          failCount++;
+          results.push({ code: pointCode, success: false, reason: `测点编码(${pointCode})不存在` });
+          continue;
+        }
+
+        // Upsert 逻辑
+        const exist = await this.metricCalcRep.findOne({ where: { zoneCode, metricType, pointCode } });
+        if (exist) {
+          await this.metricCalcRep.update(exist.id, { calcSign });
+        } else {
+          const entity = new WaterZoneMetricCalcEntity();
+          entity.zoneCode = zoneCode;
+          entity.metricType = metricType;
+          entity.pointCode = pointCode;
+          entity.calcSign = calcSign;
+          await this.metricCalcRep.save(entity);
+        }
+        metricReason = ` + 指标测点(${pointCode})配置成功`;
+      }
+
       successCount++;
-      results.push({ code: deviceCode, success: true, reason: '关联成功' });
+      results.push({ code: deviceCode, success: true, reason: `设备绑定成功${metricReason}` });
     }
 
     return ResultData.ok({ successCount, failCount, results });

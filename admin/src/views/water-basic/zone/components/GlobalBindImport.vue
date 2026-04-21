@@ -14,8 +14,8 @@
         <el-icon class="info-icon"><InfoFilled /></el-icon>
         <div class="info-text">
           <p>请先下载 <strong>{{ templateName }}</strong></p>
-          <span v-if="type === 'metric'">在模板中填入分区编码、指标类型、测点编码和计算符号(1为进水/-1为出水)后上传。</span>
-          <span v-else>在模板中填入对应的分区编码与{{ type === 'device' ? '设备' : '用户' }}编码后上传。系统会自动匹配更新关联关系。</span>
+          <span v-if="type === 'device'">在模板中填入分区编码、设备编码后即可完成关联；选填测点及计算指标即可同步完成配置。</span>
+          <span v-else>在模板中填入对应的分区编码与用户编码后上传。系统会自动匹配更新关联关系。</span>
         </div>
       </div>
 
@@ -98,16 +98,14 @@ const visible = computed({
 })
 
 const title = computed(() => {
-  if (props.type === 'device') return '批量导入设备关联'
+  if (props.type === 'device') return '批量导入设备与指标配置'
   if (props.type === 'revenue') return '批量导入营收关联'
-  if (props.type === 'metric') return '批量导入指标计算配置'
   return '批量导入'
 })
 
 const templateName = computed(() => {
-  if (props.type === 'device') return '全局设备关联模板.xlsx'
+  if (props.type === 'device') return '全局设备与指标配置模板.xlsx'
   if (props.type === 'revenue') return '全局营收关联模板.xlsx'
-  if (props.type === 'metric') return '全局指标测点配置模板.xlsx'
   return '关联模板.xlsx'
 })
 
@@ -131,8 +129,6 @@ function downloadTemplate() {
     download('/water-basic/zone/global-bind/device/template', {}, templateName.value)
   } else if (props.type === 'revenue') {
     download('/water-basic/zone/global-bind/revenue/template', {}, templateName.value)
-  } else if (props.type === 'metric') {
-    download('/water-basic/zone/global-bind/metric/template', {}, templateName.value)
   }
 }
 
@@ -170,8 +166,6 @@ async function submitImport() {
       res = await importGlobalBindDevices(data)
     } else if (props.type === 'revenue') {
       res = await importGlobalBindRevenueUsers(data)
-    } else if (props.type === 'metric') {
-      res = await importGlobalBindMetrics(data)
     }
 
     progress.value = 100

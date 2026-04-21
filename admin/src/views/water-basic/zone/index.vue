@@ -71,13 +71,10 @@
         >导出</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button type="primary" plain icon="Upload" @click="handleGlobalImportCommand('device')">全局导入设备</el-button>
+        <el-button type="primary" plain icon="Upload" @click="handleGlobalImportCommand('device')">全局导入设备与指标</el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button type="success" plain icon="Upload" @click="handleGlobalImportCommand('revenue')">全局导入营收</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button type="info" plain icon="Upload" @click="handleGlobalImportCommand('metric')">全局导入指标</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>

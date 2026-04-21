@@ -138,7 +138,7 @@ export class ZoneController {
 
   // ================= 全局批量关联接口 =================
 
-  @ApiOperation({ summary: '下载全局设备关联模板' })
+  @ApiOperation({ summary: '下载全局设备与指标配置模板' })
   @Post('global-bind/device/template')
   globalBindDeviceTemplate(@Res() res: Response) {
     return this.zoneService.globalBindDeviceTemplate(res);
@@ -150,7 +150,7 @@ export class ZoneController {
     return this.zoneService.globalBindRevenueTemplate(res);
   }
 
-  @ApiOperation({ summary: '通过Excel全局批量导入绑定设备' })
+  @ApiOperation({ summary: '通过Excel全局批量导入设备及指标配置' })
   @Post('global-bind/device/import')
   globalImportBindDevices(@Body() body: { dataList: any[] }) {
     return this.zoneService.globalImportBindDevices(body.dataList);
@@ -160,18 +160,6 @@ export class ZoneController {
   @Post('global-bind/revenue/import')
   globalImportBindRevenueUsers(@Body() body: { dataList: any[] }) {
     return this.zoneService.globalImportBindRevenueUsers(body.dataList);
-  }
-
-  @ApiOperation({ summary: '下载全局指标测点配置模板' })
-  @Post('global-bind/metric/template')
-  globalBindMetricTemplate(@Res() res: Response) {
-    return this.zoneService.globalBindMetricTemplate(res);
-  }
-
-  @ApiOperation({ summary: '通过Excel全局批量导入指标配置' })
-  @Post('global-bind/metric/import')
-  globalImportBindMetrics(@Body() body: { dataList: any[] }) {
-    return this.zoneService.globalImportBindMetrics(body.dataList);
   }
 
   // ================= 指标计算配置接口 =================
