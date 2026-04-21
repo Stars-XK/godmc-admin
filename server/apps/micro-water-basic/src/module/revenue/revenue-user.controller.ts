@@ -5,7 +5,7 @@ import { User } from '@app/common/decorators/user.decorator';
 import { RevenueUserService } from './revenue-user.service';
 
 @ApiTags('营收基础信息')
-@Controller('revenue-user')
+@Controller('water-basic/revenue-user')
 export class RevenueUserController {
   constructor(private readonly revenueUserService: RevenueUserService) {}
 
