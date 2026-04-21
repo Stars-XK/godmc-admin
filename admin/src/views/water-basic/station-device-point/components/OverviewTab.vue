@@ -450,7 +450,12 @@ onMounted(() => {
   
   // Resize tree based on window height
   const updateHeight = () => {
-    treeHeight.value = window.innerHeight - 240
+    const treeEl = document.querySelector('.tree-container')
+    if (treeEl) {
+      treeHeight.value = treeEl.clientHeight
+    } else {
+      treeHeight.value = window.innerHeight - 240
+    }
   }
   updateHeight()
   window.addEventListener('resize', updateHeight)
@@ -556,12 +561,13 @@ onBeforeUnmount(() => {
 .tree-container {
   flex: 1;
   padding: 16px;
-  overflow-y: auto;
+  overflow: hidden; /* 这里改为 hidden，因为 el-tree-v2 自带虚拟列表滚动条 */
   min-height: 0;
 }
 
 .custom-tree {
   background: transparent;
+  height: 100%;
 }
 
 .custom-tree :deep(.el-tree-node__content) {
