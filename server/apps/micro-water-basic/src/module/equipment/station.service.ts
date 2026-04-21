@@ -159,7 +159,13 @@ export class StationService {
       sort: index,
     }));
 
-    await this.rep.save(insertData);
+    // 分批插入，每批处理 500 条数据，防止拼接的 SQL 语句过长导致数据库 max_allowed_packet 报错
+    const batchSize = 500;
+    for (let i = 0; i < insertData.length; i += batchSize) {
+      const chunk = insertData.slice(i, i + batchSize);
+      await this.rep.save(chunk);
+    }
+    
     return ResultData.ok({ msg: `成功导入 ${insertData.length} 条记录` });
   }
 }
