@@ -354,18 +354,25 @@ function exportResultExcel(results) {
 .manual-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 120px);
+  height: 100%;
 }
 .table-wrapper {
   flex: 1;
   min-height: 0; /* 必须加这个，防止 flex 子项溢出 */
+  margin-bottom: 10px;
 }
 .bind-tabs {
   padding: 0 20px;
-  height: 100%;
+  height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
 }
 .bind-tabs :deep(.el-tabs__content) {
-  height: calc(100% - 60px);
+  flex: 1;
+  min-height: 0;
+}
+.bind-tabs :deep(.el-tab-pane) {
+  height: 100%;
 }
 .upload-wrapper {
   display: flex;
