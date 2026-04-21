@@ -40,15 +40,20 @@ const activeTab = ref('overview')
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 :deep(.el-tabs__content) {
   flex: 1;
   padding: 15px;
   overflow: hidden;
+  min-height: 0;
 }
 
 :deep(.el-tab-pane) {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 </style>

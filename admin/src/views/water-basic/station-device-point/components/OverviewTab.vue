@@ -489,6 +489,14 @@ onBeforeUnmount(() => {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+}
+
+.box-card :deep(.el-card__body) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .box-card :deep(.el-card__header) {
@@ -533,6 +541,7 @@ onBeforeUnmount(() => {
 .tree-card {
   flex: 1;
   overflow: hidden;
+  min-height: 0;
 }
 
 .tree-card :deep(.el-card__body) {
@@ -541,12 +550,14 @@ onBeforeUnmount(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .tree-container {
   flex: 1;
   padding: 16px;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .custom-tree {
@@ -712,12 +723,14 @@ onBeforeUnmount(() => {
   box-shadow: 0 4px 16px rgba(0,0,0,0.04);
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .sub-chart-container {
   flex: 1;
   height: 240px;
   width: 100%;
+  min-height: 0;
 }
 
 .chart-card {
@@ -727,6 +740,7 @@ onBeforeUnmount(() => {
   box-shadow: 0 4px 16px rgba(0,0,0,0.04);
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .chart-card :deep(.el-card__body) {
@@ -734,6 +748,7 @@ onBeforeUnmount(() => {
   padding: 0;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .chart-container {
@@ -746,6 +761,7 @@ onBeforeUnmount(() => {
   background-color: #fafbfc;
   background-image: radial-gradient(#e4e7ed 1px, transparent 1px);
   background-size: 20px 20px;
+  min-height: 0;
 }
 
 .empty-state-modern {

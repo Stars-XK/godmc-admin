@@ -97,7 +97,10 @@ function handleCurrentChange(val) {
 <style scoped>
 .pagination-container {
   background: #fff;
-  padding: 32px 16px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 .pagination-container.hidden {
   display: none;
