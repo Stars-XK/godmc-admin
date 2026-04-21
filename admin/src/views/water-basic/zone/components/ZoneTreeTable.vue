@@ -3,7 +3,7 @@
     v-loading="loading"
     :data="data"
     row-key="id"
-    :default-expand-all="true"
+    default-expand-all
     :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
     class="zone-table"
   >

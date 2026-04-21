@@ -123,9 +123,15 @@ const importDialogRef = ref(null);
 function getList() {
   loading.value = true;
   listZoneTree(queryParams.value).then(response => {
+    // 强制销毁旧表格以触发 default-expand-all 重新渲染
+    refreshTable.value = false;
     zoneList.value = response.data || response;
     zoneOptions.value = zoneList.value; // 用于下拉树选择
     loading.value = false;
+    
+    nextTick(() => {
+      refreshTable.value = true;
+    });
   });
 }
 
