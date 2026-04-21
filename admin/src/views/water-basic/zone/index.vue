@@ -313,8 +313,10 @@ function cleanHasChildren(list) {
       delete item.hasChildren;
       item.children = cleanHasChildren(item.children);
     } else {
-      // 如果后端传了 hasChildren = true 且 children 为空，保留以触发懒加载
-      if (!item.hasChildren) {
+      // 如果后端传了 hasChildren = true，为了触发 el-table 懒加载，必须将 children 彻底 delete (不能是 [])
+      if (item.hasChildren) {
+        delete item.children;
+      } else {
         item.children = undefined;
       }
     }

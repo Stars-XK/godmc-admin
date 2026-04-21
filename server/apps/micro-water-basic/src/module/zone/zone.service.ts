@@ -122,7 +122,8 @@ export class ZoneService {
             // 查询数据库中是否有以它为父级的节点
             const childCount = await this.zoneRep.count({ where: { parentId: node.code, delFlag: '0' } });
             node.hasChildren = childCount > 0;
-            node.children = []; // 懒加载必须清空或不传 children
+            // 懒加载必须彻底删除 children 属性，不能是空数组 []，否则前端 el-table 不会触发 load 事件
+            delete node.children;
           } else if (node.children && node.children.length > 0) {
             await markHasChildren(node.children);
           }
@@ -161,12 +162,16 @@ export class ZoneService {
     for (const child of children) {
       const childCode = String(child.code);
       const childCount = await this.zoneRep.count({ where: { parentId: childCode, delFlag: '0' } });
-      mappedChildren.push({
+      const mappedChild = {
         ...child,
         childCount,
         hasChildren: childCount > 0,
-        children: [] // 确保为空以触发下一次 lazy
-      });
+      };
+      // 删除 children 属性，确保前端 el-table 能继续触发下一层的 lazy load
+      if ('children' in mappedChild) {
+        delete mappedChild.children;
+      }
+      mappedChildren.push(mappedChild);
     }
 
     return ResultData.ok(mappedChildren);
