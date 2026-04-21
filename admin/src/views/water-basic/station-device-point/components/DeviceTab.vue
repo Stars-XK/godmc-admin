@@ -45,7 +45,7 @@
           <el-table-column label="所属站点" align="center" prop="stationCode" width="120" />
           <el-table-column label="设备类型" align="center" prop="type" width="120">
             <template #default="scope">
-              <dict-tag :options="water_device_type" :value="scope.row.type" />
+              <dict-tag :options="water_device_type" :value="String(scope.row.type)" />
             </template>
           </el-table-column>
           <el-table-column label="型号" align="center" prop="model" width="120" show-overflow-tooltip />
@@ -75,6 +75,91 @@
         <pagination v-show="total>0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
       </el-col>
     </el-row>
+
+    <!-- 添加或修改设备对话框 -->
+    <el-dialog :title="title" v-model="open" width="700px" append-to-body>
+      <el-form ref="deviceRef" :model="form" :rules="rules" label-width="100px">
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="设备名称" prop="name">
+              <el-input v-model="form.name" placeholder="请输入设备名称" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="设备编码" prop="code">
+              <el-input v-model="form.code" placeholder="请输入设备编码" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="所属站点" prop="stationCode">
+              <el-input v-model="form.stationCode" placeholder="请输入站点编码" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="设备类型" prop="type">
+              <el-select v-model="form.type" placeholder="请选择类型" style="width: 100%;">
+                <el-option v-for="dict in water_device_type" :key="dict.value" :label="dict.label" :value="dict.value" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="型号" prop="model">
+              <el-input v-model="form.model" placeholder="请输入型号" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="厂家" prop="manufacturer">
+              <el-input v-model="form.manufacturer" placeholder="请输入厂家" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="安装日期" prop="installDate">
+              <el-date-picker clearable v-model="form.installDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择安装日期" style="width: 100%;"></el-date-picker>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="设计寿命" prop="lifespan">
+              <el-input-number v-model="form.lifespan" :min="0" :max="100" style="width: 100%;" placeholder="年" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="额定功率" prop="power">
+              <el-input v-model="form.power" placeholder="请输入功率(kW)" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="关联系统用户" prop="userId">
+              <el-select v-model="form.userId" filterable placeholder="选择关联用户" style="width: 100%;" clearable>
+                <el-option v-for="user in userOptions" :key="user.userId" :label="user.userName + (user.nickName ? ' (' + user.nickName + ')' : '')" :value="user.userId" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="负责人" prop="managerName">
+              <el-input v-model="form.managerName" placeholder="请输入负责人" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="联系电话" prop="managerPhone">
+              <el-input v-model="form.managerPhone" placeholder="请输入联系电话" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="状态">
+              <el-radio-group v-model="form.status">
+                <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{dict.label}}</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="submitForm">确 定</el-button>
+          <el-button @click="cancel">取 消</el-button>
+        </div>
+      </template>
+    </el-dialog>
 
     <!-- 导入弹窗 -->
     <el-dialog :title="upload.title" v-model="upload.open" width="400px" append-to-body>
@@ -116,7 +201,8 @@
 
 <script setup>
 import { ref, reactive, toRefs, onMounted, getCurrentInstance } from 'vue'
-import { listDevice, delDevice } from '@/api/water-basic/equipment'
+import { listDevice, delDevice, getDevice, addDevice, updateDevice } from '@/api/water-basic/equipment'
+import { listUser } from "@/api/system/user"
 import { getToken } from "@/utils/auth"
 
 const { proxy } = getCurrentInstance()
@@ -127,8 +213,16 @@ const loading = ref(true)
 const showSearch = ref(true)
 const total = ref(0)
 const uploadRef = ref(null)
+const userOptions = ref([])
 
 const data = reactive({
+  form: {},
+  rules: {
+    name: [{ required: true, message: "设备名称不能为空", trigger: "blur" }],
+    code: [{ required: true, message: "设备编码不能为空", trigger: "blur" }],
+    stationCode: [{ required: true, message: "所属站点不能为空", trigger: "blur" }],
+    type: [{ required: true, message: "请选择设备类型", trigger: "change" }]
+  },
   queryParams: { pageNum: 1, pageSize: 10, name: undefined, code: undefined, type: undefined },
   upload: {
     open: false, title: "", isUploading: false, progress: 0,
@@ -136,7 +230,64 @@ const data = reactive({
     url: import.meta.env.VITE_APP_BASE_API + "/water-basic/device/importData"
   }
 })
-const { queryParams, upload } = toRefs(data)
+const { form, rules, queryParams, upload } = toRefs(data)
+const open = ref(false)
+const title = ref("")
+
+function reset() {
+  form.value = {
+    id: undefined, name: undefined, code: undefined, stationCode: undefined, type: "1",
+    model: undefined, manufacturer: undefined, installDate: undefined, lifespan: undefined, power: undefined,
+    managerName: undefined, managerPhone: undefined, status: "0", userId: undefined
+  }
+  proxy.resetForm("deviceRef")
+}
+
+function handleAdd() {
+  reset()
+  open.value = true
+  title.value = "添加设备"
+}
+
+function handleUpdate(row) {
+  reset()
+  getDevice(row.id).then(response => {
+    form.value = response.data
+    open.value = true
+    title.value = "修改设备"
+  })
+}
+
+function submitForm() {
+  proxy.$refs["deviceRef"].validate(valid => {
+    if (valid) {
+      if (form.value.id != undefined) {
+        updateDevice(form.value).then(() => {
+          proxy.$modal.msgSuccess("修改成功")
+          open.value = false
+          getList()
+        })
+      } else {
+        addDevice(form.value).then(() => {
+          proxy.$modal.msgSuccess("新增成功")
+          open.value = false
+          getList()
+        })
+      }
+    }
+  })
+}
+
+function cancel() {
+  open.value = false
+  reset()
+}
+
+function getUserList() {
+  listUser({ pageNum: 1, pageSize: 1000 }).then(res => {
+    userOptions.value = res.rows
+  })
+}
 
 function getList() {
   loading.value = true
@@ -149,9 +300,6 @@ function getList() {
 
 function handleQuery() { queryParams.value.pageNum = 1; getList() }
 function resetQuery() { proxy.resetForm("queryRef"); handleQuery() }
-
-function handleAdd() { proxy.$modal.msgWarning("请在实际业务中配置新增表单组件") }
-function handleUpdate(row) { proxy.$modal.msgWarning("请在实际业务中配置修改表单组件") }
 
 function handleDelete(row) {
   proxy.$modal.confirm('是否确认删除设备"' + row.name + '"？').then(() => {
@@ -204,7 +352,10 @@ function submitFileForm() {
   uploadRef.value.submit()
 }
 
-onMounted(() => { getList() })
+onMounted(() => { 
+  getList() 
+  getUserList()
+})
 </script>
 
 <style scoped>
