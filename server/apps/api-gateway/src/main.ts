@@ -110,6 +110,7 @@ async function bootstrap() {
     { path: '/common/upload', target: 'http://127.0.0.1:3004' },
     { path: '/tool', target: 'http://127.0.0.1:3005' },
     { path: '/water-basic', target: 'http://127.0.0.1:3006' },
+    { path: '/data-integration', target: 'http://127.0.0.1:3007' },
   ];
 
   for (const proxy of proxies) {

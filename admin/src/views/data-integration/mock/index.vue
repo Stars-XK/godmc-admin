@@ -1,0 +1,119 @@
+<template>
+  <div class="app-container">
+    <el-card shadow="never">
+      <template #header>
+        <div class="clearfix">
+          <span>模拟产生设备数据</span>
+        </div>
+      </template>
+
+      <el-row :gutter="20">
+        <el-col :span="12" :xs="24">
+          <el-form ref="mockRef" :model="form" :rules="rules" label-width="120px">
+            <el-form-item label="设备编码" prop="deviceCode">
+              <el-input v-model="form.deviceCode" placeholder="请输入要模拟的设备编码" />
+            </el-form-item>
+            <el-form-item label="指标(测点)编码" prop="pointCode">
+              <el-input v-model="form.pointCode" placeholder="请输入要模拟的指标编码" />
+            </el-form-item>
+            <el-form-item label="数值范围 (Min)" prop="min">
+              <el-input-number v-model="form.min" :min="0" :max="10000" style="width: 100%" />
+            </el-form-item>
+            <el-form-item label="数值范围 (Max)" prop="max">
+              <el-input-number v-model="form.max" :min="0" :max="10000" style="width: 100%" />
+            </el-form-item>
+            <el-form-item label="生成条数" prop="count">
+              <el-input-number v-model="form.count" :min="1" :max="1000" style="width: 100%" />
+              <div class="el-upload__tip">生成数据会直接写入TDengine时序数据库的超级表中。</div>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" :loading="loading" @click="submitMockData">开始生成</el-button>
+              <el-button @click="resetForm">重置表单</el-button>
+            </el-form-item>
+          </el-form>
+        </el-col>
+        
+        <el-col :span="12" :xs="24">
+          <el-card shadow="hover" header="生成结果控制台">
+            <el-scrollbar height="350px">
+              <div v-if="results.length > 0">
+                <div v-for="(item, index) in results" :key="index" class="mock-result-item">
+                  [ {{ item.timestamp }} ] Device: <strong>{{ item.deviceCode }}</strong>, Point: <strong>{{ item.pointCode }}</strong>, Value: <span style="color: #409EFF">{{ item.value.toFixed(2) }}</span>
+                </div>
+              </div>
+              <el-empty v-else description="暂无生成记录" />
+            </el-scrollbar>
+          </el-card>
+        </el-col>
+      </el-row>
+    </el-card>
+  </div>
+</template>
+
+<script setup name="DataMock">
+import { ref, reactive } from 'vue';
+import { generateMockData } from '@/api/data-integration/receiver';
+import { ElMessage } from 'element-plus';
+
+const mockRef = ref(null);
+const loading = ref(false);
+const results = ref([]);
+
+const data = reactive({
+  form: {
+    deviceCode: '',
+    pointCode: '',
+    min: 0,
+    max: 100,
+    count: 10
+  },
+  rules: {
+    deviceCode: [{ required: true, message: '设备编码不能为空', trigger: 'blur' }],
+    pointCode: [{ required: true, message: '指标编码不能为空', trigger: 'blur' }],
+    min: [{ required: true, message: '最小值不能为空', trigger: 'blur' }],
+    max: [{ required: true, message: '最大值不能为空', trigger: 'blur' }],
+    count: [{ required: true, message: '生成条数不能为空', trigger: 'blur' }]
+  }
+});
+
+const { form, rules } = data;
+
+function submitMockData() {
+  mockRef.value.validate(valid => {
+    if (valid) {
+      if (form.min > form.max) {
+        ElMessage.error('最小值不能大于最大值');
+        return;
+      }
+      loading.value = true;
+      generateMockData(form).then(response => {
+        loading.value = false;
+        ElMessage.success('生成成功');
+        results.value = response.data || [];
+      }).catch(() => {
+        loading.value = false;
+      });
+    }
+  });
+}
+
+function resetForm() {
+  if (mockRef.value) {
+    mockRef.value.resetFields();
+  }
+  results.value = [];
+}
+</script>
+
+<style scoped>
+.mock-result-item {
+  padding: 8px 10px;
+  border-bottom: 1px solid #ebeef5;
+  font-family: monospace;
+  font-size: 13px;
+  color: #606266;
+}
+.mock-result-item:last-child {
+  border-bottom: none;
+}
+</style>

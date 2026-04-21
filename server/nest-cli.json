@@ -76,6 +76,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/micro-water-basic/tsconfig.app.json"
       }
+    },
+    "micro-data-integration": {
+      "type": "application",
+      "root": "apps/micro-data-integration",
+      "entryFile": "main",
+      "sourceRoot": "apps/micro-data-integration/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/micro-data-integration/tsconfig.app.json"
+      }
     }
   }
 }
