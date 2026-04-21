@@ -46,14 +46,6 @@
       </el-col>
       <el-col :span="1.5">
         <el-button
-          type="info"
-          plain
-          icon="Sort"
-          @click="toggleExpandAll"
-        >展开/折叠</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
           type="warning"
           plain
           icon="Upload"
@@ -78,11 +70,11 @@
       v-if="refreshTable"
       :data="zoneList"
       :loading="loading"
-      :is-expand-all="isExpandAll"
       :expand-row-keys="expandedRowKeys"
       @add="handleAdd"
       @edit="handleUpdate"
       @delete="handleDelete"
+      @load-node="handleLoadNode"
     />
 
     <!-- 表单弹窗 -->
@@ -102,8 +94,8 @@
 </template>
 
 <script setup name="Zone">
-import { ref, reactive, onMounted, nextTick } from 'vue'
-import { listZoneTree, delZone } from '@/api/water-basic/zone'
+import { ref, reactive, onMounted, nextTick, toRefs, getCurrentInstance } from 'vue'
+import { listZoneTree, delZone, lazyZoneChildren } from '@/api/water-basic/zone'
 import ZoneTreeTable from './components/ZoneTreeTable.vue'
 import ZoneFormDialog from './components/ZoneFormDialog.vue'
 import ZoneImportDialog from './components/ZoneImportDialog.vue'
@@ -115,7 +107,6 @@ const zoneList = ref([]);
 const zoneOptions = ref([]);
 const loading = ref(true);
 const showSearch = ref(true);
-const isExpandAll = ref(false);
 const expandedRowKeys = ref([]);
 const refreshTable = ref(true);
 
@@ -157,6 +148,13 @@ function getList() {
   });
 }
 
+/** 处理懒加载节点 */
+function handleLoadNode(row, treeNode, resolve) {
+  lazyZoneChildren(row.code, queryParams.value).then(res => {
+    resolve(res.data || []);
+  });
+}
+
 /** 搜索按钮操作 */
 function handleQuery() {
   getList();
@@ -171,18 +169,6 @@ function resetQuery() {
 /** 新增按钮操作 */
 function handleAdd(row) {
   formDialogRef.value.open(row ? row.code : null);
-}
-
-/** 展开/折叠操作 */
-function toggleExpandAll() {
-  refreshTable.value = false;
-  isExpandAll.value = !isExpandAll.value;
-  if (!isExpandAll.value) {
-    expandedRowKeys.value = []; // 折叠时清空手动展开的 keys
-  }
-  nextTick(() => {
-    refreshTable.value = true;
-  });
 }
 
 /** 修改按钮操作 */

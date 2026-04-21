@@ -21,49 +21,78 @@ import { DataScopeEnum } from '../enum/index';
  * @param getLabel
  * @returns
  */
-export function ListToTree(arr, getId, getLabel) {
-  const kData = {}; // 以id做key的对象 暂时储存数据
-  const lData = []; // 最终的数据 arr
-  const nodeIds = new Set(); // 记录所有存在于返回列表中的节点id
+export function ListToTree(arr, getKey, getParentKey, maxLevel = Infinity) {
+  const kData = {}; 
+  const lData = []; 
+  const nodeKeys = new Set(); 
 
-  // 第一次遍历，记录所有节点的ID
   arr.forEach((m) => {
-    nodeIds.add(getId(m));
+    nodeKeys.add(String(getKey(m)));
   });
 
-  // 第二次遍历，构建 kData 并完整保留原对象的属性
+  // 第一遍：初始化所有节点，并计算直接下级数量 childCount
   arr.forEach((m) => {
-    const id = getId(m);
-    const label = getLabel(m);
-    const parentId = +m.parentId;
+    const key = String(getKey(m));
+    const parentKey = String(getParentKey(m));
 
-    kData[id] = {
-      ...m, // 完整保留其他业务属性（code、area 等）
-      id,
-      label,
-      parentId,
-      children: [], // 初始化 children 数组
+    kData[key] = {
+      ...m,
+      childCount: 0,
+      children: [],
+      hasChildren: false,
     };
-
-    // 如果是根节点，或者其父节点不在当前查询结果中（即孤儿节点），直接推入 lData 作为顶级节点
-    if (parentId === 0 || !nodeIds.has(parentId)) {
-      lData.push(kData[id]);
-    }
   });
 
-  // 第三次遍历，处理子节点
+  // 计算每个节点的 childCount
   arr.forEach((m) => {
-    const id = getId(m);
-    const parentId = +m.parentId;
-
-    if (parentId !== 0 && nodeIds.has(parentId)) {
-      // 确保父节点存在后再添加子节点
-      if (kData[parentId]) {
-        kData[parentId].children.push(kData[id]);
-      }
+    const parentKey = String(getParentKey(m));
+    if (kData[parentKey]) {
+      kData[parentKey].childCount += 1;
+      kData[parentKey].hasChildren = true;
     }
   });
+
+  // 第二遍：组装树，限制最大层级
+  // 我们需要计算每个节点的当前层级
+  const levelMap = {};
   
+  // 找出所有根节点
+  const roots = [];
+  arr.forEach((m) => {
+    const key = String(getKey(m));
+    const parentKey = String(getParentKey(m));
+    if (parentKey === '0' || parentKey === 'undefined' || parentKey === 'null' || !nodeKeys.has(parentKey)) {
+      levelMap[key] = 1;
+      roots.push(kData[key]);
+      lData.push(kData[key]);
+    }
+  });
+
+  // BFS 计算层级并挂载
+  let queue = [...roots];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    const currentKey = String(getKey(current));
+    const currentLevel = levelMap[currentKey];
+
+    // 如果达到最大层级，则不再将子节点加入 children，但保留 hasChildren
+    if (currentLevel >= maxLevel) {
+      current.children = null; // 移除 children 数组，让前端组件识别为懒加载节点
+      continue;
+    }
+
+    // 寻找当前节点的直接子节点
+    arr.forEach((m) => {
+      const key = String(getKey(m));
+      const parentKey = String(getParentKey(m));
+      if (parentKey === currentKey) {
+        levelMap[key] = currentLevel + 1;
+        kData[currentKey].children.push(kData[key]);
+        queue.push(kData[key]);
+      }
+    });
+  }
+
   return lData;
 }
 

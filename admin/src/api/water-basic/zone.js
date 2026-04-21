@@ -10,6 +10,15 @@ export function listZoneTree(query) {
   })
 }
 
+// 懒加载查询下级分区
+export function lazyZoneChildren(parentId, query) {
+  return request({
+    url: '/water-basic/zone/lazyChildren',
+    method: 'get',
+    params: { parentId, ...query }
+  })
+}
+
 // 查询分区详细
 export function getZone(id) {
   return request({

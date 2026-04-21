@@ -1,3 +1,4 @@
+import { EquipmentModule } from "./module/equipment/equipment.module";
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
@@ -44,7 +45,7 @@ import { RegistryModule } from '@app/common';
       },
     }),
     SharedModule,
-    ZoneModule,
+    ZoneModule, EquipmentModule,
     RegistryModule,
   ],
   providers: [

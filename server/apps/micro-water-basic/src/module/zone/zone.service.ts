@@ -94,12 +94,55 @@ export class ZoneService {
     }
 
     const res = await entity.getMany();
+    // 使用优化后的 BuildTree 转换，限制最大层级为3
     const tree = BuildTree(
       res,
       (m) => m.code,
       (m) => m.parentId,
+      3
     );
     return ResultData.ok(tree);
+  }
+
+  async findLazyChildren(parentId: string, query: any, user: any) {
+    const entity = this.zoneRep.createQueryBuilder('zone');
+    entity.where('zone.delFlag = :delFlag', { delFlag: '0' });
+
+    // 只查询当前父节点的所有子孙节点，或者直接在内存中做？
+    // 为了保证 count 和权限过滤的一致性，我们仍然查出符合条件的所有数据
+    if (query.type) entity.andWhere('zone.type = :type', { type: query.type });
+    if (query.name) entity.andWhere(`zone.name LIKE "%${query.name}%"`);
+    if (query.code) entity.andWhere(`zone.code LIKE "%${query.code}%"`);
+    if (query.status) entity.andWhere('zone.status = :status', { status: query.status });
+
+    const isAdmin = user.roles?.includes('admin') || user.user?.roles?.some((r) => r.roleKey === 'admin' || r.roleId === 1);
+    if (!isAdmin && user.deptId) {
+      entity.andWhere('zone.deptId = :deptId', { deptId: user.deptId });
+    }
+
+    const res = await entity.getMany();
+
+    // 内存中找出直接下级，并计算 hasChildren 和 childCount
+    const children = res.filter(m => String(m.parentId) === parentId);
+    
+    // 给 children 补充 childCount 和 hasChildren 属性
+    const mappedChildren = children.map(child => {
+      const childCode = String(child.code);
+      let childCount = 0;
+      res.forEach(m => {
+        if (String(m.parentId) === childCode) {
+          childCount++;
+        }
+      });
+      return {
+        ...child,
+        childCount,
+        hasChildren: childCount > 0,
+        children: null // 强制 children 为 null，以便 Element Plus 继续支持懒加载
+      };
+    });
+
+    return ResultData.ok(mappedChildren);
   }
 
   async findOne(id: number) {

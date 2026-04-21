@@ -1,0 +1,202 @@
+<template>
+  <div class="device-tab">
+    <el-row :gutter="20">
+      <el-col :span="24">
+        <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch">
+          <el-form-item label="设备名称" prop="name">
+            <el-input v-model="queryParams.name" placeholder="请输入设备名称" clearable @keyup.enter="handleQuery" />
+          </el-form-item>
+          <el-form-item label="设备编码" prop="code">
+            <el-input v-model="queryParams.code" placeholder="请输入设备编码" clearable @keyup.enter="handleQuery" />
+          </el-form-item>
+          <el-form-item label="设备类型" prop="type">
+            <el-select v-model="queryParams.type" placeholder="请选择类型" clearable>
+              <el-option v-for="dict in water_device_type" :key="dict.value" :label="dict.label" :value="dict.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+            <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+          </el-form-item>
+        </el-form>
+
+        <el-row :gutter="10" class="mb8">
+          <el-col :span="1.5">
+            <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['water-basic:device:add']">新增</el-button>
+          </el-col>
+          <el-col :span="1.5">
+            <el-button type="warning" plain icon="Upload" @click="handleImport" v-hasPermi="['water-basic:device:import']">导入</el-button>
+          </el-col>
+          <el-col :span="1.5">
+            <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['water-basic:device:export']">导出</el-button>
+          </el-col>
+          <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+        </el-row>
+
+        <el-table v-loading="loading" :data="deviceList">
+          <el-table-column type="index" width="50" align="center" />
+          <el-table-column label="设备名称" align="left" prop="name" min-width="180">
+            <template #default="scope">
+              <el-icon class="mr-1" color="#409EFC"><Cpu /></el-icon>
+              <span>{{ scope.row.name }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="设备编码" align="center" prop="code" width="150" />
+          <el-table-column label="设备类型" align="center" prop="type" width="120">
+            <template #default="scope">
+              <dict-tag :options="water_device_type" :value="scope.row.type" />
+            </template>
+          </el-table-column>
+          <el-table-column label="负责人" align="center" prop="managerName" width="120" />
+          <el-table-column label="联系电话" align="center" prop="managerPhone" width="120" />
+          <el-table-column label="状态" align="center" prop="status" width="100">
+            <template #default="scope">
+              <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" align="center" width="200" class-name="small-padding fixed-width">
+            <template #default="scope">
+              <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['water-basic:device:edit']">修改</el-button>
+              <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['water-basic:device:remove']">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <pagination v-show="total>0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
+      </el-col>
+    </el-row>
+
+    <!-- 导入弹窗 -->
+    <el-dialog :title="upload.title" v-model="upload.open" width="400px" append-to-body>
+      <el-upload
+        ref="uploadRef"
+        :limit="1"
+        accept=".xlsx, .xls"
+        :headers="upload.headers"
+        :action="upload.url"
+        :disabled="upload.isUploading"
+        :on-progress="handleFileUploadProgress"
+        :on-success="handleFileSuccess"
+        :on-error="handleFileError"
+        :auto-upload="false"
+        drag
+      >
+        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+        <template #tip>
+          <div class="el-upload__tip text-center">
+            <span>仅允许导入xls、xlsx格式文件。</span>
+            <el-link type="primary" :underline="false" style="font-size:12px;vertical-align: baseline;" @click="importTemplate">下载模板</el-link>
+          </div>
+          <!-- 进度条 -->
+          <div v-if="upload.isUploading" style="margin-top: 15px;">
+            <el-progress :percentage="upload.progress" :format="formatProgress" :status="upload.progress === 100 ? 'success' : ''"></el-progress>
+          </div>
+        </template>
+      </el-upload>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="submitFileForm" :loading="upload.isUploading">确 定</el-button>
+          <el-button @click="upload.open = false">取 消</el-button>
+        </div>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, toRefs, onMounted, getCurrentInstance } from 'vue'
+import { listDevice, delDevice } from '@/api/water-basic/equipment'
+import { getToken } from "@/utils/auth"
+
+const { proxy } = getCurrentInstance()
+const { water_device_type, sys_normal_disable } = proxy.useDict('water_device_type', 'sys_normal_disable')
+
+const deviceList = ref([])
+const loading = ref(true)
+const showSearch = ref(true)
+const total = ref(0)
+const uploadRef = ref(null)
+
+const data = reactive({
+  queryParams: { pageNum: 1, pageSize: 10, name: undefined, code: undefined, type: undefined },
+  upload: {
+    open: false, title: "", isUploading: false, progress: 0,
+    headers: { Authorization: "Bearer " + getToken() },
+    url: import.meta.env.VITE_APP_BASE_API + "/water-basic/device/importData"
+  }
+})
+const { queryParams, upload } = toRefs(data)
+
+function getList() {
+  loading.value = true
+  listDevice(queryParams.value).then(res => {
+    deviceList.value = res.data.list
+    total.value = res.data.total
+    loading.value = false
+  })
+}
+
+function handleQuery() { queryParams.value.pageNum = 1; getList() }
+function resetQuery() { proxy.resetForm("queryRef"); handleQuery() }
+
+function handleAdd() { proxy.$modal.msgWarning("请在实际业务中配置新增表单组件") }
+function handleUpdate(row) { proxy.$modal.msgWarning("请在实际业务中配置修改表单组件") }
+
+function handleDelete(row) {
+  proxy.$modal.confirm('是否确认删除设备"' + row.name + '"？').then(() => {
+    return delDevice(row.id)
+  }).then(() => {
+    getList()
+    proxy.$modal.msgSuccess("删除成功")
+  }).catch(() => {})
+}
+
+function handleExport() {
+  proxy.download('/water-basic/device/export', { ...queryParams.value }, `device_${new Date().getTime()}.xlsx`)
+}
+
+function handleImport() {
+  upload.value.title = "设备导入"
+  upload.value.open = true
+  upload.value.progress = 0
+}
+
+function importTemplate() {
+  proxy.download("/water-basic/device/importTemplate", {}, `device_template_${new Date().getTime()}.xlsx`)
+}
+
+function handleFileUploadProgress(event) {
+  upload.value.isUploading = true
+  upload.value.progress = Math.floor(event.percent)
+}
+
+function formatProgress(percentage) {
+  return percentage === 100 ? '处理中...' : `${percentage}%`
+}
+
+function handleFileSuccess(response) {
+  upload.value.open = false
+  upload.value.isUploading = false
+  upload.value.progress = 0
+  uploadRef.value.clearFiles()
+  proxy.$alert("<div style='overflow: auto;overflow-x: hidden;max-height: 70vh;padding: 10px 20px 0;'>" + response.msg + "</div>", "导入结果", { dangerouslyUseHTMLString: true })
+  getList()
+}
+
+function handleFileError() {
+  upload.value.isUploading = false
+  upload.value.progress = 0
+  proxy.$modal.msgError("上传失败")
+}
+
+function submitFileForm() {
+  uploadRef.value.submit()
+}
+
+onMounted(() => { getList() })
+</script>
+
+<style scoped>
+.mr-1 { margin-right: 5px; vertical-align: middle; }
+</style>

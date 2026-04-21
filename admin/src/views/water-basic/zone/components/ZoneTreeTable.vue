@@ -3,11 +3,19 @@
     v-loading="loading"
     :data="data"
     row-key="id"
-    :default-expand-all="isExpandAll"
+    lazy
+    :load="loadNode"
     :expand-row-keys="expandRowKeys"
     :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
   >
-    <el-table-column prop="name" label="分区名称" min-width="260" show-overflow-tooltip></el-table-column>
+    <el-table-column prop="name" label="分区名称" min-width="260" show-overflow-tooltip>
+      <template #default="scope">
+        <span>{{ scope.row.name }}</span>
+        <el-tag v-if="scope.row.childCount > 0" size="small" type="success" effect="light" style="margin-left: 8px; border-radius: 10px;">
+          {{ scope.row.childCount }}
+        </el-tag>
+      </template>
+    </el-table-column>
     <el-table-column prop="code" label="分区编码" width="150"></el-table-column>
     <el-table-column prop="area" label="面积(k㎡)" width="120"></el-table-column>
     <el-table-column prop="population" label="服务人口" width="120"></el-table-column>
@@ -42,10 +50,6 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  isExpandAll: {
-    type: Boolean,
-    default: true
-  },
   expandRowKeys: {
     type: Array,
     default: () => []
@@ -55,5 +59,9 @@ const props = defineProps({
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable");
 
-defineEmits(['add', 'edit', 'delete']);
+const emit = defineEmits(['add', 'edit', 'delete', 'load-node']);
+
+function loadNode(row, treeNode, resolve) {
+  emit('load-node', row, treeNode, resolve);
+}
 </script>
