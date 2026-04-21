@@ -77,7 +77,7 @@ export function ListToTree(arr, getKey, getParentKey, maxLevel = Infinity) {
 
     // 如果达到最大层级，则不再将子节点加入 children，但保留 hasChildren
     if (currentLevel >= maxLevel) {
-      current.children = null; // 移除 children 数组，让前端组件识别为懒加载节点
+      delete current.children; // 移除 children 属性，让前端组件识别为懒加载节点
       continue;
     }
 

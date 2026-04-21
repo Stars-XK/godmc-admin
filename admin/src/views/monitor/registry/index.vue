@@ -1,35 +1,53 @@
 <template>
-  <div class="app-container">
-    <el-card>
-      <template #header>
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-          <span>在线微服务列表 (基于 Redis 心跳检测)</span>
-          <el-button type="primary" icon="Refresh" @click="getList" size="small">手动刷新</el-button>
-        </div>
-      </template>
+  <div class="app-container registry-container">
+    <div class="page-header">
+      <div class="header-left">
+        <h2 class="page-title">在线微服务监控</h2>
+        <span class="page-subtitle">基于 Redis 心跳实时检测</span>
+      </div>
+      <div class="header-right">
+        <el-button type="primary" icon="Refresh" @click="getList" :loading="loading" round>手动刷新</el-button>
+      </div>
+    </div>
 
-      <el-table v-loading="loading" :data="serviceList" style="width: 100%">
-        <el-table-column prop="name" label="微服务名称" width="200" align="center" />
-        <el-table-column prop="host" label="主机 IP" width="180" align="center" />
-        <el-table-column prop="port" label="端口" width="120" align="center" />
-        <el-table-column prop="status" label="状态" width="120" align="center">
-          <template #default="scope">
-            <el-tag type="success" v-if="scope.row.status === 'online'">在线</el-tag>
-            <el-tag type="danger" v-else>离线</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="内存占用 (MB)" align="center">
-          <template #default="scope">
-            {{ scope.row.memoryUsage ? (scope.row.memoryUsage / 1024 / 1024).toFixed(2) + ' MB' : '-' }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="lastHeartbeat" label="最后心跳时间" align="center">
-          <template #default="scope">
-            {{ parseTime(scope.row.lastHeartbeat) }}
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+    <el-row :gutter="24" class="service-cards" v-loading="loading">
+      <el-col :xs="24" :sm="12" :md="8" :lg="6" :xl="6" v-for="(service, index) in serviceList" :key="index">
+        <el-card class="service-card" shadow="hover" :class="{'is-offline': service.status !== 'online'}">
+          <div class="card-top">
+            <div class="status-indicator">
+              <span class="breathing-light" :class="service.status === 'online' ? 'light-online' : 'light-offline'"></span>
+              <span class="status-text">{{ service.status === 'online' ? '运行中' : '已离线' }}</span>
+            </div>
+            <div class="memory-badge" v-if="service.memoryUsage">
+              <el-icon><Cpu /></el-icon>
+              <span>{{ (service.memoryUsage / 1024 / 1024).toFixed(1) }} MB</span>
+            </div>
+          </div>
+          
+          <div class="service-name">
+            <el-icon class="service-icon" :color="service.status === 'online' ? '#409EFF' : '#909399'"><Monitor /></el-icon>
+            <h3>{{ service.name }}</h3>
+          </div>
+          
+          <div class="service-info">
+            <div class="info-item">
+              <span class="info-label">主机地址</span>
+              <span class="info-value code-font">{{ service.host }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">服务端口</span>
+              <span class="info-value code-font">{{ service.port }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">最后心跳</span>
+              <span class="info-value time-font">{{ parseTime(service.lastHeartbeat) }}</span>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <el-empty v-if="!loading && serviceList.length === 0" description="暂无在线微服务" />
   </div>
 </template>
 
@@ -67,3 +85,190 @@ onUnmounted(() => {
   if (timer) clearInterval(timer);
 });
 </script>
+
+<style scoped>
+.registry-container {
+  padding: 24px;
+  background-color: #f5f7fa;
+  min-height: calc(100vh - 84px);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.page-subtitle {
+  font-size: 13px;
+  color: #909399;
+  margin-top: 4px;
+  display: block;
+}
+
+.service-cards {
+  margin-bottom: -24px; /* offset the bottom margin of cols */
+}
+
+.el-col {
+  margin-bottom: 24px;
+}
+
+.service-card {
+  border-radius: 12px;
+  border: none;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  overflow: hidden;
+  position: relative;
+}
+
+.service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08) !important;
+}
+
+.service-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #409EFF, #67C23A);
+}
+
+.service-card.is-offline::before {
+  background: #F56C6C;
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+/* Breathing Light */
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0,0,0,0.03);
+  padding: 4px 12px 4px 8px;
+  border-radius: 16px;
+}
+
+.breathing-light {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.light-online {
+  background-color: #67C23A;
+  box-shadow: 0 0 0 0 rgba(103, 194, 58, 0.7);
+  animation: breathe-green 2s infinite;
+}
+
+.light-offline {
+  background-color: #F56C6C;
+  box-shadow: 0 0 0 0 rgba(245, 108, 108, 0.7);
+}
+
+@keyframes breathe-green {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(103, 194, 58, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(103, 194, 58, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(103, 194, 58, 0); }
+}
+
+.status-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: #606266;
+}
+
+.is-offline .status-text {
+  color: #F56C6C;
+}
+
+.memory-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #409EFF;
+  background: #ecf5ff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.service-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.service-icon {
+  font-size: 28px;
+  background: #f4f4f5;
+  padding: 8px;
+  border-radius: 10px;
+}
+
+.service-name h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #303133;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.service-info {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.info-label {
+  font-size: 13px;
+  color: #909399;
+}
+
+.info-value {
+  font-size: 13px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.code-font {
+  font-family: 'Consolas', 'Monaco', monospace;
+  background: #ebeef5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #606266;
+}
+
+.time-font {
+  font-size: 12px;
+}
+</style>

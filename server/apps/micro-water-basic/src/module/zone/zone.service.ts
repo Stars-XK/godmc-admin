@@ -134,12 +134,15 @@ export class ZoneService {
           childCount++;
         }
       });
-      return {
+      const result = {
         ...child,
         childCount,
         hasChildren: childCount > 0,
-        children: null // 强制 children 为 null，以便 Element Plus 继续支持懒加载
       };
+      if (result.children !== undefined) {
+        delete result.children;
+      }
+      return result;
     });
 
     return ResultData.ok(mappedChildren);
