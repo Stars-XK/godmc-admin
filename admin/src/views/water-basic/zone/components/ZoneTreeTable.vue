@@ -3,10 +3,9 @@
     v-loading="loading"
     :data="data"
     row-key="id"
-    lazy
-    :load="loadNode"
-    :expand-row-keys="expandRowKeys"
+    :default-expand-all="true"
     :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
+    class="zone-table"
   >
     <el-table-column prop="name" label="分区名称" min-width="260" show-overflow-tooltip>
       <template #default="scope">
@@ -41,6 +40,8 @@
 </template>
 
 <script setup>
+import { getCurrentInstance } from 'vue';
+
 const props = defineProps({
   data: {
     type: Array,
@@ -59,9 +60,15 @@ const props = defineProps({
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable");
 
-const emit = defineEmits(['add', 'edit', 'delete', 'load-node']);
-
-function loadNode(row, treeNode, resolve) {
-  emit('load-node', row, treeNode, resolve);
-}
+const emit = defineEmits(['add', 'edit', 'delete']);
 </script>
+
+<style scoped>
+.zone-table {
+  width: 100%;
+}
+.zone-table :deep(.el-table__expand-icon) {
+  /* 调整展开图标的大小和位置以对齐层级 */
+  font-size: 14px;
+}
+</style>

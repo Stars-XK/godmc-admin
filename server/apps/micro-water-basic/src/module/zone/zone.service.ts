@@ -94,12 +94,11 @@ export class ZoneService {
     }
 
     const res = await entity.getMany();
-    // 使用优化后的 BuildTree 转换，限制最大层级为3
+    // 移除 3 层最大层级限制，返回所有的分区树，由前端控制默认展开
     const tree = ListToTree(
       res,
       (m) => m.code,
-      (m) => m.parentId,
-      3
+      (m) => m.parentId
     );
     return ResultData.ok(tree);
   }
