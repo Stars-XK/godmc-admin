@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { RequirePermission } from '@app/common/decorators/require-premission.decorator';
 import { User } from '@app/common/decorators/user.decorator';
 import { RevenueUserService } from './revenue-user.service';
+import { Response } from 'express';
 
 @ApiTags('营收基础信息')
 @Controller('water-basic/revenue-user')
@@ -49,5 +50,12 @@ export class RevenueUserController {
   @Post('importBatch')
   importBatch(@Body() dataList: any[], @User() user: any) {
     return this.revenueUserService.importBatch(dataList, user);
+  }
+
+  @ApiOperation({ summary: '导出营收用户数据' })
+  @RequirePermission('water-basic:revenue:export')
+  @Post('export')
+  export(@Res() res: Response, @Body() query: any) {
+    return this.revenueUserService.export(res, query);
   }
 }

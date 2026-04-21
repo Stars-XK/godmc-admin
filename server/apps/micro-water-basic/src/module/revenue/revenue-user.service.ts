@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
+import { ExportTable } from '@app/common/utils/export';
 import { WaterRevenueUserEntity } from '@app/common/entities/water-basic/water-revenue-user.entity';
 
 @Injectable()
@@ -72,5 +73,53 @@ export class RevenueUserService {
     }
 
     return ResultData.ok({ msg: `成功导入 ${insertData.length} 条记录` });
+  }
+
+  async export(res: any, query: any) {
+    const { userNo, userName, phone, status, cardCategory, userCategory } = query;
+    const where: any = { delFlag: '0' };
+    
+    if (userNo) where.userNo = Like(`%${userNo}%`);
+    if (userName) where.userName = Like(`%${userName}%`);
+    if (phone) where.phone = Like(`%${phone}%`);
+    if (status) where.status = status;
+    if (cardCategory) where.cardCategory = cardCategory;
+    if (userCategory) where.userCategory = userCategory;
+
+    // 查出符合条件的全部数据（无分页）
+    const data = await this.rep.find({
+      where,
+      order: { createTime: 'DESC' },
+    });
+
+    const header = [
+      { title: '用户编号', dataIndex: 'userNo', width: 20 },
+      { title: '用户名称', dataIndex: 'userName', width: 20 },
+      { title: '证件号码', dataIndex: 'idCard', width: 25 },
+      { title: '合同编号', dataIndex: 'contractNo', width: 20 },
+      { title: '水表编号', dataIndex: 'meterNo', width: 20 },
+      { title: '表册编号', dataIndex: 'bookNo', width: 20 },
+      { title: '手机号', dataIndex: 'phone', width: 15 },
+      { title: '地址', dataIndex: 'address', width: 30 },
+      { title: '收费类型', dataIndex: 'chargeType', width: 15 },
+      { title: '口径', dataIndex: 'caliber', width: 10 },
+      { title: '水卡分类', dataIndex: 'cardCategory', width: 15 },
+      { title: '用户分类', dataIndex: 'userCategory', width: 25 },
+      { title: '立户日期', dataIndex: 'installDate', width: 20 },
+      { title: '账户余额', dataIndex: 'balance', width: 15 },
+      { title: '欠费金额', dataIndex: 'arrearsAmount', width: 15 },
+      { title: '状态', dataIndex: 'status', width: 10 },
+    ];
+
+    return ExportTable({
+      data,
+      header,
+      sheetName: '营收基础用户信息',
+      dictMap: {
+        status: 'sys_normal_disable',
+        cardCategory: 'water_card_category',
+        userCategory: 'water_user_category'
+      }
+    }, res);
   }
 }

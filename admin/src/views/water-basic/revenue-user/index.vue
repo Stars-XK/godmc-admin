@@ -34,6 +34,9 @@
       <el-col :span="1.5">
         <el-button type="info" plain icon="Upload" @click="handleImport" v-hasPermi="['water-basic:revenue:import']">导入</el-button>
       </el-col>
+      <el-col :span="1.5">
+        <el-button type="warning" plain icon="Download" @click="handleExport" v-hasPermi="['water-basic:revenue:export']">导出</el-button>
+      </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
@@ -350,6 +353,16 @@ function handleDelete(row) {
     getList()
     proxy.$modal.msgSuccess("删除成功")
   }).catch(() => {})
+}
+
+/** 导出按钮操作 */
+function handleExport() {
+  const params = { ...queryParams.value }
+  // 删除分页参数，导出全部满足条件的数据
+  delete params.pageNum
+  delete params.pageSize
+  
+  proxy.download('/water-basic/revenue-user/export', params, `营收用户信息_${new Date().getTime()}.xlsx`)
 }
 
 // ================== 极速导入逻辑 ==================
