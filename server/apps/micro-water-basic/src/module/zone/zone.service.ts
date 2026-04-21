@@ -93,12 +93,8 @@ export class ZoneService {
     }
 
     const res = await entity.getMany();
-    const tree = ListToTree(
-      res,
-      (m) => m.id,
-      (m) => m.name,
-    );
-    return ResultData.ok(tree);
+    // 直接返回扁平数据，由前端 proxy.handleTree 处理为树形结构，避免属性丢失
+    return ResultData.ok(res);
   }
 
   async findOne(id: number) {
