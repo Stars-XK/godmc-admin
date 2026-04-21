@@ -4,7 +4,7 @@
     :data="data"
     row-key="id"
     default-expand-all
-    :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
+    :tree-props="{children: 'children'}"
     class="zone-table"
   >
     <el-table-column prop="name" label="分区名称" min-width="260" show-overflow-tooltip>
