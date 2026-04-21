@@ -80,7 +80,9 @@
       :data="zoneList"
       row-key="id"
       :expand-row-keys="expandedRowKeys"
-      :tree-props="{children: 'children'}"
+      :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
+      lazy
+      :load="handleLoadNode"
       class="flex-table"
       @expand-change="handleExpandChange"
     >
@@ -262,7 +264,7 @@
 
 <script setup name="Zone">
 import { ref, reactive, toRefs, onMounted, nextTick, getCurrentInstance } from 'vue'
-import { listZoneTree, getZone, addZone, updateZone, delZone } from '@/api/water-basic/zone'
+import { listZoneTree, getZone, addZone, updateZone, delZone, lazyZoneChildren } from '@/api/water-basic/zone'
 import { getToken } from "@/utils/auth"
 import ZoneBindDevice from './components/ZoneBindDevice.vue'
 import ZoneBindRevenue from './components/ZoneBindRevenue.vue'
@@ -304,12 +306,17 @@ const { queryParams, form, rules } = toRefs(data);
 function cleanHasChildren(list) {
   if (!list || !list.length) return [];
   return list.map(item => {
-    delete item.hasChildren; // 核心修复点：删除此字段
+    // 【重要修改】对于开启懒加载的混合模式，如果节点实际包含 children (前三层)，则必须删除 hasChildren
+    // 否则 el-table 会认为它既有数据又是异步节点导致渲染错乱。
+    // 但是对于第 3 层（边缘层），后端故意不传 children 且设置了 hasChildren=true，这个时候我们要保留 hasChildren，触发 lazy!
     if (item.children && item.children.length > 0) {
+      delete item.hasChildren;
       item.children = cleanHasChildren(item.children);
     } else {
-      // 保证 children 至少为 undefined 而非空数组，防止渲染出空箭头
-      item.children = undefined;
+      // 如果后端传了 hasChildren = true 且 children 为空，保留以触发懒加载
+      if (!item.hasChildren) {
+        item.children = undefined;
+      }
     }
     return item;
   });
@@ -338,6 +345,15 @@ function getExpandedKeys(data, maxLevel, currentLevel = 1) {
     }
   });
   return keys;
+}
+
+/** 处理懒加载节点 */
+function handleLoadNode(row, treeNode, resolve) {
+  lazyZoneChildren(row.code, queryParams.value).then(res => {
+    // 懒加载返回的数据也需要清洗掉多余的 hasChildren
+    const cleanData = cleanHasChildren(res.data || []);
+    resolve(cleanData);
+  });
 }
 
 /** 查询分区列表 */

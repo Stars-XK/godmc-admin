@@ -98,13 +98,39 @@ export class ZoneService {
       entity.andWhere('zone.deptId = :deptId', { deptId: user.deptId });
     }
 
+    // 如果有查询条件（名称、编码、状态），则说明用户在搜索，为了保证搜索结果能被看到，不限制层级；
+    // 如果是无条件默认加载首屏，为了性能，仅返回前3层，剩下的让前端懒加载
+    const hasSearchFilter = query.name || query.code || query.status;
+    if (!hasSearchFilter) {
+      entity.andWhere('zone.level <= 3');
+    }
+
     const res = await entity.getMany();
-    // 移除 3 层最大层级限制，返回所有的分区树，由前端控制默认展开
+    // 使用 ListToTree 并开启自动补充 hasChildren 标识，便于前端判断是否显示展开箭头
     const tree = ListToTree(
       res,
       (m) => m.code,
       (m) => m.parentId
     );
+    
+    // 如果是默认加载（有限制层级），我们需要把处在边缘层（level === 3）但实际数据库中还有子节点的标记一下
+    // 因为 ListToTree 后，level=3 的节点 children 是空的，前端会认为它没有子节点而隐藏展开箭头
+    if (!hasSearchFilter) {
+      const markHasChildren = async (nodes: any[]) => {
+        for (const node of nodes) {
+          if (node.level === 3) {
+            // 查询数据库中是否有以它为父级的节点
+            const childCount = await this.zoneRep.count({ where: { parentId: node.code, delFlag: '0' } });
+            node.hasChildren = childCount > 0;
+            node.children = []; // 懒加载必须清空或不传 children
+          } else if (node.children && node.children.length > 0) {
+            await markHasChildren(node.children);
+          }
+        }
+      };
+      await markHasChildren(tree);
+    }
+
     return ResultData.ok(tree);
   }
 
@@ -127,27 +153,21 @@ export class ZoneService {
     const res = await entity.getMany();
 
     // 内存中找出直接下级，并计算 hasChildren 和 childCount
+    // 注意：如果是前端懒加载，这里的查询条件应当仅针对指定的 parentId
     const children = res.filter(m => String(m.parentId) === parentId);
     
     // 给 children 补充 childCount 和 hasChildren 属性
-    const mappedChildren = children.map(child => {
+    const mappedChildren = [];
+    for (const child of children) {
       const childCode = String(child.code);
-      let childCount = 0;
-      res.forEach(m => {
-        if (String(m.parentId) === childCode) {
-          childCount++;
-        }
-      });
-      const result: any = {
+      const childCount = await this.zoneRep.count({ where: { parentId: childCode, delFlag: '0' } });
+      mappedChildren.push({
         ...child,
         childCount,
         hasChildren: childCount > 0,
-      };
-      if (result.children !== undefined) {
-        delete result.children;
-      }
-      return result;
-    });
+        children: [] // 确保为空以触发下一次 lazy
+      });
+    }
 
     return ResultData.ok(mappedChildren);
   }
