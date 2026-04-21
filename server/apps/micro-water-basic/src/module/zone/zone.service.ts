@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
 import { WaterZoneEntity } from '@app/common';
-import { ListToTree } from '@app/common/utils/index';
+import { BuildTree } from '@app/common/utils/index';
 import { Response } from 'express';
 import { ExportTable } from '@app/common/utils/export';
 import * as exceljs from 'exceljs';
@@ -19,17 +19,18 @@ export class ZoneService {
     createDto.createBy = user.userName;
     createDto.deptId = user.deptId;
     if (createDto.parentId && createDto.parentId !== 0) {
+      const parentCode = String(createDto.parentId);
       const parent = await this.zoneRep.findOne({
         where: {
-          id: createDto.parentId,
+          code: parentCode,
           delFlag: '0',
         },
-        select: ['ancestors', 'level'],
+        select: ['ancestors', 'level', 'code'],
       });
       if (!parent) {
         return ResultData.fail(500, '父级分区不存在');
       }
-      const ancestors = parent.ancestors ? `${parent.ancestors},${createDto.parentId}` : `${createDto.parentId}`;
+      const ancestors = parent.ancestors ? `${parent.ancestors},${parent.code}` : `${parent.code}`;
       Object.assign(createDto, { ancestors: ancestors, level: parent.level + 1 });
     } else {
       Object.assign(createDto, { ancestors: '0', level: 1 });
@@ -93,11 +94,10 @@ export class ZoneService {
     }
 
     const res = await entity.getMany();
-    // 使用优化后的 ListToTree 转换，它能保留所有字段并安全处理无父节点的孤儿节点
-    const tree = ListToTree(
+    const tree = BuildTree(
       res,
-      (m) => m.id,
-      (m) => m.name,
+      (m) => m.code,
+      (m) => m.parentId,
     );
     return ResultData.ok(tree);
   }
@@ -115,17 +115,18 @@ export class ZoneService {
   async update(updateDto: any, user: any) {
     updateDto.updateBy = user.userName;
     if (updateDto.parentId && updateDto.parentId !== 0) {
+      const parentCode = String(updateDto.parentId);
       const parent = await this.zoneRep.findOne({
         where: {
-          id: updateDto.parentId,
+          code: parentCode,
           delFlag: '0',
         },
-        select: ['ancestors', 'level'],
+        select: ['ancestors', 'level', 'code'],
       });
       if (!parent) {
         return ResultData.fail(500, '父级分区不存在');
       }
-      const ancestors = parent.ancestors ? `${parent.ancestors},${updateDto.parentId}` : `${updateDto.parentId}`;
+      const ancestors = parent.ancestors ? `${parent.ancestors},${parent.code}` : `${parent.code}`;
       Object.assign(updateDto, { ancestors: ancestors, level: parent.level + 1 });
     } else {
       Object.assign(updateDto, { ancestors: '0', level: 1 });
@@ -165,13 +166,14 @@ export class ZoneService {
     let parentAncestors = '0';
 
     if (parentId && parentId !== 0) {
+      const parentCode = String(parentId);
       const parent = await this.zoneRep.findOne({
-        where: { id: parentId, delFlag: '0' },
-        select: ['ancestors', 'level'],
+        where: { code: parentCode, delFlag: '0' },
+        select: ['ancestors', 'level', 'code'],
       });
       if (!parent) return ResultData.fail(500, '指定的父级分区不存在');
       parentLevel = parent.level;
-      parentAncestors = parent.ancestors ? `${parent.ancestors},${parentId}` : `${parentId}`;
+      parentAncestors = parent.ancestors ? `${parent.ancestors},${parent.code}` : `${parent.code}`;
     }
 
     const insertData = validData.map((item, index) => {
@@ -247,9 +249,19 @@ export class ZoneService {
   }
 
   async remove(id: number) {
-    const hasChild = await this.zoneRep.count({
-      where: { parentId: id, delFlag: '0' },
+    const current = await this.zoneRep.findOne({
+      where: { id: id, delFlag: '0' },
+      select: ['code'],
     });
+    if (!current) {
+      return ResultData.fail(500, '数据不存在');
+    }
+
+    const hasChild = await this.zoneRep
+      .createQueryBuilder('zone')
+      .where('zone.delFlag = :delFlag', { delFlag: '0' })
+      .andWhere('zone.parentId = :parentId', { parentId: current.code })
+      .getCount();
     if (hasChild > 0) {
       return ResultData.fail(500, '存在子级分区,不允许删除');
     }

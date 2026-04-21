@@ -153,7 +153,7 @@ function resetQuery() {
 
 /** 新增按钮操作 */
 function handleAdd(row) {
-  formDialogRef.value.open(row ? row.id : null);
+  formDialogRef.value.open(row ? row.code : null);
 }
 
 /** 展开/折叠操作 */

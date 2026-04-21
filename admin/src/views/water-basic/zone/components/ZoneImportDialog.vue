@@ -5,8 +5,8 @@
         <el-tree-select
           v-model="form.parentId"
           :data="treeData"
-          :props="{ value: 'id', label: 'name', children: 'children' }"
-          value-key="id"
+          :props="{ value: 'code', label: 'name', children: 'children' }"
+          value-key="code"
           placeholder="选择导入到哪个上级分区下(不选则作为顶级)"
           check-strictly
           clearable

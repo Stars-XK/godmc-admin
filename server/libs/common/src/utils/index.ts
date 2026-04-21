@@ -67,6 +67,47 @@ export function ListToTree(arr, getId, getLabel) {
   return lData;
 }
 
+export function BuildTree(arr, getKey, getParentKey) {
+  const map = new Map();
+  const roots = [];
+  const keys = new Set();
+
+  arr.forEach((m) => {
+    keys.add(String(getKey(m)));
+  });
+
+  arr.forEach((m) => {
+    const key = String(getKey(m));
+    const existing = map.get(key);
+    const node = existing || { children: [] };
+    Object.assign(node, m);
+    if (!node.children) node.children = [];
+    map.set(key, node);
+  });
+
+  arr.forEach((m) => {
+    const key = String(getKey(m));
+    const parentKey = String(getParentKey(m) ?? 0);
+    const node = map.get(key);
+    if (!node) return;
+
+    if (parentKey === '0' || !keys.has(parentKey)) {
+      roots.push(node);
+      return;
+    }
+
+    const parent = map.get(parentKey);
+    if (!parent) {
+      roots.push(node);
+      return;
+    }
+    if (!parent.children) parent.children = [];
+    parent.children.push(node);
+  });
+
+  return roots;
+}
+
 /**
  * 获取当前时间
  * YYYY-MM-DD HH:mm:ss
