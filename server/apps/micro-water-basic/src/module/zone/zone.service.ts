@@ -134,7 +134,7 @@ export class ZoneService {
           childCount++;
         }
       });
-      const result = {
+      const result: any = {
         ...child,
         childCount,
         hasChildren: childCount > 0,
