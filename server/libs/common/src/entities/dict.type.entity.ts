@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { BaseEntity } from './base';
 
 @Entity('sys_dict_type', {
-  comment: '字典类型表',
+  comment: '【系统基础】字典类型表',
 })
 export class SysDictTypeEntity extends BaseEntity {
   @ApiProperty({ type: String, description: '字典主键' })

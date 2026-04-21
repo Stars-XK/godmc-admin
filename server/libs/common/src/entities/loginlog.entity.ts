@@ -3,7 +3,7 @@ import { BaseStatusEntity } from './base';
 import { dateTransformer } from '../utils/index';
 
 @Entity('sys_logininfor', {
-  comment: '系统访问记录',
+  comment: '【系统基础】系统访问记录',
 })
 export class MonitorLoginlogEntity extends BaseStatusEntity {
   @PrimaryGeneratedColumn({ type: 'int', name: 'info_id', comment: '访问ID' })

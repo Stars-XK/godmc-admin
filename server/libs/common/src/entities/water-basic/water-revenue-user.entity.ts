@@ -3,7 +3,7 @@ import { BaseEntity } from '@app/common/entities/base.entity';
 
 @Entity({ name: 'scada_revenue_user' })
 export class WaterRevenueUserEntity extends BaseEntity {
-  @PrimaryGeneratedColumn({ type: 'bigint', name: 'id', comment: '主键ID' })
+  @PrimaryGeneratedColumn({ type: 'bigint', name: 'id', comment: '【水务基础】营收基础用户信息表' })
   id: string;
 
   @Index('uk_user_no', { unique: true })

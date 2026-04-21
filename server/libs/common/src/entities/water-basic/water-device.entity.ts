@@ -3,7 +3,7 @@ import { BaseEntity } from '../base';
 import { ApiProperty } from '@nestjs/swagger';
 
 @Entity('water_device', {
-  comment: '水务基础-设备信息表',
+  comment: '【水务基础】设备信息表',
 })
 export class WaterDeviceEntity extends BaseEntity {
   @ApiProperty({ type: Number, description: '设备ID' })

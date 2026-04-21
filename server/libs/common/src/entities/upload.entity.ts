@@ -2,7 +2,7 @@ import { Entity, Column, PrimaryColumn } from 'typeorm';
 import { BaseEntity } from './base';
 
 @Entity('sys_upload', {
-  comment: '文件上传记录',
+  comment: '【系统基础】文件上传记录表',
 })
 export class SysUploadEntity extends BaseEntity {
   @PrimaryColumn({ type: 'varchar', name: 'upload_id', comment: '任务Id' })

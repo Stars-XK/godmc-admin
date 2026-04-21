@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { dateTransformer } from '../utils/index';
 
 @Entity('sys_job_log', {
-  comment: '任务调度日志表',
+  comment: '【系统基础】定时任务调度日志表',
 })
 export class JobLog {
   @ApiProperty({ description: '任务日志ID' })

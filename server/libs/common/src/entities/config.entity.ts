@@ -2,7 +2,7 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { BaseEntity } from './base';
 
 @Entity('sys_config', {
-  comment: '参数配置表',
+  comment: '【系统基础】参数配置表',
 })
 export class SysConfigEntity extends BaseEntity {
   @PrimaryGeneratedColumn({ type: 'int', name: 'config_id', comment: '参数主键' })

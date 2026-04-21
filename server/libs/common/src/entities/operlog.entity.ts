@@ -2,7 +2,7 @@ import { Column, Entity, PrimaryGeneratedColumn, CreateDateColumn } from 'typeor
 import { dateTransformer } from '../utils/index';
 
 @Entity('sys_oper_log', {
-  comment: '操作日志记录',
+  comment: '【系统基础】操作日志记录',
 })
 export class SysOperlogEntity {
   @PrimaryGeneratedColumn({ type: 'int', name: 'oper_id', comment: '日志主键' })

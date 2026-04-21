@@ -3,7 +3,7 @@ import { BaseEntity } from './base';
 import { ApiProperty } from '@nestjs/swagger';
 
 @Entity('sys_job', {
-  comment: '定时任务表',
+  comment: '【系统基础】定时任务调度表',
 })
 export class Job extends BaseEntity {
   @PrimaryGeneratedColumn({ type: 'int', name: 'job_id', comment: '任务ID' })

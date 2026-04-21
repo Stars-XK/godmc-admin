@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { BaseEntity } from './base';
 
 @Entity('gen_table', {
-  comment: '代码生成业务表',
+  comment: '【代码生成】代码生成业务表',
 })
 export class GenTableEntity extends BaseEntity {
   @ApiProperty({ type: Number, description: '编号' })

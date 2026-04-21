@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { BaseEntity } from './base';
 
 @Entity('sys_role', {
-  comment: '角色信息表',
+  comment: '【系统基础】角色信息表',
 })
 export class SysRoleEntity extends BaseEntity {
   @ApiProperty({ type: String, description: '角色ID' })

@@ -9,7 +9,7 @@ class NewBaseEntity extends BaseEntity {
 }
 
 @Entity('sys_menu', {
-  comment: '菜单权限表',
+  comment: '【系统基础】菜单权限表',
 })
 export class SysMenuEntity extends NewBaseEntity {
   @ApiProperty({ type: String, description: '菜单ID' })
