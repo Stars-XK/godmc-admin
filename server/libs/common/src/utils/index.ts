@@ -24,39 +24,46 @@ import { DataScopeEnum } from '../enum/index';
 export function ListToTree(arr, getId, getLabel) {
   const kData = {}; // 以id做key的对象 暂时储存数据
   const lData = []; // 最终的数据 arr
+  const nodeIds = new Set(); // 记录所有存在于返回列表中的节点id
 
-  // 第一次遍历，构建 kData
+  // 第一次遍历，记录所有节点的ID
+  arr.forEach((m) => {
+    nodeIds.add(getId(m));
+  });
+
+  // 第二次遍历，构建 kData 并完整保留原对象的属性
   arr.forEach((m) => {
     const id = getId(m);
     const label = getLabel(m);
     const parentId = +m.parentId;
 
     kData[id] = {
+      ...m, // 完整保留其他业务属性（code、area 等）
       id,
       label,
       parentId,
       children: [], // 初始化 children 数组
     };
 
-    // 如果是根节点，直接推入 lData
-    if (parentId === 0) {
+    // 如果是根节点，或者其父节点不在当前查询结果中（即孤儿节点），直接推入 lData 作为顶级节点
+    if (parentId === 0 || !nodeIds.has(parentId)) {
       lData.push(kData[id]);
     }
   });
-  // 第二次遍历，处理子节点
+
+  // 第三次遍历，处理子节点
   arr.forEach((m) => {
     const id = getId(m);
     const parentId = +m.parentId;
 
-    if (parentId !== 0) {
+    if (parentId !== 0 && nodeIds.has(parentId)) {
       // 确保父节点存在后再添加子节点
       if (kData[parentId]) {
         kData[parentId].children.push(kData[id]);
-      } else {
-        console.warn(`Parent menuId: ${parentId} not found for child menuId: ${id}`);
       }
     }
   });
+  
   return lData;
 }
 

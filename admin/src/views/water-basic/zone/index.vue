@@ -133,7 +133,8 @@ const importDialogRef = ref(null);
 function getList() {
   loading.value = true;
   listZoneTree(queryParams.value).then(response => {
-    zoneList.value = proxy.handleTree(response.data || response, "id");
+    // 后端已经通过优化后的 ListToTree 返回了完整的树形数据，无需再通过前端的 handleTree 处理
+    zoneList.value = response.data || response;
     zoneOptions.value = zoneList.value; // 用于下拉树选择
     loading.value = false;
   });
