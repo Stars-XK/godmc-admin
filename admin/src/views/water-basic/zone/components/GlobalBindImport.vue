@@ -80,13 +80,13 @@ import { ref, computed } from 'vue'
 import { ElMessage, ElNotification } from 'element-plus'
 import { download } from '@/utils/request'
 import * as XLSX from 'xlsx'
-import { importGlobalBindDevices, importGlobalBindRevenueUsers, importGlobalBindMetrics } from '@/api/water-basic/zone-bind'
+import { importGlobalBindDevices, importGlobalBindRevenueUsers } from '@/api/water-basic/zone-bind'
 
 const props = defineProps({
   modelValue: Boolean,
   type: {
     type: String,
-    default: 'device' // 'device' 或 'revenue' 或 'metric'
+    default: 'device' // 'device' 或 'revenue'
   }
 })
 
