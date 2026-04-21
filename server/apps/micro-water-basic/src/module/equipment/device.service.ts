@@ -68,12 +68,17 @@ export class DeviceService {
       sheetName: '设备数据',
       data: list,
       header: [
+        { title: '所属站点编码', dataIndex: 'stationCode' },
         { title: '设备名称', dataIndex: 'name' },
         { title: '设备编码', dataIndex: 'code' },
         { title: '设备类型', dataIndex: 'type' },
+        { title: '型号', dataIndex: 'model' },
+        { title: '厂家', dataIndex: 'manufacturer' },
+        { title: '安装日期', dataIndex: 'installDate' },
+        { title: '设计寿命(年)', dataIndex: 'lifespan' },
+        { title: '额定功率(kW)', dataIndex: 'power' },
         { title: '负责人', dataIndex: 'managerName' },
         { title: '电话', dataIndex: 'managerPhone' },
-        { title: '型号', dataIndex: 'model' }, { title: '厂家', dataIndex: 'manufacturer' },
       ],
     };
     ExportTable(options, res);
@@ -83,15 +88,20 @@ export class DeviceService {
     const workbook = new exceljs.Workbook();
     const worksheet = workbook.addWorksheet('设备导入模板');
     worksheet.columns = [
+      { header: '所属站点编码(必填)', key: 'stationCode', width: 20 },
       { header: '设备名称(必填)', key: 'name', width: 20 },
       { header: '设备编码(必填)', key: 'code', width: 20 },
       { header: '设备类型(1/2/3/4/5)', key: 'type', width: 15 },
+      { header: '型号', key: 'model', width: 20 },
+      { header: '厂家', key: 'manufacturer', width: 20 },
+      { header: '安装日期(YYYY-MM-DD)', key: 'installDate', width: 20 },
+      { header: '设计寿命(年)', key: 'lifespan', width: 15 },
+      { header: '额定功率(kW)', key: 'power', width: 15 },
       { header: '负责人', key: 'managerName', width: 15 },
       { header: '电话', key: 'managerPhone', width: 15 },
-      { header: '地址', key: 'address', width: 30 },
     ];
     worksheet.addRow({
-      name: '示例设备', code: 'ST-001', type: '1', managerName: '李四', managerPhone: '13812345678', address: '某某路100号'
+      stationCode: 'ST-001', name: '1号水泵', code: 'DEV-001', type: '1', model: 'A-100', manufacturer: '某某设备厂', installDate: '2023-01-01', lifespan: 10, power: '15.5', managerName: '李四', managerPhone: '13812345678'
     });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -109,13 +119,25 @@ export class DeviceService {
     const dataList = [];
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber > 1) {
+        let installDate = null;
+        if (row.getCell(7).value) {
+           const dateVal = new Date(row.getCell(7).value?.toString());
+           if (!isNaN(dateVal.getTime())) {
+             installDate = dateVal;
+           }
+        }
         dataList.push({
-          name: row.getCell(1).value?.toString() || '',
-          code: row.getCell(2).value?.toString() || '',
-          type: row.getCell(3).value?.toString() || '1',
-          managerName: row.getCell(4).value?.toString() || '',
-          managerPhone: row.getCell(5).value?.toString() || '',
-          model: row.getCell(6).value?.toString() || '', manufacturer: row.getCell(7).value?.toString() || '',
+          stationCode: row.getCell(1).value?.toString() || '',
+          name: row.getCell(2).value?.toString() || '',
+          code: row.getCell(3).value?.toString() || '',
+          type: row.getCell(4).value?.toString() || '1',
+          model: row.getCell(5).value?.toString() || '',
+          manufacturer: row.getCell(6).value?.toString() || '',
+          installDate: installDate,
+          lifespan: parseInt(row.getCell(8).value?.toString() || '0') || null,
+          power: row.getCell(9).value?.toString() || '',
+          managerName: row.getCell(10).value?.toString() || '',
+          managerPhone: row.getCell(11).value?.toString() || '',
         });
       }
     });

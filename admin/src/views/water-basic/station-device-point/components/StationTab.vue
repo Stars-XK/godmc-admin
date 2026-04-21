@@ -42,12 +42,20 @@
             </template>
           </el-table-column>
           <el-table-column label="站点编码" align="center" prop="code" width="150" />
+          <el-table-column label="所属分区" align="center" prop="zoneCode" width="120" />
           <el-table-column label="站点类型" align="center" prop="type" width="120">
             <template #default="scope">
               <dict-tag :options="water_station_type" :value="scope.row.type" />
             </template>
           </el-table-column>
-          <el-table-column label="负责人" align="center" prop="managerName" width="120" />
+          <el-table-column label="经纬度" align="center" width="150">
+            <template #default="scope">
+              <span v-if="scope.row.longitude && scope.row.latitude">{{ scope.row.longitude }}, {{ scope.row.latitude }}</span>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="设计能力" align="center" prop="designCapacity" width="100" />
+          <el-table-column label="负责人" align="center" prop="managerName" width="100" />
           <el-table-column label="联系电话" align="center" prop="managerPhone" width="120" />
           <el-table-column label="状态" align="center" prop="status" width="100">
             <template #default="scope">
@@ -180,7 +188,7 @@ function handleFileSuccess(response) {
   upload.value.isUploading = false
   upload.value.progress = 0
   uploadRef.value.clearFiles()
-  proxy.$alert("<div style='overflow: auto;overflow-x: hidden;max-height: 70vh;padding: 10px 20px 0;'>" + response.msg + "</div>", "导入结果", { dangerouslyUseHTMLString: true })
+  proxy.$modal.alert("<div style='overflow: auto;overflow-x: hidden;max-height: 70vh;padding: 10px 20px 0;'>" + response.msg + "</div>", "导入结果", { dangerouslyUseHTMLString: true })
   getList()
 }
 

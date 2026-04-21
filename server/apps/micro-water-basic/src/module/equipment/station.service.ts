@@ -68,12 +68,18 @@ export class StationService {
       sheetName: '站点数据',
       data: list,
       header: [
+        { title: '所属分区编码', dataIndex: 'zoneCode' },
         { title: '站点名称', dataIndex: 'name' },
         { title: '站点编码', dataIndex: 'code' },
-        { title: '站点类型', dataIndex: 'type' },
+        { title: '站点类型(1/2/3/4/5)', dataIndex: 'type' },
+        { title: '经度(X)', dataIndex: 'longitude' },
+        { title: '纬度(Y)', dataIndex: 'latitude' },
+        { title: '设计能力', dataIndex: 'designCapacity' },
+        { title: '建设单位', dataIndex: 'constructionUnit' },
+        { title: '投运日期', dataIndex: 'commissioningDate' },
         { title: '负责人', dataIndex: 'managerName' },
-        { title: '电话', dataIndex: 'managerPhone' },
-        { title: '地址', dataIndex: 'address' },
+        { title: '联系电话', dataIndex: 'managerPhone' },
+        { title: '详细地址', dataIndex: 'address' },
       ],
     };
     ExportTable(options, res);
@@ -83,15 +89,21 @@ export class StationService {
     const workbook = new exceljs.Workbook();
     const worksheet = workbook.addWorksheet('站点导入模板');
     worksheet.columns = [
+      { header: '所属分区编码', key: 'zoneCode', width: 15 },
       { header: '站点名称(必填)', key: 'name', width: 20 },
       { header: '站点编码(必填)', key: 'code', width: 20 },
-      { header: '站点类型(1/2/3/4/5)', key: 'type', width: 15 },
+      { header: '站点类型(1水厂/2泵站/3水库)', key: 'type', width: 25 },
+      { header: '经度(X)', key: 'longitude', width: 15 },
+      { header: '纬度(Y)', key: 'latitude', width: 15 },
+      { header: '设计能力', key: 'designCapacity', width: 15 },
+      { header: '建设单位', key: 'constructionUnit', width: 20 },
+      { header: '投运日期(YYYY-MM-DD)', key: 'commissioningDate', width: 20 },
       { header: '负责人', key: 'managerName', width: 15 },
-      { header: '电话', key: 'managerPhone', width: 15 },
-      { header: '地址', key: 'address', width: 30 },
+      { header: '联系电话', key: 'managerPhone', width: 15 },
+      { header: '详细地址', key: 'address', width: 30 },
     ];
     worksheet.addRow({
-      name: '示例站点', code: 'ST-001', type: '1', managerName: '李四', managerPhone: '13812345678', address: '某某路100号'
+      zoneCode: 'ZONE-01', name: '示例站点', code: 'ST-001', type: '1', longitude: '118.58', latitude: '24.93', designCapacity: 50000, constructionUnit: '市水务集团', commissioningDate: '2023-01-01', managerName: '张三', managerPhone: '13812345678', address: '某某路100号'
     });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -109,13 +121,26 @@ export class StationService {
     const dataList = [];
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber > 1) {
+        let commissioningDate = null;
+        if (row.getCell(9).value) {
+           const dateVal = new Date(row.getCell(9).value?.toString());
+           if (!isNaN(dateVal.getTime())) {
+             commissioningDate = dateVal;
+           }
+        }
         dataList.push({
-          name: row.getCell(1).value?.toString() || '',
-          code: row.getCell(2).value?.toString() || '',
-          type: row.getCell(3).value?.toString() || '1',
-          managerName: row.getCell(4).value?.toString() || '',
-          managerPhone: row.getCell(5).value?.toString() || '',
-          address: row.getCell(6).value?.toString() || '',
+          zoneCode: row.getCell(1).value?.toString() || '',
+          name: row.getCell(2).value?.toString() || '',
+          code: row.getCell(3).value?.toString() || '',
+          type: row.getCell(4).value?.toString() || '1',
+          longitude: row.getCell(5).value?.toString() || '',
+          latitude: row.getCell(6).value?.toString() || '',
+          designCapacity: parseFloat(row.getCell(7).value?.toString() || '0') || null,
+          constructionUnit: row.getCell(8).value?.toString() || '',
+          commissioningDate: commissioningDate,
+          managerName: row.getCell(10).value?.toString() || '',
+          managerPhone: row.getCell(11).value?.toString() || '',
+          address: row.getCell(12).value?.toString() || '',
         });
       }
     });

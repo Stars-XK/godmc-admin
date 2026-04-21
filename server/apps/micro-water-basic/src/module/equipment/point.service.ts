@@ -68,10 +68,17 @@ export class PointService {
       sheetName: '测点数据',
       data: list,
       header: [
+        { title: '所属设备编码', dataIndex: 'deviceCode' },
         { title: '测点名称', dataIndex: 'name' },
         { title: '测点编码', dataIndex: 'code' },
         { title: '测点类型', dataIndex: 'type' },
-        { title: '量程上限', dataIndex: 'rangeMax' }, { title: '量程下限', dataIndex: 'rangeMin' }, { title: '单位', dataIndex: 'unit' },
+        { title: '量程上限', dataIndex: 'rangeMax' },
+        { title: '量程下限', dataIndex: 'rangeMin' },
+        { title: '报警上限', dataIndex: 'alarmMax' },
+        { title: '报警下限', dataIndex: 'alarmMin' },
+        { title: '单位', dataIndex: 'unit' },
+        { title: '数据类型', dataIndex: 'dataType' },
+        { title: '读写属性', dataIndex: 'rwAttr' },
       ],
     };
     ExportTable(options, res);
@@ -81,15 +88,20 @@ export class PointService {
     const workbook = new exceljs.Workbook();
     const worksheet = workbook.addWorksheet('测点导入模板');
     worksheet.columns = [
+      { header: '所属设备编码(必填)', key: 'deviceCode', width: 20 },
       { header: '测点名称(必填)', key: 'name', width: 20 },
       { header: '测点编码(必填)', key: 'code', width: 20 },
       { header: '测点类型(1/2/3/4/5)', key: 'type', width: 15 },
-      { header: '负责人', key: 'managerName', width: 15 },
-      { header: '电话', key: 'managerPhone', width: 15 },
-      { header: '地址', key: 'address', width: 30 },
+      { header: '量程上限', key: 'rangeMax', width: 15 },
+      { header: '量程下限', key: 'rangeMin', width: 15 },
+      { header: '报警上限', key: 'alarmMax', width: 15 },
+      { header: '报警下限', key: 'alarmMin', width: 15 },
+      { header: '单位(m³/h,MPa等)', key: 'unit', width: 15 },
+      { header: '数据类型(float/int/bool)', key: 'dataType', width: 25 },
+      { header: '读写属性(R/W)', key: 'rwAttr', width: 15 },
     ];
     worksheet.addRow({
-      name: '示例测点', code: 'ST-001', type: '1', managerName: '李四', managerPhone: '13812345678', address: '某某路100号'
+      deviceCode: 'DEV-001', name: '出水压力', code: 'PT-001', type: '2', rangeMax: 1.0, rangeMin: 0, alarmMax: 0.8, alarmMin: 0.2, unit: 'MPa', dataType: 'float', rwAttr: 'R'
     });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -108,10 +120,17 @@ export class PointService {
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber > 1) {
         dataList.push({
-          name: row.getCell(1).value?.toString() || '',
-          code: row.getCell(2).value?.toString() || '',
-          type: row.getCell(3).value?.toString() || '1',
-          rangeMax: parseFloat(row.getCell(4).value?.toString() || '0'), rangeMin: parseFloat(row.getCell(5).value?.toString() || '0'), unit: row.getCell(6).value?.toString() || '',
+          deviceCode: row.getCell(1).value?.toString() || '',
+          name: row.getCell(2).value?.toString() || '',
+          code: row.getCell(3).value?.toString() || '',
+          type: row.getCell(4).value?.toString() || '1',
+          rangeMax: parseFloat(row.getCell(5).value?.toString()) || null,
+          rangeMin: parseFloat(row.getCell(6).value?.toString()) || null,
+          alarmMax: parseFloat(row.getCell(7).value?.toString()) || null,
+          alarmMin: parseFloat(row.getCell(8).value?.toString()) || null,
+          unit: row.getCell(9).value?.toString() || '',
+          dataType: row.getCell(10).value?.toString() || 'float',
+          rwAttr: row.getCell(11).value?.toString() || 'R',
         });
       }
     });

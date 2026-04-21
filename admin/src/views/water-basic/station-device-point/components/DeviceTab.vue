@@ -42,12 +42,22 @@
             </template>
           </el-table-column>
           <el-table-column label="设备编码" align="center" prop="code" width="150" />
+          <el-table-column label="所属站点" align="center" prop="stationCode" width="120" />
           <el-table-column label="设备类型" align="center" prop="type" width="120">
             <template #default="scope">
               <dict-tag :options="water_device_type" :value="scope.row.type" />
             </template>
           </el-table-column>
-          <el-table-column label="负责人" align="center" prop="managerName" width="120" />
+          <el-table-column label="型号" align="center" prop="model" width="120" show-overflow-tooltip />
+          <el-table-column label="厂家" align="center" prop="manufacturer" width="150" show-overflow-tooltip />
+          <el-table-column label="额定功率" align="center" prop="power" width="100" />
+          <el-table-column label="安装日期" align="center" prop="installDate" width="110">
+            <template #default="scope">
+              <span>{{ parseTime(scope.row.installDate, '{y}-{m}-{d}') }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="寿命" align="center" prop="lifespan" width="80" />
+          <el-table-column label="负责人" align="center" prop="managerName" width="100" />
           <el-table-column label="联系电话" align="center" prop="managerPhone" width="120" />
           <el-table-column label="状态" align="center" prop="status" width="100">
             <template #default="scope">
@@ -180,7 +190,7 @@ function handleFileSuccess(response) {
   upload.value.isUploading = false
   upload.value.progress = 0
   uploadRef.value.clearFiles()
-  proxy.$alert("<div style='overflow: auto;overflow-x: hidden;max-height: 70vh;padding: 10px 20px 0;'>" + response.msg + "</div>", "导入结果", { dangerouslyUseHTMLString: true })
+  proxy.$modal.alert("<div style='overflow: auto;overflow-x: hidden;max-height: 70vh;padding: 10px 20px 0;'>" + response.msg + "</div>", "导入结果", { dangerouslyUseHTMLString: true })
   getList()
 }
 
