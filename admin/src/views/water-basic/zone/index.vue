@@ -71,21 +71,10 @@
         >导出</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-dropdown trigger="click" @command="handleGlobalImportCommand" style="margin-left: 10px;">
-          <el-button type="primary" plain>
-            全局关联导入<el-icon class="el-icon--right"><arrow-down /></el-icon>
-          </el-button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="device">
-                <el-icon><Cpu /></el-icon> 导入设备关联关系
-              </el-dropdown-item>
-              <el-dropdown-item command="revenue">
-                <el-icon><User /></el-icon> 导入营收关联关系
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+        <el-button type="primary" plain icon="Upload" @click="handleGlobalImportCommand('device')">全局导入设备</el-button>
+      </el-col>
+      <el-col :span="1.5">
+        <el-button type="success" plain icon="Upload" @click="handleGlobalImportCommand('revenue')">全局导入营收</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>

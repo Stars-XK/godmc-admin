@@ -8,69 +8,117 @@
     append-to-body
     class="custom-drawer"
   >
-    <div class="manual-container">
-      <div class="filter-bar">
-        <el-form :model="queryParams" ref="queryRef" :inline="true">
-          <el-form-item label="用户编号" prop="userNo">
-            <el-input v-model="queryParams.userNo" placeholder="请输入编号" clearable style="width: 150px" @keyup.enter="getList" />
-          </el-form-item>
-          <el-form-item label="用户名称" prop="name">
-            <el-input v-model="queryParams.name" placeholder="请输入名称" clearable style="width: 150px" @keyup.enter="getList" />
-          </el-form-item>
-          <el-form-item label="用户分类" prop="userCategory">
-            <el-select v-model="queryParams.userCategory" placeholder="请选择用户分类" clearable style="width: 150px" @change="getList">
-              <el-option
-                v-for="dict in water_user_category"
-                :key="dict.value"
-                :label="dict.label"
-                :value="dict.value"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" icon="Search" @click="getList">搜索</el-button>
-          </el-form-item>
-        </el-form>
-        <div class="action-btn">
-          <el-button type="primary" size="default" :disabled="!selectedIds.length" @click="submitManualBind">
-            <el-icon style="margin-right: 4px"><Link /></el-icon>
-            确认绑定 ({{ selectedIds.length }})
-          </el-button>
+    <el-tabs v-model="activeTab" class="bind-tabs">
+      <el-tab-pane label="手动勾选关联" name="manual">
+        <div class="manual-container">
+          <div class="filter-bar">
+            <el-form :model="queryParams" ref="queryRef" :inline="true">
+              <el-form-item label="用户编号" prop="userNo">
+                <el-input v-model="queryParams.userNo" placeholder="请输入编号" clearable style="width: 150px" @keyup.enter="handleQuery" />
+              </el-form-item>
+              <el-form-item label="用户名称" prop="name">
+                <el-input v-model="queryParams.name" placeholder="请输入名称" clearable style="width: 150px" @keyup.enter="handleQuery" />
+              </el-form-item>
+              <el-form-item label="用户分类" prop="userCategory">
+                <el-select v-model="queryParams.userCategory" placeholder="请选择用户分类" clearable style="width: 150px" @change="handleQuery">
+                  <el-option
+                    v-for="dict in water_user_category"
+                    :key="dict.value"
+                    :label="dict.label"
+                    :value="dict.value"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+              </el-form-item>
+            </el-form>
+            <div class="action-btn">
+              <el-button type="primary" size="default" :disabled="!selectedIds.length" @click="submitManualBind">
+                <el-icon style="margin-right: 4px"><Link /></el-icon>
+                确认绑定 ({{ selectedIds.length }})
+              </el-button>
+            </div>
+          </div>
+          
+          <el-alert title="列表中仅显示当前未关联任何分区的独立营收用户" type="info" show-icon style="margin-bottom: 15px; border-radius: 8px;" />
+
+          <div class="table-wrapper">
+            <el-table
+              v-loading="loading"
+              :data="userList"
+              @selection-change="handleSelectionChange"
+              height="100%"
+              style="width: 100%"
+            >
+              <el-table-column type="selection" width="55" align="center" />
+              <el-table-column label="用户编号" prop="userNo" width="150" />
+              <el-table-column label="用户名称" prop="userName" show-overflow-tooltip />
+              <el-table-column label="用户分类" prop="userCategory" width="180">
+                <template #default="scope">
+                  <dict-tag :options="water_user_category" :value="scope.row.userCategory" />
+                </template>
+              </el-table-column>
+              <el-table-column label="手机号" prop="phone" width="120" />
+              <el-table-column label="详细地址" prop="address" show-overflow-tooltip />
+            </el-table>
+          </div>
+
+          <pagination
+            v-show="total > 0"
+            :total="total"
+            v-model:page="pageNum"
+            v-model:limit="pageSize"
+            :page-sizes="pageSizes"
+            @pagination="getList"
+          />
         </div>
-      </div>
-      
-      <el-alert title="列表中仅显示当前未关联任何分区的独立营收用户" type="info" show-icon style="margin-bottom: 15px; border-radius: 8px;" />
+      </el-tab-pane>
+      <el-tab-pane label="导入当前分区" name="import">
+        <div class="import-container" style="padding: 10px 0;">
+          <el-alert title="请上传包含【用户编号】列的 Excel 文件，系统会自动将其绑定到当前分区下。" type="warning" show-icon style="margin-bottom: 20px;" />
+          
+          <el-form label-position="top">
+            <el-form-item label="关联模式（必选）">
+              <el-radio-group v-model="importMode">
+                <el-radio label="append" border>增量追加（保留该分区现有用户）</el-radio>
+                <el-radio label="replace" border>覆盖替换（先清空该分区下所有用户）</el-radio>
+              </el-radio-group>
+            </el-form-item>
 
-      <div class="table-wrapper">
-        <el-table
-          v-loading="loading"
-          :data="userList"
-          @selection-change="handleSelectionChange"
-          height="100%"
-          style="width: 100%"
-        >
-          <el-table-column type="selection" width="55" align="center" />
-          <el-table-column label="用户编号" prop="userNo" width="150" />
-          <el-table-column label="用户名称" prop="userName" show-overflow-tooltip />
-          <el-table-column label="用户分类" prop="userCategory" width="180">
-            <template #default="scope">
-              <dict-tag :options="water_user_category" :value="scope.row.userCategory" />
-            </template>
-          </el-table-column>
-          <el-table-column label="手机号" prop="phone" width="120" />
-          <el-table-column label="详细地址" prop="address" show-overflow-tooltip />
-        </el-table>
-      </div>
-
-      <pagination
-        v-show="total > 0"
-        :total="total"
-        v-model:page="pageNum"
-        v-model:limit="pageSize"
-        :page-sizes="pageSizes"
-        @pagination="getList"
-      />
-    </div>
+            <el-alert
+              title="模式说明：追加=保留现有关联，仅新增本次导入的用户；替换=先解绑该分区下所有用户，再按本次导入重新绑定。"
+              type="info"
+              show-icon
+              style="margin-bottom: 20px;"
+            />
+            
+            <el-form-item label="上传文件">
+              <div style="width: 100%; max-width: 500px;">
+                <el-button type="primary" plain icon="Download" @click="downloadTemplate" style="margin-bottom: 15px;">下载导入模板</el-button>
+                <el-upload
+                  class="upload-dragger"
+                  drag
+                  action="#"
+                  :auto-upload="false"
+                  :on-change="handleFileChange"
+                  :show-file-list="false"
+                  accept=".xls,.xlsx"
+                >
+                  <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+                  <div class="el-upload__text">
+                    将文件拖到此处，或 <em>点击上传</em>
+                  </div>
+                  <template #tip>
+                    <div class="el-upload__tip text-center">仅允许导入 xls、xlsx 格式文件</div>
+                  </template>
+                </el-upload>
+              </div>
+            </el-form-item>
+          </el-form>
+        </div>
+      </el-tab-pane>
+    </el-tabs>
 
     <!-- 进度覆盖层 -->
     <div v-if="isUploading" class="progress-overlay">
@@ -78,7 +126,7 @@
         <div class="pulse-ring"></div>
         <el-icon class="loading-icon is-loading"><Loading /></el-icon>
         <h3 class="progress-title">营收用户关联处理中</h3>
-        <p class="progress-desc">正在处理，请勿刷新页面...</p>
+        <p class="progress-desc">正在处理 {{ totalRows }} 条记录，请勿刷新页面...</p>
         <el-progress :percentage="progress" :stroke-width="12" striped striped-flow class="modern-progress"></el-progress>
       </div>
     </div>
@@ -87,7 +135,8 @@
 
 <script setup>
 import { ref, watch, getCurrentInstance } from 'vue'
-import { getUnboundRevenueList, bindRevenueUsers } from '@/api/water-basic/zone-bind'
+import { getUnboundRevenueList, bindRevenueUsers, importBindRevenueUsers } from '@/api/water-basic/zone-bind'
+import * as XLSX from 'xlsx'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -110,12 +159,18 @@ const pageSizes = [20, 50, 100, 200, 500]
 const selectedIds = ref([])
 const queryParams = ref({ name: undefined, userNo: undefined, userCategory: undefined })
 
+// 导入相关
+const importMode = ref('append')
+const fileInputRef = ref(null)
 const isUploading = ref(false)
 const progress = ref(0)
+const totalRows = ref(0)
 
 watch(() => props.modelValue, (val) => {
   visible.value = val
   if (val) {
+    activeTab.value = 'manual'
+    importMode.value = 'append'
     pageNum.value = 1
     pageSize.value = 20
     selectedIds.value = []
@@ -162,9 +217,125 @@ function submitManualBind() {
     getList() // 重新刷新列表，已绑定的会消失
   })
 }
+
+function downloadTemplate() {
+  proxy.download('/water-basic/zone/bind/revenue/template', {}, `营收关联模板_${new Date().getTime()}.xlsx`)
+}
+
+// ============== 极速导入解析 ==============
+function triggerFileInput() {
+  if (fileInputRef.value) fileInputRef.value.click()
+}
+
+function handleFileChange(file) {
+  const rawFile = file.raw
+  if (!rawFile) return
+  if (!/\.(xls|xlsx)$/.test(rawFile.name.toLowerCase())) {
+    proxy.$modal.msgError("仅支持 xls, xlsx 格式的文件")
+    return false
+  }
+
+  if (importMode.value === 'replace') {
+    proxy.$modal.confirm('覆盖替换：将先解绑该分区下所有已关联营收用户，再按本次文件重新绑定。是否继续？').then(() => {
+      startImport(rawFile)
+    }).catch(() => {})
+    return false
+  }
+
+  startImport(rawFile)
+  return false
+}
+
+function startImport(file) {
+  isUploading.value = true
+  progress.value = 10
+  
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    try {
+      progress.value = 30
+      const data = new Uint8Array(e.target.result)
+      const workbook = XLSX.read(data, { type: 'array' })
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      const jsonArr = XLSX.utils.sheet_to_json(worksheet)
+      
+      totalRows.value = jsonArr.length
+      progress.value = 50
+      if (jsonArr.length === 0) throw new Error('上传的文件没有数据')
+
+      const parsedData = jsonArr.map(row => ({ userNo: row['用户编号'] || '' }))
+
+      progress.value = 60
+      const res = await importBindRevenueUsers({
+        zoneCode: props.zoneCode,
+        mode: importMode.value,
+        dataList: parsedData
+      })
+      
+      progress.value = 100
+      setTimeout(() => {
+        isUploading.value = false
+        handleImportResult(res.data)
+      }, 500)
+      
+    } catch (err) {
+      isUploading.value = false
+      proxy.$modal.msgError(err.message || "解析文件失败")
+    }
+  }
+  reader.onerror = () => {
+    isUploading.value = false
+    proxy.$modal.msgError("读取文件出错")
+  }
+  reader.readAsArrayBuffer(file)
+}
+
+function handleImportResult(data) {
+  const { successCount, failCount, results } = data
+  proxy.$modal.notifySuccess(`成功关联 ${successCount} 条，失败 ${failCount} 条`)
+  
+  if (failCount > 0 && results && results.length > 0) {
+    proxy.$modal.confirm('存在未成功关联的记录，是否下载《关联结果分析报告》查看原因？', '导入完成提示', {
+      confirmButtonText: '下载报告',
+      cancelButtonText: '关闭'
+    }).then(() => {
+      exportResultExcel(results)
+    }).catch(() => {})
+  }
+  
+  emit('success')
+  if (activeTab.value === 'manual') getList()
+}
+
+function exportResultExcel(results) {
+  const exportData = results.map(item => ({
+    '用户编号': item.userNo,
+    '关联结果': item.success ? '成功' : '失败',
+    '原因说明': item.reason
+  }))
+  const ws = XLSX.utils.json_to_sheet(exportData)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, "关联结果")
+  XLSX.writeFile(wb, `营收用户关联结果分析_${new Date().getTime()}.xlsx`)
+}
 </script>
 
 <style scoped>
+/* 现代化的 Tab 样式 */
+.bind-tabs :deep(.el-tabs__header) {
+  margin-bottom: 24px;
+  border-bottom: 1px solid #ebeef5;
+}
+.bind-tabs :deep(.el-tabs__item) {
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+.bind-tabs :deep(.el-tabs__item.is-active) {
+  font-size: 16px;
+  font-weight: 600;
+}
+
 /* 搜索和操作组合栏 */
 .filter-bar {
   display: flex;
