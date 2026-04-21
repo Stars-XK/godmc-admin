@@ -204,7 +204,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, toRefs, onMounted, getCurrentInstance } from 'vue'
+import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
 import { listPoint, delPoint, getPoint, addPoint, updatePoint } from '@/api/water-basic/equipment'
 import { listUser } from "@/api/system/user"
 import { getToken } from "@/utils/auth"
@@ -218,23 +218,22 @@ const total = ref(0)
 const uploadRef = ref(null)
 const userOptions = ref([])
 
-const data = reactive({
-  pointList: [],
-  form: {},
-  rules: {
-    name: [{ required: true, message: "测点名称不能为空", trigger: "blur" }],
-    code: [{ required: true, message: "测点编码不能为空", trigger: "blur" }],
-    deviceCode: [{ required: true, message: "所属设备不能为空", trigger: "blur" }],
-    type: [{ required: true, message: "请选择测点类型", trigger: "change" }]
-  },
-  queryParams: { pageNum: 1, pageSize: 10, name: undefined, code: undefined, type: undefined },
-  upload: {
-    open: false, title: "", isUploading: false, progress: 0,
-    headers: { Authorization: "Bearer " + getToken() },
-    url: import.meta.env.VITE_APP_BASE_API + "/water-basic/point/importData"
-  }
+const pointList = ref([])
+
+const form = ref({})
+const queryParams = ref({ pageNum: 1, pageSize: 10, name: undefined, code: undefined, type: undefined })
+const upload = ref({
+  open: false, title: "", isUploading: false, progress: 0,
+  headers: { Authorization: "Bearer " + getToken() },
+  url: import.meta.env.VITE_APP_BASE_API + "/water-basic/point/importData"
 })
-const { pointList, form, rules, queryParams, upload } = toRefs(data)
+const rules = {
+  name: [{ required: true, message: "测点名称不能为空", trigger: "blur" }],
+  code: [{ required: true, message: "测点编码不能为空", trigger: "blur" }],
+  deviceCode: [{ required: true, message: "所属设备不能为空", trigger: "blur" }],
+  type: [{ required: true, message: "请选择测点类型", trigger: "change" }]
+}
+
 const open = ref(false)
 const title = ref("")
 

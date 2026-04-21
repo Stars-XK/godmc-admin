@@ -49,8 +49,8 @@
             </template>
           </el-table-column>
           <el-table-column label="经纬度" align="center" width="150">
-            <template #default="scope">
-              <span v-if="$any(scope.row).longitude && $any(scope.row).latitude">{{ $any(scope.row).longitude }}, {{ $any(scope.row).latitude }}</span>
+            <template #default="{ row }">
+              <span v-if="row.longitude && row.latitude">{{ row.longitude }}, {{ row.latitude }}</span>
               <span v-else>-</span>
             </template>
           </el-table-column>
@@ -203,7 +203,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, toRefs, onMounted, getCurrentInstance } from 'vue'
+import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
 import { listStation, delStation, getStation, addStation, updateStation } from '@/api/water-basic/equipment'
 import { listUser } from "@/api/system/user"
 import { getToken } from "@/utils/auth"
@@ -217,22 +217,21 @@ const total = ref(0)
 const uploadRef = ref(null)
 const userOptions = ref([])
 
-const data = reactive({
-  stationList: [],
-  form: {},
-  rules: {
-    name: [{ required: true, message: "站点名称不能为空", trigger: "blur" }],
-    code: [{ required: true, message: "站点编码不能为空", trigger: "blur" }],
-    type: [{ required: true, message: "请选择站点类型", trigger: "change" }]
-  },
-  queryParams: { pageNum: 1, pageSize: 10, name: undefined, code: undefined, type: undefined },
-  upload: {
-    open: false, title: "", isUploading: false, progress: 0,
-    headers: { Authorization: "Bearer " + getToken() },
-    url: import.meta.env.VITE_APP_BASE_API + "/water-basic/station/importData"
-  }
+const stationList = ref([])
+
+const form = ref({})
+const queryParams = ref({ pageNum: 1, pageSize: 10, name: undefined, code: undefined, type: undefined })
+const upload = ref({
+  open: false, title: "", isUploading: false, progress: 0,
+  headers: { Authorization: "Bearer " + getToken() },
+  url: import.meta.env.VITE_APP_BASE_API + "/water-basic/station/importData"
 })
-const { stationList, form, rules, queryParams, upload } = toRefs(data)
+const rules = {
+  name: [{ required: true, message: "站点名称不能为空", trigger: "blur" }],
+  code: [{ required: true, message: "站点编码不能为空", trigger: "blur" }],
+  type: [{ required: true, message: "请选择站点类型", trigger: "change" }]
+}
+
 const open = ref(false)
 const title = ref("")
 

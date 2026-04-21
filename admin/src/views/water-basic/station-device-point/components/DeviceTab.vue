@@ -200,7 +200,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, toRefs, onMounted, getCurrentInstance } from 'vue'
+import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
 import { listDevice, delDevice, getDevice, addDevice, updateDevice } from '@/api/water-basic/equipment'
 import { listUser } from "@/api/system/user"
 import { getToken } from "@/utils/auth"
@@ -214,23 +214,22 @@ const total = ref(0)
 const uploadRef = ref(null)
 const userOptions = ref([])
 
-const data = reactive({
-  deviceList: [],
-  form: {},
-  rules: {
-    name: [{ required: true, message: "设备名称不能为空", trigger: "blur" }],
-    code: [{ required: true, message: "设备编码不能为空", trigger: "blur" }],
-    stationCode: [{ required: true, message: "所属站点不能为空", trigger: "blur" }],
-    type: [{ required: true, message: "请选择设备类型", trigger: "change" }]
-  },
-  queryParams: { pageNum: 1, pageSize: 10, name: undefined, code: undefined, type: undefined },
-  upload: {
-    open: false, title: "", isUploading: false, progress: 0,
-    headers: { Authorization: "Bearer " + getToken() },
-    url: import.meta.env.VITE_APP_BASE_API + "/water-basic/device/importData"
-  }
+const deviceList = ref([])
+
+const form = ref({})
+const queryParams = ref({ pageNum: 1, pageSize: 10, name: undefined, code: undefined, type: undefined })
+const upload = ref({
+  open: false, title: "", isUploading: false, progress: 0,
+  headers: { Authorization: "Bearer " + getToken() },
+  url: import.meta.env.VITE_APP_BASE_API + "/water-basic/device/importData"
 })
-const { deviceList, form, rules, queryParams, upload } = toRefs(data)
+const rules = {
+  name: [{ required: true, message: "设备名称不能为空", trigger: "blur" }],
+  code: [{ required: true, message: "设备编码不能为空", trigger: "blur" }],
+  stationCode: [{ required: true, message: "所属站点不能为空", trigger: "blur" }],
+  type: [{ required: true, message: "请选择设备类型", trigger: "change" }]
+}
+
 const open = ref(false)
 const title = ref("")
 
