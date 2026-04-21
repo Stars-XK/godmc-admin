@@ -66,4 +66,11 @@ export class StationController {
   importData(@UploadedFile() file: Express.Multer.File, @User() user: any) {
     return this.stationService.importData(file, user);
   }
+
+  @ApiOperation({ summary: '批量导入站点数据(前端解析)' })
+  @RequirePermission('water-basic:station:import')
+  @Post('importBatch')
+  importBatch(@Body() dataList: any[], @User() user: any) {
+    return this.stationService.importBatch(dataList, user);
+  }
 }

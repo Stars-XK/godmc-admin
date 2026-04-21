@@ -145,6 +145,10 @@ export class StationService {
       }
     });
     
+    return this.importBatch(dataList, user);
+  }
+
+  async importBatch(dataList: any[], user: any) {
     const validData = dataList.filter(item => !!item.name && !!item.code);
     if (!validData || validData.length === 0) return ResultData.ok();
 
@@ -156,6 +160,6 @@ export class StationService {
     }));
 
     await this.rep.save(insertData);
-    return ResultData.ok();
+    return ResultData.ok({ msg: `成功导入 ${insertData.length} 条记录` });
   }
 }

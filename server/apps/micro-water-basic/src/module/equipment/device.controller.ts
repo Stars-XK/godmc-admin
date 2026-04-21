@@ -66,4 +66,11 @@ export class DeviceController {
   importData(@UploadedFile() file: Express.Multer.File, @User() user: any) {
     return this.deviceService.importData(file, user);
   }
+
+  @ApiOperation({ summary: '批量导入设备数据(前端解析)' })
+  @RequirePermission('water-basic:device:import')
+  @Post('importBatch')
+  importBatch(@Body() dataList: any[], @User() user: any) {
+    return this.deviceService.importBatch(dataList, user);
+  }
 }

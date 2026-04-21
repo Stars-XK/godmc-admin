@@ -164,48 +164,52 @@
       </template>
     </el-dialog>
 
-    <!-- 导入弹窗 -->
-    <el-dialog :title="upload.title" v-model="upload.open" width="400px" append-to-body>
-      <el-upload
-        ref="uploadRef"
-        :limit="1"
-        accept=".xlsx, .xls"
-        :headers="upload.headers"
-        :action="upload.url"
-        :disabled="upload.isUploading"
-        :on-progress="handleFileUploadProgress"
-        :on-success="handleFileSuccess"
-        :on-error="handleFileError"
-        :auto-upload="false"
-        drag
-      >
-        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
-        <template #tip>
-          <div class="el-upload__tip text-center">
-            <span>仅允许导入xls、xlsx格式文件。</span>
-            <el-link type="primary" :underline="false" style="font-size:12px;vertical-align: baseline;" @click="importTemplate">下载模板</el-link>
-          </div>
-          <!-- 进度条 -->
-          <div v-if="upload.isUploading" style="margin-top: 15px;">
-            <el-progress :percentage="upload.progress" :format="formatProgress" :status="upload.progress === 100 ? 'success' : ''"></el-progress>
-          </div>
-        </template>
-      </el-upload>
+    <!-- 现代化极简导入弹窗 -->
+    <el-dialog :title="upload.title" v-model="upload.open" width="480px" class="modern-import-dialog" :show-close="false" append-to-body>
+      <div class="import-modal-content">
+        <div class="upload-zone" @dragover.prevent @drop.prevent="handleDrop" @click="triggerFileInput">
+          <el-icon class="upload-icon"><UploadFilled /></el-icon>
+          <h3>点击或拖拽 Excel 文件到此区域</h3>
+          <p>仅支持 .xls, .xlsx 格式文件，单次建议不超过 5000 条数据</p>
+          <input type="file" ref="fileInputRef" accept=".xls,.xlsx" class="hidden-input" @change="handleFileChange" />
+        </div>
+        <div class="template-download">
+          <span>还没有数据模板？</span>
+          <el-link type="primary" :underline="false" @click="importTemplate">立即下载模板</el-link>
+        </div>
+      </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitFileForm" :loading="upload.isUploading">确 定</el-button>
-          <el-button @click="upload.open = false">取 消</el-button>
+          <el-button round @click="upload.open = false">取 消</el-button>
         </div>
       </template>
     </el-dialog>
+
+    <!-- 酷炫进度覆盖层 -->
+    <div v-if="upload.isUploading" class="progress-overlay">
+      <div class="progress-card">
+        <div class="pulse-ring"></div>
+        <el-icon class="loading-icon is-loading"><Loading /></el-icon>
+        <h3 class="progress-title">数据解析与导入中</h3>
+        <p class="progress-desc">正在处理 {{ upload.totalRows }} 条记录，请勿刷新页面...</p>
+        <el-progress 
+          :percentage="upload.progress" 
+          :stroke-width="12" 
+          striped 
+          striped-flow 
+          :color="customColors" 
+          class="modern-progress"
+        ></el-progress>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, getCurrentInstance } from 'vue'
-import { listStation, delStation, getStation, addStation, updateStation } from '@/api/water-basic/equipment'
+import { listStation, delStation, getStation, addStation, updateStation, importStationBatch } from '@/api/water-basic/equipment'
 import { listUser } from "@/api/system/user"
+import * as XLSX from 'xlsx'
 import { getToken } from "@/utils/auth"
 
 const { proxy } = getCurrentInstance()
@@ -238,10 +242,16 @@ const stationList = ref([])
 const form = ref({})
 const queryParams = ref({ pageNum: 1, pageSize: 20, name: undefined, code: undefined, type: undefined })
 const upload = ref({
-  open: false, title: "", isUploading: false, progress: 0,
-  headers: { Authorization: "Bearer " + getToken() },
-  url: import.meta.env.VITE_APP_BASE_API + "/water-basic/station/importData"
+  open: false, title: "", isUploading: false, progress: 0, totalRows: 0
 })
+const fileInputRef = ref(null)
+const customColors = [
+  { color: '#f56c6c', percentage: 20 },
+  { color: '#e6a23c', percentage: 40 },
+  { color: '#5cb87a', percentage: 60 },
+  { color: '#1989fa', percentage: 80 },
+  { color: '#6f7ad3', percentage: 100 },
+]
 const rules = {
   name: [{ required: true, message: "站点名称不能为空", trigger: "blur" }],
   code: [{ required: true, message: "站点编码不能为空", trigger: "blur" }],
@@ -333,41 +343,102 @@ function handleExport() {
 }
 
 function handleImport() {
-  upload.value.title = "站点导入"
+  upload.value.title = "站点数据极速导入"
   upload.value.open = true
   upload.value.progress = 0
+  upload.value.totalRows = 0
 }
 
 function importTemplate() {
   proxy.download("/water-basic/station/importTemplate", {}, `station_template_${new Date().getTime()}.xlsx`)
 }
 
-function handleFileUploadProgress(event) {
-  upload.value.isUploading = true
-  upload.value.progress = Math.floor(event.percent)
+function triggerFileInput() {
+  if (fileInputRef.value) fileInputRef.value.click()
 }
 
-function formatProgress(percentage) {
-  return percentage === 100 ? '处理中...' : `${percentage}%`
+function handleDrop(e) {
+  const files = e.dataTransfer.files
+  if (files.length) processFile(files[0])
 }
 
-function handleFileSuccess(response) {
+function handleFileChange(e) {
+  const files = e.target.files
+  if (files.length) processFile(files[0])
+  if (fileInputRef.value) fileInputRef.value.value = ''
+}
+
+function processFile(file) {
+  if (!/\.(xls|xlsx)$/.test(file.name.toLowerCase())) {
+    proxy.$modal.msgError("仅支持 xls, xlsx 格式的文件")
+    return
+  }
+  
+  // Close dialog and show overlay
   upload.value.open = false
-  upload.value.isUploading = false
-  upload.value.progress = 0
-  uploadRef.value.clearFiles()
-  proxy.$modal.alert("<div style='overflow: auto;overflow-x: hidden;max-height: 70vh;padding: 10px 20px 0;'>" + response.msg + "</div>", "导入结果", { dangerouslyUseHTMLString: true })
-  getList()
-}
+  upload.value.isUploading = true
+  upload.value.progress = 10
+  
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    try {
+      upload.value.progress = 30
+      const data = new Uint8Array(e.target.result)
+      const workbook = XLSX.read(data, { type: 'array', cellDates: true })
+      const firstSheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[firstSheetName]
+      
+      // Parse as array of objects to map via headers
+      const jsonArr = XLSX.utils.sheet_to_json(worksheet)
+      upload.value.totalRows = jsonArr.length
+      upload.value.progress = 50
+      
+      if (jsonArr.length === 0) {
+        throw new Error('上传的文件没有数据')
+      }
 
-function handleFileError() {
-  upload.value.isUploading = false
-  upload.value.progress = 0
-  proxy.$modal.msgError("上传失败")
-}
+      // Map to backend keys based on Chinese headers or index
+      // Backend expects: zoneCode, name, code, type, longitude, latitude, designCapacity, constructionUnit, commissioningDate, managerName, managerPhone, address
+      const parsedData = jsonArr.map(row => {
+        return {
+          zoneCode: row['所属分区编码'] || row['所属分区'] || '',
+          name: row['站点名称(必填)'] || row['站点名称'] || '',
+          code: row['站点编码(必填)'] || row['站点编码'] || '',
+          type: row['站点类型(1水厂/2泵站/3水库)'] || row['站点类型'] || '1',
+          longitude: row['经度(X)'] || '',
+          latitude: row['纬度(Y)'] || '',
+          designCapacity: parseFloat(row['设计能力']) || null,
+          constructionUnit: row['建设单位'] || '',
+          commissioningDate: row['投运日期(YYYY-MM-DD)'] || row['投运日期'] || null,
+          managerName: row['负责人'] || '',
+          managerPhone: row['联系电话'] || row['电话'] || '',
+          address: row['详细地址'] || row['地址'] || ''
+        }
+      }).filter(item => item.name && item.code)
 
-function submitFileForm() {
-  uploadRef.value.submit()
+      upload.value.progress = 70
+      
+      // Call backend batch API
+      const response = await importStationBatch(parsedData)
+      upload.value.progress = 100
+      
+      setTimeout(() => {
+        upload.value.isUploading = false
+        proxy.$modal.notifySuccess(response.msg || "导入成功")
+        getList()
+      }, 500)
+      
+    } catch (err) {
+      console.error(err)
+      upload.value.isUploading = false
+      proxy.$modal.msgError(err.message || "解析文件失败，请检查文件格式")
+    }
+  }
+  reader.onerror = () => {
+    upload.value.isUploading = false
+    proxy.$modal.msgError("读取文件出错")
+  }
+  reader.readAsArrayBuffer(file)
 }
 
 onMounted(() => { 
@@ -408,5 +479,143 @@ onMounted(() => {
 
 :deep(.el-table__inner-wrapper) {
   height: 100% !important;
+}
+
+/* 现代化导入弹窗 */
+.modern-import-dialog :deep(.el-dialog__header) {
+  padding: 24px 24px 0;
+  text-align: center;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.import-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 10px;
+}
+
+.upload-zone {
+  border: 2px dashed #dcdfe6;
+  border-radius: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: #fafafa;
+  position: relative;
+}
+
+.upload-zone:hover {
+  border-color: #409EFF;
+  background-color: #f0f7ff;
+}
+
+.upload-icon {
+  font-size: 48px;
+  color: #a8abb2;
+  margin-bottom: 16px;
+  transition: color 0.3s;
+}
+
+.upload-zone:hover .upload-icon {
+  color: #409EFF;
+}
+
+.upload-zone h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: #303133;
+}
+
+.upload-zone p {
+  margin: 0;
+  font-size: 13px;
+  color: #909399;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.template-download {
+  text-align: center;
+  font-size: 13px;
+  color: #606266;
+  background: #f4f4f5;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+/* 沉浸式进度覆盖层 */
+.progress-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.progress-card {
+  width: 400px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.pulse-ring {
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(64,158,255,0.1) 0%, rgba(64,158,255,0) 70%);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.loading-icon {
+  font-size: 56px;
+  color: #409EFF;
+  margin-bottom: 20px;
+}
+
+.progress-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0 0 10px;
+}
+
+.progress-desc {
+  font-size: 14px;
+  color: #909399;
+  margin: 0 0 30px;
+}
+
+.modern-progress :deep(.el-progress-bar__outer) {
+  background-color: #ebeef5;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(1.5); opacity: 0; }
 }
 </style>

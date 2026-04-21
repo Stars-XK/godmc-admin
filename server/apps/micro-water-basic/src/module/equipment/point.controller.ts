@@ -66,4 +66,11 @@ export class PointController {
   importData(@UploadedFile() file: Express.Multer.File, @User() user: any) {
     return this.pointService.importData(file, user);
   }
+
+  @ApiOperation({ summary: '批量导入测点数据(前端解析)' })
+  @RequirePermission('water-basic:point:import')
+  @Post('importBatch')
+  importBatch(@Body() dataList: any[], @User() user: any) {
+    return this.pointService.importBatch(dataList, user);
+  }
 }
