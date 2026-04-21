@@ -54,6 +54,13 @@ redis:
   db: 2
   keyPrefix: ''
 
+# TDengine 配置
+tdengine:
+  host: '127.0.0.1'
+  port: 6041
+  user: 'root'
+  password: 'taosdata'
+
 # jwt 配置
 jwt:
   secretkey: 'you_secretkey'

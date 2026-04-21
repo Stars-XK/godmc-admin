@@ -16,16 +16,19 @@ export class TdengineService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    // 假设配置在 config/tdengine 中，或者使用环境变量，如果没配给个默认值
-    const host = this.configService.get<string>('TDENGINE_HOST') || '127.0.0.1';
-    const port = this.configService.get<string>('TDENGINE_PORT') || '6041';
-    const user = this.configService.get<string>('TDENGINE_USER') || 'root';
-    const pass = this.configService.get<string>('TDENGINE_PASS') || 'taosdata';
-    
+    // 获取配置中的TDengine参数，如果没配则使用默认值
+    const host = this.configService.get<string>('tdengine.host') || '127.0.0.1';
+    const port = this.configService.get<string>('tdengine.port') || '6041';
+    const user = this.configService.get<string>('tdengine.user') || 'root';
+    const pass = this.configService.get<string>('tdengine.password') || 'taosdata';
+
     this.tdUrl = `http://${host}:${port}/rest/sql`;
     this.authHeader = 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
 
-    await this.initDatabaseAndSTable();
+    // 延迟初始化，避免启动时阻塞
+    setTimeout(() => {
+      this.initDatabaseAndSTable();
+    }, 5000);
   }
 
   private async executeSql(sql: string): Promise<any> {
@@ -40,7 +43,11 @@ export class TdengineService implements OnModuleInit {
       );
       return response.data;
     } catch (error) {
-      this.logger.error(`TDengine SQL执行失败: ${sql}`, error.response?.data || error.message);
+      if (error.code === 'ECONNREFUSED') {
+        this.logger.warn(`TDengine 服务未启动或无法连接 (${this.tdUrl})，请检查TDengine状态。SQL: ${sql}`);
+      } else {
+        this.logger.error(`TDengine SQL执行失败: ${sql}`, error.response?.data || error.message);
+      }
       throw error;
     }
   }
@@ -54,7 +61,7 @@ export class TdengineService implements OnModuleInit {
       );
       this.logger.log('TDengine 数据库与超级表初始化成功');
     } catch (error) {
-      this.logger.error('TDengine 初始化失败', error);
+      this.logger.warn('TDengine 初始化被挂起，将在服务可用时再次尝试。');
     }
   }
 
