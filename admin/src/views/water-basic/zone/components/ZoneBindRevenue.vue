@@ -11,19 +11,27 @@
       <!-- 模式1：手动勾选关联 -->
       <el-tab-pane label="手动勾选关联" name="manual">
         <div class="manual-container">
-          <el-form :model="queryParams" ref="queryRef" :inline="true">
-            <el-form-item label="用户编号" prop="userNo">
-              <el-input v-model="queryParams.userNo" placeholder="请输入编号" clearable style="width: 150px" @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="用户名称" prop="name">
-              <el-input v-model="queryParams.name" placeholder="请输入名称" clearable style="width: 150px" @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-            </el-form-item>
-          </el-form>
+          <div class="filter-bar">
+            <el-form :model="queryParams" ref="queryRef" :inline="true">
+              <el-form-item label="用户编号" prop="userNo">
+                <el-input v-model="queryParams.userNo" placeholder="请输入编号" clearable style="width: 150px" @keyup.enter="handleQuery" />
+              </el-form-item>
+              <el-form-item label="用户名称" prop="name">
+                <el-input v-model="queryParams.name" placeholder="请输入名称" clearable style="width: 150px" @keyup.enter="handleQuery" />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+              </el-form-item>
+            </el-form>
+            <div class="action-btn">
+              <el-button type="primary" size="default" :disabled="!selectedIds.length" @click="submitManualBind">
+                <el-icon style="margin-right: 4px"><Link /></el-icon>
+                确认绑定 ({{ selectedIds.length }})
+              </el-button>
+            </div>
+          </div>
           
-          <el-alert title="列表中仅显示当前未关联任何分区的独立营收用户" type="info" show-icon style="margin-bottom: 15px;" />
+          <el-alert title="列表中仅显示当前未关联任何分区的独立营收用户" type="info" show-icon style="margin-bottom: 15px; border-radius: 8px;" />
 
           <el-table
             v-loading="loading"
@@ -52,12 +60,6 @@
             :page-sizes="pageSizes"
             @pagination="getList"
           />
-          
-          <div class="bottom-action">
-            <el-button type="primary" :disabled="!selectedIds.length" @click="submitManualBind">
-              确认绑定选中用户 ({{ selectedIds.length }})
-            </el-button>
-          </div>
         </div>
       </el-tab-pane>
 
@@ -82,14 +84,16 @@
             />
             
             <el-form-item label="上传文件">
-              <el-button type="primary" plain icon="Download" @click="downloadTemplate" style="margin-bottom: 12px;">
-                下载模板
-              </el-button>
-              <div class="upload-zone" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleDrop">
-                <el-icon class="upload-icon"><UploadFilled /></el-icon>
-                <h3>点击或拖拽 Excel 文件到此区域</h3>
-                <p>仅支持 .xls, .xlsx 格式文件</p>
-                <input type="file" ref="fileInputRef" accept=".xls,.xlsx" class="hidden-input" @change="handleFileChange" />
+              <div class="upload-wrapper">
+                <div class="upload-zone" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleDrop">
+                  <el-icon class="upload-icon"><UploadFilled /></el-icon>
+                  <h3>点击或拖拽 Excel 文件到此区域</h3>
+                  <p style="color: #909399; font-size: 13px; margin-top: 8px;">仅支持 .xls, .xlsx 格式文件</p>
+                  <input type="file" ref="fileInputRef" accept=".xls,.xlsx" class="hidden-input" @change="handleFileChange" />
+                </div>
+                <el-button type="primary" plain icon="Download" @click="downloadTemplate" style="width: 200px; margin-top: 10px;">
+                  下载导入模板
+                </el-button>
               </div>
             </el-form-item>
           </el-form>
@@ -306,14 +310,57 @@ function exportResultExcel(results) {
 </script>
 
 <style scoped>
+/* 现代化的 Tab 样式 */
+.bind-tabs :deep(.el-tabs__header) {
+  margin-bottom: 24px;
+  border-bottom: 1px solid #ebeef5;
+}
+.bind-tabs :deep(.el-tabs__item) {
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+.bind-tabs :deep(.el-tabs__item.is-active) {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 搜索和操作组合栏 */
+.filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #f8f9fa;
+  padding: 16px 16px 0 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #ebeef5;
+}
+
+.action-btn .el-button {
+  height: 32px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(64, 158, 255, 0.2);
+  transition: all 0.3s;
+}
+.action-btn .el-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+}
+
 .bind-tabs {
   padding: 0 20px;
 }
-.bottom-action {
-  margin-top: 15px;
-  text-align: right;
+.upload-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 10px;
 }
 .upload-zone {
+  width: 100%;
+  max-width: 500px;
   border: 2px dashed #dcdfe6;
   border-radius: 12px;
   padding: 40px 20px;
@@ -325,11 +372,17 @@ function exportResultExcel(results) {
 .upload-zone:hover {
   border-color: #409EFF;
   background-color: #f0f7ff;
+  transform: translateY(-2px);
 }
 .upload-icon {
-  font-size: 48px;
+  font-size: 54px;
   color: #a8abb2;
   margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+.upload-zone:hover .upload-icon {
+  color: #409EFF;
+  transform: scale(1.1);
 }
 .hidden-input {
   display: none;
