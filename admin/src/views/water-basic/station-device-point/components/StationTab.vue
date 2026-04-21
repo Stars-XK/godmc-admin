@@ -416,17 +416,26 @@ function processFile(file) {
         }
       }).filter(item => item.name && item.code)
 
+      upload.value.totalRows = parsedData.length
       upload.value.progress = 70
-      
-      // Call backend batch API
-      const response = await importStationBatch(parsedData)
+
+      const batchSize = 500
+      const total = parsedData.length
+      let imported = 0
+
+      for (let i = 0; i < total; i += batchSize) {
+        const chunk = parsedData.slice(i, i + batchSize)
+        await importStationBatch(chunk)
+        imported += chunk.length
+        upload.value.progress = 70 + Math.floor((imported / total) * 25)
+      }
+
       upload.value.progress = 100
-      
       setTimeout(() => {
         upload.value.isUploading = false
-        proxy.$modal.notifySuccess(response.msg || "导入成功")
+        proxy.$modal.notifySuccess(`成功导入 ${imported} 条记录`)
         getList()
-      }, 500)
+      }, 300)
       
     } catch (err) {
       console.error(err)

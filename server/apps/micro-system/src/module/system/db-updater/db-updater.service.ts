@@ -22,10 +22,15 @@ export class DbUpdaterService implements OnModuleInit {
   }
 
   async runPendingUpdates() {
-    const dbDir = path.resolve(process.cwd(), 'db');
+    let dbDir = path.resolve(process.cwd(), 'db');
     if (!fs.existsSync(dbDir)) {
-      this.logger.warn(`Database directory not found at: ${dbDir}`);
-      return;
+      const altDir = path.resolve(process.cwd(), 'server', 'db');
+      if (fs.existsSync(altDir)) {
+        dbDir = altDir;
+      } else {
+        this.logger.warn(`Database directory not found at: ${dbDir}`);
+        return;
+      }
     }
 
     const files = fs.readdirSync(dbDir)

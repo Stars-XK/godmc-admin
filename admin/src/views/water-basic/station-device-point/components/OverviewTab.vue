@@ -29,6 +29,7 @@
               :props="treeProps"
               :height="treeHeight"
               :expand-on-click-node="false"
+              @node-expand="handleNodeExpand"
               class="custom-tree custom-scrollbar"
             >
               <template #default="{ node, data }">
@@ -161,62 +162,91 @@ async function loadStats() {
   }
 }
 
-async function loadAllTopology() {
+function createPlaceholder(parentId) {
+  return [
+    {
+      id: `${parentId}_placeholder`,
+      label: '加载中...',
+      nodeType: 'placeholder',
+      disabled: true,
+      children: []
+    }
+  ]
+}
+
+async function loadStations() {
   try {
-    // 并行获取全量数据，为 el-tree-v2 构建虚拟树。
-    // 如果站点确实非常多，这里依然可以使用一次性加载，因为渲染层交给了虚拟滚动。
     const sRes = await listStation({ pageNum: 1, pageSize: 100000, name: searchName.value })
-    const dRes = await listDevice({ pageNum: 1, pageSize: 100000 })
-    const pRes = await listPoint({ pageNum: 1, pageSize: 100000 })
-
     const stations = sRes.rows || (sRes.data && sRes.data.list) || []
-    const devices = dRes.rows || (dRes.data && dRes.data.list) || []
-    const points = pRes.rows || (pRes.data && pRes.data.list) || []
-
-    const pointMap = {}
-    points.forEach(p => {
-      if (!pointMap[p.deviceCode]) pointMap[p.deviceCode] = []
-      pointMap[p.deviceCode].push({
-        ...p,
-        label: p.name,
-        nodeType: 'point',
-        id: `p_${p.id}`
-      })
-    })
-
-    const deviceMap = {}
-    devices.forEach(d => {
-      if (!deviceMap[d.stationCode]) deviceMap[d.stationCode] = []
-      deviceMap[d.stationCode].push({
-        ...d,
-        label: d.name,
-        nodeType: 'device',
-        id: `d_${d.id}`,
-        children: pointMap[d.code] || []
-      })
-    })
-
-    const tree = stations.map(s => ({
+    treeData.value = stations.map(s => ({
       ...s,
+      id: `s_${s.id}`,
       label: s.name,
       nodeType: 'station',
-      id: `s_${s.id}`,
-      children: deviceMap[s.code] || []
+      _loaded: false,
+      children: createPlaceholder(`s_${s.id}`)
     }))
-
-    treeData.value = tree
   } catch (error) {
     console.error('加载拓扑树失败', error)
   }
 }
 
 function handleSearch() {
-  loadAllTopology()
+  treeKey.value++
+  loadStations()
+}
+
+async function handleNodeExpand(data) {
+  if (!data || data.disabled || data.nodeType === 'placeholder') return
+
+  if (data.nodeType === 'station' && !data._loaded) {
+    data.children = createPlaceholder(data.id)
+    try {
+      const res = await listDevice({ stationCode: data.code, pageNum: 1, pageSize: 50000 })
+      const list = res.rows || (res.data && res.data.list) || []
+      data.children = list.map(d => ({
+        ...d,
+        id: `d_${d.id}`,
+        label: d.name,
+        nodeType: 'device',
+        _loaded: false,
+        children: createPlaceholder(`d_${d.id}`)
+      }))
+      data._loaded = true
+      treeData.value = [...treeData.value]
+    } catch (e) {
+      data.children = []
+      data._loaded = true
+      treeData.value = [...treeData.value]
+    }
+    return
+  }
+
+  if (data.nodeType === 'device' && !data._loaded) {
+    data.children = createPlaceholder(data.id)
+    try {
+      const res = await listPoint({ deviceCode: data.code, pageNum: 1, pageSize: 50000 })
+      const list = res.rows || (res.data && res.data.list) || []
+      data.children = list.map(p => ({
+        ...p,
+        id: `p_${p.id}`,
+        label: p.name,
+        nodeType: 'point',
+        children: []
+      }))
+      data._loaded = true
+      treeData.value = [...treeData.value]
+    } catch (e) {
+      data.children = []
+      data._loaded = true
+      treeData.value = [...treeData.value]
+    }
+  }
 }
 
 onMounted(() => {
   loadStats()
-  loadAllTopology()
+  loadStations()
   
   // 动态计算虚拟树高度
   nextTick(() => {
