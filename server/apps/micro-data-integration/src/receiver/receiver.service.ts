@@ -20,20 +20,20 @@ export class ReceiverService {
   async generateMockData(deviceCode: string, pointCode: string, min: number, max: number, count: number) {
     const results = [];
     const now = new Date();
-    
+
     for (let i = 0; i < count; i++) {
-      // 模拟生成过去 count 分钟的数据，每分钟一条
-      const ts = new Date(now.getTime() - (count - i) * 60000);
+      // 模拟生成过去 count 秒的数据，每秒一条
+      const ts = new Date(now.getTime() - (count - i - 1) * 1000);
       const val = Number((Math.random() * (max - min) + min).toFixed(2));
-      
+
       try {
         await this.tdengineService.insertData(deviceCode, pointCode, val, ts);
-        results.push({ ts, val, status: 'success' });
+        results.push({ timestamp: ts.toLocaleString(), deviceCode, pointCode, value: val, status: 'success' });
       } catch (err) {
-        results.push({ ts, val, status: 'error', error: err.message });
+        results.push({ timestamp: ts.toLocaleString(), deviceCode, pointCode, value: val, status: 'error', error: err.message });
       }
     }
-    
+
     this.logger.log(`成功模拟生成了 ${count} 条 ${deviceCode}-${pointCode} 的数据`);
     return results;
   }
