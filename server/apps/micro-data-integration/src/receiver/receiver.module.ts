@@ -12,5 +12,6 @@ import { TdengineModule } from '../tdengine/tdengine.module';
   ],
   controllers: [ReceiverController],
   providers: [ReceiverService],
+  exports: [ReceiverService],
 })
 export class ReceiverModule {}
