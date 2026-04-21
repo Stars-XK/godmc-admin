@@ -161,4 +161,24 @@ export class ZoneController {
   globalImportBindRevenueUsers(@Body() body: { dataList: any[] }) {
     return this.zoneService.globalImportBindRevenueUsers(body.dataList);
   }
+
+  // ================= 指标计算配置接口 =================
+
+  @ApiOperation({ summary: '获取分区下的设备测点树' })
+  @Get('metric-calc/tree')
+  getMetricCalcTree(@Query('zoneCode') zoneCode: string) {
+    return this.zoneService.getMetricCalcTree(zoneCode);
+  }
+
+  @ApiOperation({ summary: '获取分区下指定指标的测点配置' })
+  @Get('metric-calc/config')
+  getZoneMetricCalcConfig(@Query('zoneCode') zoneCode: string, @Query('metricType') metricType: string) {
+    return this.zoneService.getZoneMetricCalcConfig(zoneCode, metricType);
+  }
+
+  @ApiOperation({ summary: '保存分区下指定指标的测点配置' })
+  @Post('metric-calc/config')
+  saveZoneMetricCalcConfig(@Body() body: { zoneCode: string; metricType: string; points: { pointCode: string; calcSign: number }[] }) {
+    return this.zoneService.saveZoneMetricCalcConfig(body);
+  }
 }

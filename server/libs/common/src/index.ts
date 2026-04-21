@@ -47,5 +47,6 @@ export * from './entities/water-basic/water-zone.entity';
 export * from './entities/water-basic/water-station.entity';
 export * from './entities/water-basic/water-device.entity';
 export * from './entities/water-basic/water-point.entity';
+export * from './entities/water-basic/water-zone-metric-calc.entity';
 export * from './registry/registry.module';
 export * from './registry/registry.service';

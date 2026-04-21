@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, In } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
-import { WaterZoneEntity, WaterDeviceEntity } from '@app/common';
+import { WaterZoneEntity, WaterDeviceEntity, WaterPointEntity, WaterZoneMetricCalcEntity } from '@app/common';
 import { WaterRevenueUserEntity } from '@app/common/entities/water-basic/water-revenue-user.entity';
 import { ListToTree } from '@app/common/utils/index';
 import { Response } from 'express';
@@ -16,6 +16,10 @@ export class ZoneService {
     private readonly zoneRep: Repository<WaterZoneEntity>,
     @InjectRepository(WaterDeviceEntity)
     private readonly deviceRep: Repository<WaterDeviceEntity>,
+    @InjectRepository(WaterPointEntity)
+    private readonly pointRep: Repository<WaterPointEntity>,
+    @InjectRepository(WaterZoneMetricCalcEntity)
+    private readonly metricCalcRep: Repository<WaterZoneMetricCalcEntity>,
     @InjectRepository(WaterRevenueUserEntity)
     private readonly revenueUserRep: Repository<WaterRevenueUserEntity>,
   ) {}
@@ -622,5 +626,90 @@ export class ZoneService {
     }
 
     return ResultData.ok({ successCount, failCount, results });
+  }
+
+  // ================= 指标计算配置接口 =================
+
+  async getMetricCalcTree(zoneCode: string) {
+    // 1. 找到该分区下的所有设备
+    const devices = await this.deviceRep.find({
+      where: { zoneCode, delFlag: '0' },
+      select: ['code', 'name', 'type', 'id']
+    });
+
+    if (devices.length === 0) {
+      return ResultData.ok([]);
+    }
+
+    const deviceCodes = devices.map(d => d.code);
+
+    // 2. 找到这些设备下的所有测点
+    const points = await this.pointRep.find({
+      where: { deviceCode: In(deviceCodes), delFlag: '0' },
+      select: ['code', 'name', 'deviceCode', 'type', 'dataType', 'id']
+    });
+
+    // 3. 组装为树形结构 (设备 -> 测点)
+    const tree = devices.map(device => {
+      const children = points
+        .filter(p => p.deviceCode === device.code)
+        .map(p => ({
+          id: `point_${p.code}`,
+          label: p.name,
+          code: p.code,
+          type: p.type, // 测点类型，可用于前端显示图标/过滤
+          isPoint: true
+        }));
+
+      return {
+        id: `device_${device.code}`,
+        label: device.name,
+        code: device.code,
+        type: device.type,
+        isPoint: false,
+        children
+      };
+    });
+
+    return ResultData.ok(tree);
+  }
+
+  async getZoneMetricCalcConfig(zoneCode: string, metricType: string) {
+    const configList = await this.metricCalcRep.find({
+      where: { zoneCode, metricType }
+    });
+    
+    // 补全测点名称
+    const result = await Promise.all(configList.map(async (item) => {
+      const point = await this.pointRep.findOne({ where: { code: item.pointCode } });
+      return {
+        ...item,
+        pointName: point ? point.name : '未知测点'
+      };
+    }));
+
+    return ResultData.ok(result);
+  }
+
+  async saveZoneMetricCalcConfig(body: { zoneCode: string; metricType: string; points: { pointCode: string; calcSign: number }[] }) {
+    const { zoneCode, metricType, points } = body;
+    
+    // 先删除该分区该指标下的所有旧配置
+    await this.metricCalcRep.delete({ zoneCode, metricType });
+
+    // 批量插入新配置
+    if (points && points.length > 0) {
+      const entities = points.map(p => {
+        const entity = new WaterZoneMetricCalcEntity();
+        entity.zoneCode = zoneCode;
+        entity.metricType = metricType;
+        entity.pointCode = p.pointCode;
+        entity.calcSign = p.calcSign;
+        return entity;
+      });
+      await this.metricCalcRep.save(entities);
+    }
+
+    return ResultData.ok();
   }
 }

@@ -114,8 +114,9 @@
           <span>{{ parseTime(scope.row.createTime) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" width="420" class-name="small-padding fixed-width">
+      <el-table-column label="操作" align="center" width="500" class-name="small-padding fixed-width">
         <template #default="scope">
+          <el-button link type="primary" icon="DataLine" @click="handleMetricConfig(scope.row)" v-hasPermi="['water-basic:zone:edit']">指标配置</el-button>
           <el-button link type="success" icon="Link" @click="handleBindDevice(scope.row)" v-hasPermi="['water-basic:zone:edit']">关联设备</el-button>
           <el-button link type="warning" icon="Link" @click="handleBindRevenue(scope.row)" v-hasPermi="['water-basic:zone:edit']">关联营收</el-button>
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['water-basic:zone:edit']">修改</el-button>
@@ -272,6 +273,14 @@
       :type="globalImportType"
       @success="getList"
     />
+
+    <!-- 指标计算配置抽屉 -->
+    <ZoneMetricConfig
+      v-model="metricConfigVisible"
+      :zone-code="currentZoneCode"
+      :zone-name="currentZoneName"
+      @success="getList"
+    />
   </div>
 </template>
 
@@ -282,9 +291,11 @@ import { getToken } from "@/utils/auth"
 import ZoneBindDevice from './components/ZoneBindDevice.vue'
 import ZoneBindRevenue from './components/ZoneBindRevenue.vue'
 import GlobalBindImport from './components/GlobalBindImport.vue'
+import ZoneMetricConfig from './components/ZoneMetricConfig.vue'
 
 const globalImportVisible = ref(false)
 const globalImportType = ref('device')
+const metricConfigVisible = ref(false)
 
 function handleGlobalImportCommand(command) {
   globalImportType.value = command
@@ -527,6 +538,13 @@ function handleBindRevenue(row) {
   currentZoneCode.value = row.code;
   currentZoneName.value = row.name;
   bindRevenueVisible.value = true;
+}
+
+/** 打开指标配置抽屉 */
+function handleMetricConfig(row) {
+  currentZoneCode.value = row.code;
+  currentZoneName.value = row.name;
+  metricConfigVisible.value = true;
 }
 
 /** 导出操作 */

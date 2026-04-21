@@ -71,3 +71,29 @@ export function importGlobalBindRevenueUsers(data) {
     timeout: 600000
   })
 }
+
+// ================= 指标计算配置接口 =================
+
+export function getMetricCalcTree(zoneCode) {
+  return request({
+    url: '/water-basic/zone/metric-calc/tree',
+    method: 'get',
+    params: { zoneCode }
+  })
+}
+
+export function getZoneMetricCalcConfig(zoneCode, metricType) {
+  return request({
+    url: '/water-basic/zone/metric-calc/config',
+    method: 'get',
+    params: { zoneCode, metricType }
+  })
+}
+
+export function saveZoneMetricCalcConfig(data) {
+  return request({
+    url: '/water-basic/zone/metric-calc/config',
+    method: 'post',
+    data: data
+  })
+}
