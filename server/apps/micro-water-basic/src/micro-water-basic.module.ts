@@ -5,6 +5,7 @@ import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { configuration } from '@app/shared';
 import { SharedModule } from '@app/shared';
 import { ZoneModule } from './module/zone/zone.module';
+import { RevenueUserModule } from './module/revenue/revenue-user.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from '@app/common/guards/auth.guard';
 import { JwtStrategy } from '@app/common/guards/jwt.strategy';
@@ -45,7 +46,7 @@ import { RegistryModule } from '@app/common';
       },
     }),
     SharedModule,
-    ZoneModule, EquipmentModule,
+    ZoneModule, EquipmentModule, RevenueUserModule,
     RegistryModule,
   ],
   providers: [
