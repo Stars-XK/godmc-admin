@@ -4,6 +4,7 @@
     :data="data"
     row-key="id"
     :default-expand-all="isExpandAll"
+    :expand-row-keys="expandRowKeys"
     :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
   >
     <el-table-column prop="name" label="分区名称" min-width="260" show-overflow-tooltip></el-table-column>
@@ -44,6 +45,10 @@ const props = defineProps({
   isExpandAll: {
     type: Boolean,
     default: true
+  },
+  expandRowKeys: {
+    type: Array,
+    default: () => []
   }
 });
 

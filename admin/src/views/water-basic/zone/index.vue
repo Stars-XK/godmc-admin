@@ -79,6 +79,7 @@
       :data="zoneList"
       :loading="loading"
       :is-expand-all="isExpandAll"
+      :expand-row-keys="expandedRowKeys"
       @add="handleAdd"
       @edit="handleUpdate"
       @delete="handleDelete"
@@ -114,7 +115,8 @@ const zoneList = ref([]);
 const zoneOptions = ref([]);
 const loading = ref(true);
 const showSearch = ref(true);
-const isExpandAll = ref(true);
+const isExpandAll = ref(false);
+const expandedRowKeys = ref([]);
 const refreshTable = ref(true);
 
 const data = reactive({
@@ -129,6 +131,19 @@ const { queryParams } = toRefs(data);
 const formDialogRef = ref(null);
 const importDialogRef = ref(null);
 
+/** 获取前N层的所有节点ID */
+function getExpandedKeys(data, maxLevel, currentLevel = 1) {
+  let keys = [];
+  if (currentLevel > maxLevel) return keys;
+  data.forEach(item => {
+    keys.push(item.id);
+    if (item.children && item.children.length > 0) {
+      keys = keys.concat(getExpandedKeys(item.children, maxLevel, currentLevel + 1));
+    }
+  });
+  return keys;
+}
+
 /** 查询分区列表 */
 function getList() {
   loading.value = true;
@@ -136,6 +151,8 @@ function getList() {
     // 后端已经通过优化后的 ListToTree 返回了完整的树形数据，无需再通过前端的 handleTree 处理
     zoneList.value = response.data || response;
     zoneOptions.value = zoneList.value; // 用于下拉树选择
+    // 默认展开前三层
+    expandedRowKeys.value = getExpandedKeys(zoneList.value, 3);
     loading.value = false;
   });
 }
@@ -160,6 +177,9 @@ function handleAdd(row) {
 function toggleExpandAll() {
   refreshTable.value = false;
   isExpandAll.value = !isExpandAll.value;
+  if (!isExpandAll.value) {
+    expandedRowKeys.value = []; // 折叠时清空手动展开的 keys
+  }
   nextTick(() => {
     refreshTable.value = true;
   });
