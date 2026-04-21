@@ -306,6 +306,8 @@ function getUserList() {
     userOptions.value = res.rows
   })
 }
+
+function getList() {
   loading.value = true
   listStation(queryParams.value).then(res => {
     stationList.value = res.data.list
