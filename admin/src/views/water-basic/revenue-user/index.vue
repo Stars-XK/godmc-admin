@@ -37,10 +37,12 @@
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="userList" @selection-change="handleSelectionChange">
+    <el-table class="flex-table" v-loading="loading" :data="userList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="用户编号" align="center" prop="userNo" width="120" />
       <el-table-column label="用户名称" align="center" prop="userName" min-width="150" />
+      <el-table-column label="证件号码" align="center" prop="idCard" min-width="150" show-overflow-tooltip />
+      <el-table-column label="合同编号" align="center" prop="contractNo" min-width="120" />
       <el-table-column label="水卡分类" align="center" prop="cardCategory" width="100">
         <template #default="scope">
           <dict-tag :options="water_card_category" :value="scope.row.cardCategory"/>
@@ -53,7 +55,19 @@
       </el-table-column>
       <el-table-column label="水表编号" align="center" prop="meterNo" width="120" />
       <el-table-column label="手机号" align="center" prop="phone" width="120" />
+      <el-table-column label="立户日期" align="center" prop="installDate" width="120">
+        <template #default="scope">
+          <span>{{ parseTime(scope.row.installDate, '{y}-{m}-{d}') }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="地址" align="center" prop="address" min-width="180" show-overflow-tooltip />
+      <el-table-column label="账户余额(元)" align="center" prop="balance" width="110">
+        <template #default="scope">
+          <span :style="{ color: scope.row.balance < 0 ? '#F56C6C' : '#67C23A', fontWeight: 'bold' }">
+            {{ scope.row.balance }}
+          </span>
+        </template>
+      </el-table-column>
       <el-table-column label="欠费金额(元)" align="center" prop="arrearsAmount" width="110">
         <template #default="scope">
           <span :style="{ color: scope.row.arrearsAmount > 0 ? '#F56C6C' : '#67C23A', fontWeight: 'bold' }">
@@ -91,6 +105,16 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
+            <el-form-item label="证件号码" prop="idCard">
+              <el-input v-model="form.idCard" placeholder="请输入身份证或信用代码" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="合同编号" prop="contractNo">
+              <el-input v-model="form.contractNo" placeholder="请输入合同编号" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="手机号" prop="phone">
               <el-input v-model="form.phone" placeholder="请输入手机号" />
             </el-form-item>
@@ -122,6 +146,16 @@
           <el-col :span="12">
             <el-form-item label="口径" prop="caliber">
               <el-input v-model="form.caliber" placeholder="请输入水表口径" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="账户余额" prop="balance">
+              <el-input-number v-model="form.balance" :precision="2" :step="1" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="立户日期" prop="installDate">
+              <el-date-picker clearable v-model="form.installDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择日期" style="width: 100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -212,7 +246,7 @@ const total = ref(0)
 const title = ref("")
 
 const queryParams = ref({
-  pageNum: 1, pageSize: 10, userNo: undefined, userName: undefined, phone: undefined, status: undefined, cardCategory: undefined, userCategory: undefined
+  pageNum: 1, pageSize: 20, userNo: undefined, userName: undefined, phone: undefined, status: undefined, cardCategory: undefined, userCategory: undefined
 })
 
 const form = ref({})
@@ -249,6 +283,7 @@ function cancel() {
 function reset() {
   form.value = {
     id: undefined, userNo: undefined, userName: undefined, phone: undefined, address: undefined,
+    idCard: undefined, contractNo: undefined, installDate: undefined, balance: 0,
     meterNo: undefined, bookNo: undefined, chargeType: undefined, caliber: undefined,
     cardCategory: "A", userCategory: "A01", status: "0", arrearsAmount: 0, remark: undefined
   }
@@ -364,9 +399,18 @@ function processFile(file) {
       if (jsonArr.length === 0) throw new Error('上传的文件没有数据')
 
       const parsedData = jsonArr.map(row => {
+        let parsedInstallDate = null;
+        if (row['立户日期'] || row['安装日期']) {
+          const rawDate = row['立户日期'] || row['安装日期'];
+          const dateVal = new Date(rawDate);
+          if (!isNaN(dateVal.getTime())) parsedInstallDate = dateVal;
+        }
+
         return {
           userNo: row['用户编号'] || '',
           userName: row['用户名称'] || '',
+          idCard: row['证件号码'] || row['身份证'] || '',
+          contractNo: row['合同编号'] || '',
           phone: row['手机号'] || '',
           address: row['地址'] || '',
           meterNo: row['水表编号'] || '',
@@ -375,6 +419,8 @@ function processFile(file) {
           caliber: row['口径'] || '',
           cardCategory: row['水卡分类'] || 'A',
           userCategory: row['用户分类'] || 'A01',
+          installDate: parsedInstallDate,
+          balance: parseFloat(row['账户余额']) || 0,
           arrearsAmount: parseFloat(row['欠费金额']) || 0
         }
       }).filter(item => item.userNo && item.userName)
@@ -420,6 +466,23 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 84px); /* 视项目 header 而定，留出边距 */
+  padding: 20px;
+}
+
+.flex-table {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-table :deep(.el-table__inner-wrapper) {
+  height: 100% !important;
+}
+
 .modern-import-dialog :deep(.el-dialog__header) {
   padding: 24px 24px 0;
   text-align: center;

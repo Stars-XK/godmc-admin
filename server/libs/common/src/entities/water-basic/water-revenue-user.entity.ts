@@ -13,6 +13,12 @@ export class WaterRevenueUserEntity extends BaseEntity {
   @Column({ type: 'varchar', length: 100, name: 'user_name', nullable: true, comment: '用户名称' })
   userName: string;
 
+  @Column({ type: 'varchar', length: 50, name: 'contract_no', nullable: true, comment: '合同编号' })
+  contractNo: string;
+
+  @Column({ type: 'varchar', length: 50, name: 'id_card', nullable: true, comment: '证件号码/统一社会信用代码' })
+  idCard: string;
+
   @Column({ type: 'varchar', length: 50, name: 'user_type', nullable: true, comment: '用户类型' })
   userType: string;
 
@@ -42,6 +48,12 @@ export class WaterRevenueUserEntity extends BaseEntity {
 
   @Column({ type: 'decimal', precision: 10, scale: 2, name: 'arrears_amount', default: 0.00, comment: '欠费金额' })
   arrearsAmount: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, name: 'balance', default: 0.00, comment: '账户余额' })
+  balance: number;
+
+  @Column({ type: 'datetime', name: 'install_date', nullable: true, comment: '立户日期/安装日期' })
+  installDate: Date;
 
   @Column({ type: 'bigint', name: 'associated_user_id', nullable: true, comment: '关联系统用户ID' })
   associatedUserId: string;

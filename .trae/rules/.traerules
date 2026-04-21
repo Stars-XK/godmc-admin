@@ -1,5 +1,8 @@
 # Project Rules
 
+## 列表页规范
+列表页默认必须为 20 行（`pageSize: 20`），并且表格外层容器必须使用 Flex 布局，确保在数据不够时 `el-table` 也能向下撑满整个屏幕高度。
+
 ## Git Workflow
 每次处理完任务需要提交所有内容到github，并且push到主分支。
 
