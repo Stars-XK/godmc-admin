@@ -8,118 +8,76 @@
     append-to-body
     class="custom-drawer"
   >
-    <el-tabs v-model="activeTab" class="bind-tabs">
-      <!-- 模式1：手动勾选关联 -->
-      <el-tab-pane label="手动勾选关联" name="manual">
-        <div class="manual-container">
-          <div class="filter-bar">
-            <el-form :model="queryParams" ref="queryRef" :inline="true">
-              <el-form-item label="设备编码" prop="code">
-                <el-input v-model="queryParams.code" placeholder="请输入编码" clearable style="width: 150px" @keyup.enter="getList" />
-              </el-form-item>
-              <el-form-item label="设备名称" prop="name">
-                <el-input v-model="queryParams.name" placeholder="请输入名称" clearable style="width: 150px" @keyup.enter="getList" />
-              </el-form-item>
-              <el-form-item label="设备类型" prop="type">
-                <el-select v-model="queryParams.type" placeholder="请选择设备类型" clearable style="width: 150px" @change="getList">
-                  <el-option
-                    v-for="dict in water_device_type"
-                    :key="dict.value"
-                    :label="dict.label"
-                    :value="dict.value"
-                  />
-                </el-select>
-              </el-form-item>
-              <el-form-item>
-                <el-button type="primary" icon="Search" @click="getList">搜索</el-button>
-              </el-form-item>
-            </el-form>
-            <div class="action-btn">
-              <el-button type="primary" size="default" :disabled="!selectedIds.length" @click="submitManualBind">
-                <el-icon style="margin-right: 4px"><Link /></el-icon>
-                确认绑定 ({{ selectedIds.length }})
-              </el-button>
-            </div>
-          </div>
-          
-          <el-alert title="列表中仅显示当前未关联任何分区的独立设备" type="info" show-icon style="margin-bottom: 15px; border-radius: 8px;" />
-
-          <div class="table-wrapper">
-            <el-table
-              v-loading="loading"
-              :data="deviceList"
-              @selection-change="handleSelectionChange"
-              height="100%"
-              style="width: 100%"
-            >
-              <el-table-column type="selection" width="55" align="center" />
-              <el-table-column label="设备编码" prop="code" width="150" />
-              <el-table-column label="设备名称" prop="name" show-overflow-tooltip />
-              <el-table-column label="设备类型" prop="type" width="100">
-                <template #default="scope">
-                  <dict-tag :options="water_device_type" :value="scope.row.type" />
-                </template>
-              </el-table-column>
-              <el-table-column label="生产厂家" prop="manufacturer" show-overflow-tooltip />
-            </el-table>
-          </div>
-
-          <pagination
-            v-show="total > 0"
-            :total="total"
-            v-model:page="pageNum"
-            v-model:limit="pageSize"
-            :page-sizes="pageSizes"
-            @pagination="getList"
-          />
+    <div class="manual-container">
+      <div class="filter-bar">
+        <el-form :model="queryParams" ref="queryRef" :inline="true">
+          <el-form-item label="设备编码" prop="code">
+            <el-input v-model="queryParams.code" placeholder="请输入编码" clearable style="width: 150px" @keyup.enter="handleQuery" />
+          </el-form-item>
+          <el-form-item label="设备名称" prop="name">
+            <el-input v-model="queryParams.name" placeholder="请输入名称" clearable style="width: 150px" @keyup.enter="handleQuery" />
+          </el-form-item>
+          <el-form-item label="设备类型" prop="type">
+            <el-select v-model="queryParams.type" placeholder="请选择设备类型" clearable style="width: 150px" @change="handleQuery">
+              <el-option
+                v-for="dict in water_device_type"
+                :key="dict.value"
+                :label="dict.label"
+                :value="dict.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+          </el-form-item>
+        </el-form>
+        <div class="action-btn">
+          <el-button type="primary" size="default" :disabled="!selectedIds.length" @click="submitManualBind">
+            <el-icon style="margin-right: 4px"><Link /></el-icon>
+            确认绑定 ({{ selectedIds.length }})
+          </el-button>
         </div>
-      </el-tab-pane>
+      </div>
+      
+      <el-alert title="列表中仅显示当前未关联任何分区的独立设备" type="info" show-icon style="margin-bottom: 15px; border-radius: 8px;" />
 
-      <!-- 模式2：批量导入关联 -->
-      <el-tab-pane label="批量导入关联" name="import">
-        <div class="import-container">
-          <el-alert title="请上传包含【设备编码】列的 Excel 文件进行批量关联。" type="warning" show-icon style="margin-bottom: 20px;" />
-          
-          <el-form label-position="top">
-            <el-form-item label="关联模式（必选）">
-              <el-radio-group v-model="importMode">
-                <el-radio label="append" border>增量追加（保留该分区现有设备）</el-radio>
-                <el-radio label="replace" border>覆盖替换（先清空该分区下所有设备）</el-radio>
-              </el-radio-group>
-            </el-form-item>
+      <div class="table-wrapper">
+        <el-table
+          v-loading="loading"
+          :data="deviceList"
+          @selection-change="handleSelectionChange"
+          height="100%"
+          style="width: 100%"
+        >
+          <el-table-column type="selection" width="55" align="center" />
+          <el-table-column label="设备编码" prop="code" width="150" />
+          <el-table-column label="设备名称" prop="name" show-overflow-tooltip />
+          <el-table-column label="设备类型" prop="type" width="100">
+            <template #default="scope">
+              <dict-tag :options="water_device_type" :value="scope.row.type" />
+            </template>
+          </el-table-column>
+          <el-table-column label="生产厂家" prop="manufacturer" show-overflow-tooltip />
+        </el-table>
+      </div>
 
-            <el-alert
-              title="模式说明：追加=保留现有关联，仅新增本次导入/勾选的设备；替换=先解绑该分区下所有设备，再按本次导入/勾选重新绑定。"
-              type="info"
-              show-icon
-              style="margin-bottom: 12px;"
-            />
-            
-            <el-form-item label="上传文件">
-              <div class="upload-wrapper">
-                <div class="upload-zone" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleDrop">
-                  <el-icon class="upload-icon"><UploadFilled /></el-icon>
-                  <h3>点击或拖拽 Excel 文件到此区域</h3>
-                  <p style="color: #909399; font-size: 13px; margin-top: 8px;">仅支持 .xls, .xlsx 格式文件</p>
-                  <input type="file" ref="fileInputRef" accept=".xls,.xlsx" class="hidden-input" @change="handleFileChange" />
-                </div>
-                <el-button type="primary" plain icon="Download" @click="downloadTemplate" style="width: 200px; margin-top: 10px;">
-                  下载导入模板
-                </el-button>
-              </div>
-            </el-form-item>
-          </el-form>
-        </div>
-      </el-tab-pane>
-    </el-tabs>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        v-model:page="pageNum"
+        v-model:limit="pageSize"
+        :page-sizes="pageSizes"
+        @pagination="getList"
+      />
+    </div>
 
     <!-- 进度覆盖层 -->
     <div v-if="isUploading" class="progress-overlay">
       <div class="progress-card">
         <div class="pulse-ring"></div>
         <el-icon class="loading-icon is-loading"><Loading /></el-icon>
-        <h3 class="progress-title">设备关联导入中</h3>
-        <p class="progress-desc">正在处理 {{ totalRows }} 条记录，请勿刷新页面...</p>
+        <h3 class="progress-title">设备关联处理中</h3>
+        <p class="progress-desc">正在处理，请勿刷新页面...</p>
         <el-progress :percentage="progress" :stroke-width="12" striped striped-flow class="modern-progress"></el-progress>
       </div>
     </div>
@@ -128,7 +86,7 @@
 
 <script setup>
 import { ref, watch, getCurrentInstance } from 'vue'
-import { getUnboundDeviceList, bindDevices, importBindDevices } from '@/api/water-basic/zone-bind'
+import { getUnboundDeviceList, bindDevices } from '@/api/water-basic/zone-bind'
 import * as XLSX from 'xlsx'
 
 const props = defineProps({

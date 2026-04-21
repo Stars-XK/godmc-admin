@@ -51,3 +51,23 @@ export function importBindRevenueUsers(data) {
     timeout: 600000
   })
 }
+
+// --- 全局批量导入 ---
+
+export function importGlobalBindDevices(data) {
+  return request({
+    url: '/water-basic/zone/global-bind/device/import',
+    method: 'post',
+    data: data,
+    timeout: 600000
+  })
+}
+
+export function importGlobalBindRevenueUsers(data) {
+  return request({
+    url: '/water-basic/zone/global-bind/revenue/import',
+    method: 'post',
+    data: data,
+    timeout: 600000
+  })
+}

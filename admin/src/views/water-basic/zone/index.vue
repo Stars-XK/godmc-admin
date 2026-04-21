@@ -70,6 +70,23 @@
           v-hasPermi="['water-basic:zone:export']"
         >导出</el-button>
       </el-col>
+      <el-col :span="1.5">
+        <el-dropdown trigger="click" @command="handleGlobalImportCommand" style="margin-left: 10px;">
+          <el-button type="primary" plain>
+            全局关联导入<el-icon class="el-icon--right"><arrow-down /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="device">
+                <el-icon><Cpu /></el-icon> 导入设备关联关系
+              </el-dropdown-item>
+              <el-dropdown-item command="revenue">
+                <el-icon><User /></el-icon> 导入营收关联关系
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
@@ -259,6 +276,13 @@
       :zone-name="currentZoneName"
       @success="getList"
     />
+
+    <!-- 全局批量导入对话框 -->
+    <GlobalBindImport
+      v-model="globalImportVisible"
+      :type="globalImportType"
+      @success="getList"
+    />
   </div>
 </template>
 
@@ -268,6 +292,15 @@ import { listZoneTree, getZone, addZone, updateZone, delZone, lazyZoneChildren }
 import { getToken } from "@/utils/auth"
 import ZoneBindDevice from './components/ZoneBindDevice.vue'
 import ZoneBindRevenue from './components/ZoneBindRevenue.vue'
+import GlobalBindImport from './components/GlobalBindImport.vue'
+
+const globalImportVisible = ref(false)
+const globalImportType = ref('device')
+
+function handleGlobalImportCommand(command) {
+  globalImportType.value = command
+  globalImportVisible.value = true
+}
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable");

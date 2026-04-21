@@ -519,4 +519,108 @@ export class ZoneService {
     await workbook.xlsx.write(res);
     res.end();
   }
+
+  // ================= 全局批量导入关联 =================
+
+  async globalBindDeviceTemplate(res: Response) {
+    const workbook = new exceljs.Workbook();
+    const worksheet = workbook.addWorksheet('全局设备关联模板');
+    worksheet.columns = [
+      { header: '分区编码', key: 'zoneCode', width: 30 },
+      { header: '设备编码', key: 'deviceCode', width: 30 },
+    ];
+    worksheet.addRow({ zoneCode: 'ZONE_001', deviceCode: 'DEV_001' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=GlobalBindDeviceTemplate.xlsx');
+    await workbook.xlsx.write(res);
+    res.end();
+  }
+
+  async globalBindRevenueTemplate(res: Response) {
+    const workbook = new exceljs.Workbook();
+    const worksheet = workbook.addWorksheet('全局营收关联模板');
+    worksheet.columns = [
+      { header: '分区编码', key: 'zoneCode', width: 30 },
+      { header: '用户编号', key: 'userNo', width: 30 },
+    ];
+    worksheet.addRow({ zoneCode: 'ZONE_001', userNo: 'U0001' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=GlobalBindRevenueTemplate.xlsx');
+    await workbook.xlsx.write(res);
+    res.end();
+  }
+
+  async globalImportBindDevices(dataList: any[]) {
+    let successCount = 0;
+    let failCount = 0;
+    const results = [];
+
+    for (const item of dataList) {
+      const zoneCode = item.zoneCode || item['分区编码'];
+      const deviceCode = item.deviceCode || item['设备编码'];
+
+      if (!zoneCode || !deviceCode) {
+        failCount++;
+        results.push({ code: deviceCode || '未知', success: false, reason: '缺少分区编码或设备编码' });
+        continue;
+      }
+
+      const zone = await this.zoneRep.findOne({ where: { code: zoneCode, delFlag: '0' } });
+      if (!zone) {
+        failCount++;
+        results.push({ code: deviceCode, success: false, reason: `分区编码(${zoneCode})不存在` });
+        continue;
+      }
+
+      const device = await this.deviceRep.findOne({ where: { code: deviceCode, delFlag: '0' } });
+      if (!device) {
+        failCount++;
+        results.push({ code: deviceCode, success: false, reason: '设备编码不存在' });
+        continue;
+      }
+
+      await this.deviceRep.update(device.id, { zoneCode });
+      successCount++;
+      results.push({ code: deviceCode, success: true, reason: '关联成功' });
+    }
+
+    return ResultData.ok({ successCount, failCount, results });
+  }
+
+  async globalImportBindRevenueUsers(dataList: any[]) {
+    let successCount = 0;
+    let failCount = 0;
+    const results = [];
+
+    for (const item of dataList) {
+      const zoneCode = item.zoneCode || item['分区编码'];
+      const userNo = item.userNo || item['用户编号'];
+
+      if (!zoneCode || !userNo) {
+        failCount++;
+        results.push({ code: userNo || '未知', success: false, reason: '缺少分区编码或用户编号' });
+        continue;
+      }
+
+      const zone = await this.zoneRep.findOne({ where: { code: zoneCode, delFlag: '0' } });
+      if (!zone) {
+        failCount++;
+        results.push({ code: userNo, success: false, reason: `分区编码(${zoneCode})不存在` });
+        continue;
+      }
+
+      const user = await this.revenueUserRep.findOne({ where: { userNo, delFlag: '0' } });
+      if (!user) {
+        failCount++;
+        results.push({ code: userNo, success: false, reason: '用户编号不存在' });
+        continue;
+      }
+
+      await this.revenueUserRep.update(user.id, { zoneCode });
+      successCount++;
+      results.push({ code: userNo, success: true, reason: '关联成功' });
+    }
+
+    return ResultData.ok({ successCount, failCount, results });
+  }
 }
