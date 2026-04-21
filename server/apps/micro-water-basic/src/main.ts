@@ -5,9 +5,15 @@ import { ConfigService } from '@nestjs/config';
 import { HttpExceptionsFilter } from '@app/common/filters/http-exceptions-filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { json, urlencoded } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(MicroWaterBasicModule, { cors: true });
+  
+  // 设置请求体大小限制，解决 PayloadTooLargeError (支持大文件解析后的大批量 JSON 导入)
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ extended: true, limit: '50mb' }));
+  
   const config = app.get(ConfigService);
   
   // 设置全局前缀，对应于网关转发过来的路径
