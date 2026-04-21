@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull, In } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
-import { WaterZoneEntity } from '@app/common';
+import { WaterZoneEntity, WaterDeviceEntity } from '@app/common';
+import { WaterRevenueUserEntity } from '@app/common/entities/water-basic/water-revenue-user.entity';
 import { ListToTree } from '@app/common/utils/index';
 import { Response } from 'express';
 import { ExportTable } from '@app/common/utils/export';
@@ -13,6 +14,10 @@ export class ZoneService {
   constructor(
     @InjectRepository(WaterZoneEntity)
     private readonly zoneRep: Repository<WaterZoneEntity>,
+    @InjectRepository(WaterDeviceEntity)
+    private readonly deviceRep: Repository<WaterDeviceEntity>,
+    @InjectRepository(WaterRevenueUserEntity)
+    private readonly revenueUserRep: Repository<WaterRevenueUserEntity>,
   ) {}
 
   async create(createDto: any, user: any) {
@@ -317,5 +322,135 @@ export class ZoneService {
       },
     );
     return ResultData.ok(data);
+  }
+
+  // ================= 关联设备 =================
+
+  async unboundDeviceList(query: any) {
+    const { name, code } = query;
+    const qb = this.deviceRep.createQueryBuilder('device')
+      .where('device.delFlag = :delFlag', { delFlag: '0' })
+      .andWhere('device.zoneCode IS NULL');
+
+    if (name) qb.andWhere(`device.name LIKE "%${name}%"`);
+    if (code) qb.andWhere(`device.code LIKE "%${code}%"`);
+
+    const list = await qb.orderBy('device.createTime', 'DESC').getMany();
+    return ResultData.ok(list);
+  }
+
+  async bindDevices(zoneCode: string, deviceIds: string[]) {
+    if (!zoneCode || !deviceIds || deviceIds.length === 0) return ResultData.ok();
+    await this.deviceRep.update({ id: In(deviceIds) }, { zoneCode });
+    return ResultData.ok();
+  }
+
+  async importBindDevices(zoneCode: string, mode: string, dataList: any[]) {
+    if (!zoneCode) return ResultData.fail(500, '缺少分区编码');
+    
+    if (mode === 'replace') {
+      await this.deviceRep.createQueryBuilder()
+        .update(WaterDeviceEntity)
+        .set({ zoneCode: null })
+        .where("zone_code = :zoneCode", { zoneCode })
+        .execute();
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+    const results = [];
+
+    for (const item of dataList) {
+      const code = item.code || item['设备编码'];
+      if (!code) {
+        failCount++;
+        results.push({ code: '未知', success: false, reason: '缺少设备编码' });
+        continue;
+      }
+
+      const device = await this.deviceRep.findOne({ where: { code, delFlag: '0' } });
+      if (!device) {
+        failCount++;
+        results.push({ code, success: false, reason: '设备编码不存在' });
+        continue;
+      }
+
+      if (device.zoneCode && device.zoneCode !== zoneCode) {
+        failCount++;
+        results.push({ code, success: false, reason: `该设备已被其他分区(${device.zoneCode})绑定` });
+        continue;
+      }
+
+      await this.deviceRep.update(device.id, { zoneCode });
+      successCount++;
+      results.push({ code, success: true, reason: '关联成功' });
+    }
+
+    return ResultData.ok({ successCount, failCount, results });
+  }
+
+  // ================= 关联营收 =================
+
+  async unboundRevenueList(query: any) {
+    const { name, userNo } = query;
+    const qb = this.revenueUserRep.createQueryBuilder('user')
+      .where('user.delFlag = :delFlag', { delFlag: '0' })
+      .andWhere('user.zoneCode IS NULL');
+
+    if (name) qb.andWhere(`user.userName LIKE "%${name}%"`);
+    if (userNo) qb.andWhere(`user.userNo LIKE "%${userNo}%"`);
+
+    const list = await qb.orderBy('user.createTime', 'DESC').getMany();
+    return ResultData.ok(list);
+  }
+
+  async bindRevenueUsers(zoneCode: string, userIds: string[]) {
+    if (!zoneCode || !userIds || userIds.length === 0) return ResultData.ok();
+    await this.revenueUserRep.update({ id: In(userIds) }, { zoneCode });
+    return ResultData.ok();
+  }
+
+  async importBindRevenueUsers(zoneCode: string, mode: string, dataList: any[]) {
+    if (!zoneCode) return ResultData.fail(500, '缺少分区编码');
+    
+    if (mode === 'replace') {
+      await this.revenueUserRep.createQueryBuilder()
+        .update(WaterRevenueUserEntity)
+        .set({ zoneCode: null })
+        .where("zone_code = :zoneCode", { zoneCode })
+        .execute();
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+    const results = [];
+
+    for (const item of dataList) {
+      const userNo = item.userNo || item['用户编号'];
+      if (!userNo) {
+        failCount++;
+        results.push({ userNo: '未知', success: false, reason: '缺少用户编号' });
+        continue;
+      }
+
+      const user = await this.revenueUserRep.findOne({ where: { userNo, delFlag: '0' } });
+      if (!user) {
+        failCount++;
+        results.push({ userNo, success: false, reason: '用户编号不存在' });
+        continue;
+      }
+
+      if (user.zoneCode && user.zoneCode !== zoneCode) {
+        failCount++;
+        results.push({ userNo, success: false, reason: `该用户已被其他分区(${user.zoneCode})绑定` });
+        continue;
+      }
+
+      await this.revenueUserRep.update(user.id, { zoneCode });
+      successCount++;
+      results.push({ userNo, success: true, reason: '关联成功' });
+    }
+
+    return ResultData.ok({ successCount, failCount, results });
   }
 }

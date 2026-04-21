@@ -105,8 +105,10 @@
           <span>{{ parseTime(scope.row.createTime) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" width="220" class-name="small-padding fixed-width">
+      <el-table-column label="操作" align="center" width="300" class-name="small-padding fixed-width">
         <template #default="scope">
+          <el-button link type="success" icon="Link" @click="handleBindDevice(scope.row)" v-hasPermi="['water-basic:zone:edit']">关联设备</el-button>
+          <el-button link type="warning" icon="Link" @click="handleBindRevenue(scope.row)" v-hasPermi="['water-basic:zone:edit']">关联营收</el-button>
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['water-basic:zone:edit']">修改</el-button>
           <el-button link type="primary" icon="Plus" @click="handleAdd(scope.row)" v-hasPermi="['water-basic:zone:add']">新增</el-button>
           <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['water-basic:zone:remove']">删除</el-button>
@@ -238,6 +240,22 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 关联设备抽屉 -->
+    <ZoneBindDevice
+      v-model="bindDeviceVisible"
+      :zone-code="currentZoneCode"
+      :zone-name="currentZoneName"
+      @success="getList"
+    />
+
+    <!-- 关联营收抽屉 -->
+    <ZoneBindRevenue
+      v-model="bindRevenueVisible"
+      :zone-code="currentZoneCode"
+      :zone-name="currentZoneName"
+      @success="getList"
+    />
   </div>
 </template>
 
@@ -245,6 +263,8 @@
 import { ref, reactive, toRefs, onMounted, nextTick, getCurrentInstance } from 'vue'
 import { listZoneTree, getZone, addZone, updateZone, delZone } from '@/api/water-basic/zone'
 import { getToken } from "@/utils/auth"
+import ZoneBindDevice from './components/ZoneBindDevice.vue'
+import ZoneBindRevenue from './components/ZoneBindRevenue.vue'
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable");
@@ -257,6 +277,12 @@ const isExpandAll = ref(true);
 const refreshTable = ref(true);
 const open = ref(false);
 const title = ref("");
+
+// 关联相关状态
+const bindDeviceVisible = ref(false);
+const bindRevenueVisible = ref(false);
+const currentZoneCode = ref("");
+const currentZoneName = ref("");
 
 const data = reactive({
   form: {},
@@ -389,6 +415,20 @@ function handleDelete(row) {
     getList();
     proxy.$modal.msgSuccess("删除成功");
   }).catch(() => {});
+}
+
+/** 打开关联设备抽屉 */
+function handleBindDevice(row) {
+  currentZoneCode.value = row.code;
+  currentZoneName.value = row.name;
+  bindDeviceVisible.value = true;
+}
+
+/** 打开关联营收抽屉 */
+function handleBindRevenue(row) {
+  currentZoneCode.value = row.code;
+  currentZoneName.value = row.name;
+  bindRevenueVisible.value = true;
 }
 
 /** 导出操作 */

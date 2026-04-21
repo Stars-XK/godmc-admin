@@ -83,4 +83,44 @@ export class ZoneController {
   importData(@UploadedFile() file: Express.Multer.File, @Body('parentId') parentId: string, @User() user: any) {
     return this.zoneService.importData(file, parentId ? parseInt(parentId, 10) : 0, user);
   }
+
+  // ================= 关联设备接口 =================
+  
+  @ApiOperation({ summary: '查询未关联任何分区的设备列表' })
+  @Get('unbound/device/list')
+  unboundDeviceList(@Query() query: any) {
+    return this.zoneService.unboundDeviceList(query);
+  }
+
+  @ApiOperation({ summary: '手动勾选绑定设备' })
+  @Post('bind/device')
+  bindDevices(@Body() body: { zoneCode: string, deviceIds: string[] }) {
+    return this.zoneService.bindDevices(body.zoneCode, body.deviceIds);
+  }
+
+  @ApiOperation({ summary: '通过Excel批量导入绑定设备' })
+  @Post('bind/device/import')
+  importBindDevices(@Body() body: { zoneCode: string, mode: string, dataList: any[] }) {
+    return this.zoneService.importBindDevices(body.zoneCode, body.mode, body.dataList);
+  }
+
+  // ================= 关联营收接口 =================
+
+  @ApiOperation({ summary: '查询未关联任何分区的营收用户列表' })
+  @Get('unbound/revenue/list')
+  unboundRevenueList(@Query() query: any) {
+    return this.zoneService.unboundRevenueList(query);
+  }
+
+  @ApiOperation({ summary: '手动勾选绑定营收用户' })
+  @Post('bind/revenue')
+  bindRevenueUsers(@Body() body: { zoneCode: string, userIds: string[] }) {
+    return this.zoneService.bindRevenueUsers(body.zoneCode, body.userIds);
+  }
+
+  @ApiOperation({ summary: '通过Excel批量导入绑定营收用户' })
+  @Post('bind/revenue/import')
+  importBindRevenueUsers(@Body() body: { zoneCode: string, mode: string, dataList: any[] }) {
+    return this.zoneService.importBindRevenueUsers(body.zoneCode, body.mode, body.dataList);
+  }
 }

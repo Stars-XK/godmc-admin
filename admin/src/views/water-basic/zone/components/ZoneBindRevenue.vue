@@ -1,0 +1,298 @@
+<template>
+  <el-drawer
+    :title="`关联营收基础用户 - ${zoneName}`"
+    v-model="visible"
+    direction="rtl"
+    size="850px"
+    @close="handleClose"
+    append-to-body
+  >
+    <el-tabs v-model="activeTab" class="bind-tabs">
+      <!-- 模式1：手动勾选关联 -->
+      <el-tab-pane label="手动勾选关联" name="manual">
+        <div class="manual-container">
+          <el-form :model="queryParams" ref="queryRef" :inline="true">
+            <el-form-item label="用户编号" prop="userNo">
+              <el-input v-model="queryParams.userNo" placeholder="请输入编号" clearable style="width: 150px" @keyup.enter="getList" />
+            </el-form-item>
+            <el-form-item label="用户名称" prop="name">
+              <el-input v-model="queryParams.name" placeholder="请输入名称" clearable style="width: 150px" @keyup.enter="getList" />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" icon="Search" @click="getList">搜索</el-button>
+            </el-form-item>
+          </el-form>
+          
+          <el-alert title="列表中仅显示当前未关联任何分区的独立营收用户" type="info" show-icon style="margin-bottom: 15px;" />
+
+          <el-table
+            v-loading="loading"
+            :data="userList"
+            @selection-change="handleSelectionChange"
+            height="calc(100vh - 280px)"
+            style="width: 100%"
+          >
+            <el-table-column type="selection" width="55" align="center" />
+            <el-table-column label="用户编号" prop="userNo" width="150" />
+            <el-table-column label="用户名称" prop="userName" show-overflow-tooltip />
+            <el-table-column label="用户分类" prop="userCategory" width="180">
+              <template #default="scope">
+                <dict-tag :options="water_user_category" :value="scope.row.userCategory" />
+              </template>
+            </el-table-column>
+            <el-table-column label="手机号" prop="phone" width="120" />
+            <el-table-column label="详细地址" prop="address" show-overflow-tooltip />
+          </el-table>
+          
+          <div class="bottom-action">
+            <el-button type="primary" :disabled="!selectedIds.length" @click="submitManualBind">
+              确认绑定选中用户 ({{ selectedIds.length }})
+            </el-button>
+          </div>
+        </div>
+      </el-tab-pane>
+
+      <!-- 模式2：批量导入关联 -->
+      <el-tab-pane label="批量导入关联" name="import">
+        <div class="import-container">
+          <el-alert title="请上传包含【用户编号】列的 Excel 文件进行批量关联。" type="warning" show-icon style="margin-bottom: 20px;" />
+          
+          <el-form label-position="top">
+            <el-form-item label="关联模式（必选）">
+              <el-radio-group v-model="importMode">
+                <el-radio label="append" border>增量追加（保留该分区现有用户）</el-radio>
+                <el-radio label="replace" border>覆盖替换（先清空该分区下所有用户）</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            
+            <el-form-item label="上传文件">
+              <div class="upload-zone" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleDrop">
+                <el-icon class="upload-icon"><UploadFilled /></el-icon>
+                <h3>点击或拖拽 Excel 文件到此区域</h3>
+                <p>仅支持 .xls, .xlsx 格式文件</p>
+                <input type="file" ref="fileInputRef" accept=".xls,.xlsx" class="hidden-input" @change="handleFileChange" />
+              </div>
+            </el-form-item>
+          </el-form>
+        </div>
+      </el-tab-pane>
+    </el-tabs>
+
+    <!-- 进度覆盖层 -->
+    <div v-if="isUploading" class="progress-overlay">
+      <div class="progress-card">
+        <div class="pulse-ring"></div>
+        <el-icon class="loading-icon is-loading"><Loading /></el-icon>
+        <h3 class="progress-title">营收用户关联导入中</h3>
+        <p class="progress-desc">正在处理 {{ totalRows }} 条记录，请勿刷新页面...</p>
+        <el-progress :percentage="progress" :stroke-width="12" striped striped-flow class="modern-progress"></el-progress>
+      </div>
+    </div>
+  </el-drawer>
+</template>
+
+<script setup>
+import { ref, watch, getCurrentInstance } from 'vue'
+import { getUnboundRevenueList, bindRevenueUsers, importBindRevenueUsers } from '@/api/water-basic/zone-bind'
+import * as XLSX from 'xlsx'
+
+const props = defineProps({
+  modelValue: Boolean,
+  zoneCode: String,
+  zoneName: String
+})
+
+const emit = defineEmits(['update:modelValue', 'success'])
+const { proxy } = getCurrentInstance()
+const { water_user_category } = proxy.useDict('water_user_category')
+
+const visible = ref(false)
+const activeTab = ref('manual')
+const loading = ref(false)
+const userList = ref([])
+const selectedIds = ref([])
+const queryParams = ref({ name: undefined, userNo: undefined })
+
+// 导入相关
+const importMode = ref('append')
+const fileInputRef = ref(null)
+const isUploading = ref(false)
+const progress = ref(0)
+const totalRows = ref(0)
+
+watch(() => props.modelValue, (val) => {
+  visible.value = val
+  if (val) {
+    activeTab.value = 'manual'
+    importMode.value = 'append'
+    getList()
+  }
+})
+
+function handleClose() {
+  emit('update:modelValue', false)
+  userList.value = []
+  queryParams.value = { name: undefined, userNo: undefined }
+}
+
+function getList() {
+  loading.value = true
+  getUnboundRevenueList(queryParams.value).then(res => {
+    userList.value = res.data || []
+    loading.value = false
+  })
+}
+
+function handleSelectionChange(selection) {
+  selectedIds.value = selection.map(item => item.id)
+}
+
+function submitManualBind() {
+  bindRevenueUsers({ zoneCode: props.zoneCode, userIds: selectedIds.value }).then(() => {
+    proxy.$modal.msgSuccess('手动绑定成功')
+    emit('success')
+    getList()
+  })
+}
+
+// ============== 极速导入解析 ==============
+function triggerFileInput() {
+  if (fileInputRef.value) fileInputRef.value.click()
+}
+
+function handleDrop(e) {
+  const files = e.dataTransfer.files
+  if (files.length) processFile(files[0])
+}
+
+function handleFileChange(e) {
+  const files = e.target.files
+  if (files.length) processFile(files[0])
+  if (fileInputRef.value) fileInputRef.value.value = ''
+}
+
+function processFile(file) {
+  if (!/\.(xls|xlsx)$/.test(file.name.toLowerCase())) {
+    proxy.$modal.msgError("仅支持 xls, xlsx 格式的文件")
+    return
+  }
+  
+  isUploading.value = true
+  progress.value = 10
+  
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    try {
+      progress.value = 30
+      const data = new Uint8Array(e.target.result)
+      const workbook = XLSX.read(data, { type: 'array' })
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      const jsonArr = XLSX.utils.sheet_to_json(worksheet)
+      
+      totalRows.value = jsonArr.length
+      progress.value = 50
+      if (jsonArr.length === 0) throw new Error('上传的文件没有数据')
+
+      const parsedData = jsonArr.map(row => ({ userNo: row['用户编号'] || '' }))
+
+      progress.value = 60
+      const res = await importBindRevenueUsers({
+        zoneCode: props.zoneCode,
+        mode: importMode.value,
+        dataList: parsedData
+      })
+      
+      progress.value = 100
+      setTimeout(() => {
+        isUploading.value = false
+        handleImportResult(res.data)
+      }, 500)
+      
+    } catch (err) {
+      isUploading.value = false
+      proxy.$modal.msgError(err.message || "解析文件失败")
+    }
+  }
+  reader.onerror = () => {
+    isUploading.value = false
+    proxy.$modal.msgError("读取文件出错")
+  }
+  reader.readAsArrayBuffer(file)
+}
+
+function handleImportResult(data) {
+  const { successCount, failCount, results } = data
+  proxy.$modal.notifySuccess(`成功关联 ${successCount} 条，失败 ${failCount} 条`)
+  
+  if (failCount > 0 && results && results.length > 0) {
+    proxy.$modal.confirm('存在未成功关联的记录，是否下载《关联结果分析报告》查看原因？', '导入完成提示', {
+      confirmButtonText: '下载报告',
+      cancelButtonText: '关闭'
+    }).then(() => {
+      exportResultExcel(results)
+    }).catch(() => {})
+  }
+  
+  emit('success')
+  if (activeTab.value === 'manual') getList()
+}
+
+function exportResultExcel(results) {
+  const exportData = results.map(item => ({
+    '用户编号': item.userNo,
+    '关联结果': item.success ? '成功' : '失败',
+    '原因说明': item.reason
+  }))
+  const ws = XLSX.utils.json_to_sheet(exportData)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, "关联结果")
+  XLSX.writeFile(wb, `营收用户关联结果分析_${new Date().getTime()}.xlsx`)
+}
+</script>
+
+<style scoped>
+.bind-tabs {
+  padding: 0 20px;
+}
+.bottom-action {
+  margin-top: 15px;
+  text-align: right;
+}
+.upload-zone {
+  border: 2px dashed #dcdfe6;
+  border-radius: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: #fafafa;
+}
+.upload-zone:hover {
+  border-color: #409EFF;
+  background-color: #f0f7ff;
+}
+.upload-icon {
+  font-size: 48px;
+  color: #a8abb2;
+  margin-bottom: 16px;
+}
+.hidden-input {
+  display: none;
+}
+/* 进度条样式复用 */
+.progress-overlay {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  z-index: 3000;
+  display: flex; justify-content: center; align-items: center;
+}
+.progress-card {
+  width: 400px; background: #fff; border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1); padding: 40px; text-align: center;
+}
+.loading-icon { font-size: 56px; color: #409EFF; margin-bottom: 20px; }
+.progress-title { font-size: 20px; font-weight: 600; margin: 0 0 10px; }
+.progress-desc { font-size: 14px; color: #909399; margin: 0 0 30px; }
+</style>

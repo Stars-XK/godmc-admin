@@ -22,6 +22,9 @@ export class WaterRevenueUserEntity extends BaseEntity {
   @Column({ type: 'varchar', length: 50, name: 'user_type', nullable: true, comment: '用户类型' })
   userType: string;
 
+  @Column({ type: 'varchar', length: 50, name: 'zone_code', nullable: true, comment: '所属分区编码' })
+  zoneCode: string;
+
   @Column({ type: 'varchar', length: 50, name: 'phone', nullable: true, comment: '手机号' })
   phone: string;
 
