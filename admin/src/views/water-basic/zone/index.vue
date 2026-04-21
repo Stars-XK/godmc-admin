@@ -318,12 +318,22 @@ function cleanHasChildren(list) {
 function getList() {
   loading.value = true;
   listZoneTree(queryParams.value).then(response => {
+    // 强制触发 v-if 销毁和重建，以防 el-table 数据过多时内部状态更新卡死
+    refreshTable.value = false;
+    
     const rawData = response.data || response;
     // 数据清洗，移除 hasChildren 伪属性
     const cleanData = cleanHasChildren(rawData);
     
     zoneList.value = cleanData;
     zoneOptions.value = cleanData;
+    loading.value = false;
+    
+    // 利用 nextTick 让浏览器有机会重绘，然后再挂载新的 el-table
+    nextTick(() => {
+      refreshTable.value = true;
+    });
+  }).catch(() => {
     loading.value = false;
   });
 }
