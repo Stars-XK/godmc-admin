@@ -55,14 +55,51 @@ export class TdengineService implements OnModuleInit {
   private async initDatabaseAndSTable() {
     try {
       await this.executeSql(`CREATE DATABASE IF NOT EXISTS ${this.dbName}`);
-      // 创建超级表 meters，包含时间戳 ts 和值 val，以及标签 device_code 和 point_code
+      
+      // 创建原始数据超级表 meters
       await this.executeSql(
         `CREATE STABLE IF NOT EXISTS ${this.dbName}.meters (ts TIMESTAMP, val DOUBLE) TAGS (device_code NCHAR(100), point_code NCHAR(100))`
       );
-      this.logger.log('TDengine 数据库与超级表初始化成功');
+
+      // 创建 5 分钟聚合超级表
+      await this.executeSql(
+        `CREATE STABLE IF NOT EXISTS ${this.dbName}.meters_5m (ts TIMESTAMP, avg_val DOUBLE, max_val DOUBLE, min_val DOUBLE, spread_val DOUBLE) TAGS (device_code NCHAR(100), point_code NCHAR(100))`
+      );
+
+      // 创建 1 小时聚合超级表
+      await this.executeSql(
+        `CREATE STABLE IF NOT EXISTS ${this.dbName}.meters_1h (ts TIMESTAMP, avg_val DOUBLE, max_val DOUBLE, min_val DOUBLE, spread_val DOUBLE) TAGS (device_code NCHAR(100), point_code NCHAR(100))`
+      );
+
+      // 创建 1 天聚合超级表
+      await this.executeSql(
+        `CREATE STABLE IF NOT EXISTS ${this.dbName}.meters_1d (ts TIMESTAMP, avg_val DOUBLE, max_val DOUBLE, min_val DOUBLE, spread_val DOUBLE) TAGS (device_code NCHAR(100), point_code NCHAR(100))`
+      );
+
+      // 创建流计算: 5 分钟
+      await this.executeSql(
+        `CREATE STREAM IF NOT EXISTS ${this.dbName}.stream_meters_5m INTO ${this.dbName}.meters_5m AS SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val FROM ${this.dbName}.meters PARTITION BY device_code, point_code INTERVAL(5m)`
+      );
+
+      // 创建流计算: 1 小时
+      await this.executeSql(
+        `CREATE STREAM IF NOT EXISTS ${this.dbName}.stream_meters_1h INTO ${this.dbName}.meters_1h AS SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val FROM ${this.dbName}.meters PARTITION BY device_code, point_code INTERVAL(1h)`
+      );
+
+      // 创建流计算: 1 天
+      await this.executeSql(
+        `CREATE STREAM IF NOT EXISTS ${this.dbName}.stream_meters_1d INTO ${this.dbName}.meters_1d AS SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val FROM ${this.dbName}.meters PARTITION BY device_code, point_code INTERVAL(1d)`
+      );
+
+      this.logger.log('TDengine 数据库、超级表与流计算 (5m, 1h, 1d) 初始化成功');
     } catch (error) {
       this.logger.warn('TDengine 初始化被挂起，将在服务可用时再次尝试。');
     }
+  }
+
+  // 暴露公共方法供查询使用
+  async querySql(sql: string) {
+    return this.executeSql(sql);
   }
 
   /**

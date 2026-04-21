@@ -21,39 +21,40 @@ export class QueryService {
     pointCode: string,
     startTime: string,
     endTime: string,
-    interval: string,
+    interval: '5m' | '1h' | '1d',
     pointType: 'instantaneous' | 'cumulative',
   ) {
-    // 确保子表名合法 (TDengine 表名不支持横线，这里替换为下划线)
     const safeDeviceCode = deviceCode.replace(/-/g, '_').toLowerCase();
     const safePointCode = pointCode.replace(/-/g, '_').toLowerCase();
-    // 假设 dbName 为 'water_iot'，和 tdengine.service 保持一致
-    const tableName = `water_iot.d_${safeDeviceCode}_${safePointCode}`;
+    
+    // 直接查询对应的流计算聚合超级表
+    const tableName = `water_iot.meters_${interval}`;
 
     let selectFields = '';
 
     // 根据测点分类决定聚合方式
     if (pointType === 'cumulative') {
-      // 累计增量（如累计流量）：计算时间窗口内的最大值减去最小值，即用量
-      selectFields = 'SPREAD(val) AS val';
+      // 累计增量（如累计流量）：流计算已经计算了 spread_val
+      selectFields = 'spread_val AS val';
     } else {
-      // 瞬时数据（如瞬时流量、压力、液位）：计算时间窗口内的平均值、最大值、最小值
-      selectFields = 'AVG(val) AS val, MAX(val) AS max_val, MIN(val) AS min_val';
+      // 瞬时数据（如瞬时流量、压力、液位）：查询流计算预聚合的 avg, max, min
+      selectFields = 'avg_val AS val, max_val, min_val';
     }
 
+    // 利用 device_code 和 point_code 作为 TAGS 进行快速查询
     const sql = `
-      SELECT _wstart AS ts, ${selectFields}
+      SELECT ts, ${selectFields}
       FROM ${tableName}
-      WHERE ts >= '${startTime}' AND ts <= '${endTime}'
-      INTERVAL(${interval})
-      FILL(PREV)
+      WHERE ts >= '${startTime}' AND ts <= '${endTime}' 
+        AND device_code = '${deviceCode}' 
+        AND point_code = '${pointCode}'
+      ORDER BY ts ASC
     `;
 
     try {
-      const res = await this.tdengineService.executeSql(sql);
+      const res = await this.tdengineService.querySql(sql);
       return res;
     } catch (error) {
-      // 捕获表不存在的异常，说明还没有该测点数据
       if (error?.response?.data?.code === 896 || String(error.message).includes('Table does not exist')) {
         this.logger.warn(`查询失败，表 ${tableName} 不存在 (暂无数据)`);
         return { head: [], data: [], rows: 0 };
@@ -66,14 +67,18 @@ export class QueryService {
    * 获取设备最新实时数据
    */
   async getLatestData(deviceCode: string, pointCode: string) {
-    const safeDeviceCode = deviceCode.replace(/-/g, '_').toLowerCase();
-    const safePointCode = pointCode.replace(/-/g, '_').toLowerCase();
-    const tableName = `water_iot.d_${safeDeviceCode}_${safePointCode}`;
+    const tableName = `water_iot.meters`;
 
-    const sql = `SELECT LAST_ROW(ts, val) FROM ${tableName}`;
+    // 从原始数据的超级表利用 tag 查找最新数据
+    const sql = `
+      SELECT LAST_ROW(ts, val) 
+      FROM ${tableName} 
+      WHERE device_code = '${deviceCode}' 
+        AND point_code = '${pointCode}'
+    `;
 
     try {
-      const res = await this.tdengineService.executeSql(sql);
+      const res = await this.tdengineService.querySql(sql);
       return res;
     } catch (error) {
       return { head: [], data: [], rows: 0 };

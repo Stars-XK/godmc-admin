@@ -15,6 +15,7 @@ import { TdengineModule } from './tdengine/tdengine.module';
 import { ReceiverModule } from './receiver/receiver.module';
 import { EngineModule } from './engine/engine.module';
 import { ConfigMgrModule } from './config-mgr/config-mgr.module';
+import { QueryModule } from './query/query.module';
 import { 
   DataIntegrationSourceEntity, 
   DataIntegrationTaskEntity, 
@@ -60,6 +61,7 @@ import {
     ReceiverModule,
     EngineModule,
     ConfigMgrModule,
+    QueryModule,
   ],
   providers: [
     JwtStrategy,
