@@ -206,18 +206,20 @@
 <script setup>
 import { ref, reactive, toRefs, onMounted, getCurrentInstance } from 'vue'
 import { listPoint, delPoint, getPoint, addPoint, updatePoint } from '@/api/water-basic/equipment'
+import { listUser } from "@/api/system/user"
 import { getToken } from "@/utils/auth"
 
 const { proxy } = getCurrentInstance()
 const { water_point_type, sys_normal_disable } = proxy.useDict('water_point_type', 'sys_normal_disable')
 
-const pointList = ref([])
 const loading = ref(true)
 const showSearch = ref(true)
 const total = ref(0)
 const uploadRef = ref(null)
+const userOptions = ref([])
 
 const data = reactive({
+  pointList: [],
   form: {},
   rules: {
     name: [{ required: true, message: "测点名称不能为空", trigger: "blur" }],
@@ -232,7 +234,7 @@ const data = reactive({
     url: import.meta.env.VITE_APP_BASE_API + "/water-basic/point/importData"
   }
 })
-const { form, rules, queryParams, upload } = toRefs(data)
+const { pointList, form, rules, queryParams, upload } = toRefs(data)
 const open = ref(false)
 const title = ref("")
 
@@ -283,6 +285,12 @@ function submitForm() {
 function cancel() {
   open.value = false
   reset()
+}
+
+function getUserList() {
+  listUser({ pageNum: 1, pageSize: 1000 }).then(res => {
+    userOptions.value = res.rows
+  })
 }
 
 function getList() {

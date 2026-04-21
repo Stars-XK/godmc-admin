@@ -208,7 +208,6 @@ import { getToken } from "@/utils/auth"
 const { proxy } = getCurrentInstance()
 const { water_device_type, sys_normal_disable } = proxy.useDict('water_device_type', 'sys_normal_disable')
 
-const deviceList = ref([])
 const loading = ref(true)
 const showSearch = ref(true)
 const total = ref(0)
@@ -216,6 +215,7 @@ const uploadRef = ref(null)
 const userOptions = ref([])
 
 const data = reactive({
+  deviceList: [],
   form: {},
   rules: {
     name: [{ required: true, message: "设备名称不能为空", trigger: "blur" }],
@@ -230,7 +230,7 @@ const data = reactive({
     url: import.meta.env.VITE_APP_BASE_API + "/water-basic/device/importData"
   }
 })
-const { form, rules, queryParams, upload } = toRefs(data)
+const { deviceList, form, rules, queryParams, upload } = toRefs(data)
 const open = ref(false)
 const title = ref("")
 

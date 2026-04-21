@@ -211,7 +211,6 @@ import { getToken } from "@/utils/auth"
 const { proxy } = getCurrentInstance()
 const { water_station_type, sys_normal_disable } = proxy.useDict('water_station_type', 'sys_normal_disable')
 
-const stationList = ref([])
 const loading = ref(true)
 const showSearch = ref(true)
 const total = ref(0)
@@ -219,6 +218,7 @@ const uploadRef = ref(null)
 const userOptions = ref([])
 
 const data = reactive({
+  stationList: [],
   form: {},
   rules: {
     name: [{ required: true, message: "站点名称不能为空", trigger: "blur" }],
@@ -232,7 +232,7 @@ const data = reactive({
     url: import.meta.env.VITE_APP_BASE_API + "/water-basic/station/importData"
   }
 })
-const { form, rules, queryParams, upload } = toRefs(data)
+const { stationList, form, rules, queryParams, upload } = toRefs(data)
 const open = ref(false)
 const title = ref("")
 
