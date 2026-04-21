@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
-import { BaseEntity } from '@app/common/entities/base.entity';
+import { BaseEntity } from '../base';
 
 @Entity({ name: 'scada_revenue_user' })
 export class WaterRevenueUserEntity extends BaseEntity {
@@ -40,18 +40,9 @@ export class WaterRevenueUserEntity extends BaseEntity {
   @Column({ type: 'varchar', length: 50, name: 'user_category', nullable: true, comment: '用户分类' })
   userCategory: string;
 
-  @Column({ type: 'char', length: 1, name: 'status', default: '0', comment: '用户状态(0正常 1停用)' })
-  status: string;
-
   @Column({ type: 'decimal', precision: 10, scale: 2, name: 'arrears_amount', default: 0.00, comment: '欠费金额' })
   arrearsAmount: number;
 
   @Column({ type: 'bigint', name: 'associated_user_id', nullable: true, comment: '关联系统用户ID' })
   associatedUserId: string;
-
-  @Column({ type: 'varchar', length: 500, name: 'remark', nullable: true, comment: '备注' })
-  remark: string;
-
-  @Column({ type: 'char', length: 1, name: 'del_flag', default: '0', comment: '删除标志(0代表存在 2代表删除)' })
-  delFlag: string;
 }
