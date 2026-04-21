@@ -628,6 +628,82 @@ export class ZoneService {
     return ResultData.ok({ successCount, failCount, results });
   }
 
+  async globalBindMetricTemplate(res: Response) {
+    const workbook = new exceljs.Workbook();
+    const worksheet = workbook.addWorksheet('全局指标配置模板');
+    worksheet.columns = [
+      { header: '分区编码', key: 'zoneCode', width: 25 },
+      { header: '指标类型(water_supply/min_flow)', key: 'metricType', width: 30 },
+      { header: '测点编码', key: 'pointCode', width: 25 },
+      { header: '计算符号(1为进水/-1为出水)', key: 'calcSign', width: 25 },
+    ];
+    worksheet.addRow({ zoneCode: 'ZONE_001', metricType: 'water_supply', pointCode: 'PT_001', calcSign: 1 });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=GlobalBindMetricTemplate.xlsx');
+    await workbook.xlsx.write(res);
+    res.end();
+  }
+
+  async globalImportBindMetrics(dataList: any[]) {
+    let successCount = 0;
+    let failCount = 0;
+    const results = [];
+
+    for (const item of dataList) {
+      const zoneCode = item.zoneCode || item['分区编码'];
+      const metricType = item.metricType || item['指标类型(water_supply/min_flow)'];
+      const pointCode = item.pointCode || item['测点编码'];
+      const calcSignStr = item.calcSign !== undefined ? item.calcSign : item['计算符号(1为进水/-1为出水)'];
+
+      if (!zoneCode || !metricType || !pointCode || calcSignStr === undefined || calcSignStr === null) {
+        failCount++;
+        results.push({ code: pointCode || '未知', success: false, reason: '缺少必填字段' });
+        continue;
+      }
+
+      const calcSign = Number(calcSignStr);
+      if (calcSign !== 1 && calcSign !== -1) {
+        failCount++;
+        results.push({ code: pointCode, success: false, reason: '计算符号必须为 1 或 -1' });
+        continue;
+      }
+
+      // 校验分区
+      const zone = await this.zoneRep.findOne({ where: { code: zoneCode, delFlag: '0' } });
+      if (!zone) {
+        failCount++;
+        results.push({ code: pointCode, success: false, reason: `分区编码(${zoneCode})不存在` });
+        continue;
+      }
+
+      // 校验测点
+      const point = await this.pointRep.findOne({ where: { code: pointCode, delFlag: '0' } });
+      if (!point) {
+        failCount++;
+        results.push({ code: pointCode, success: false, reason: `测点编码(${pointCode})不存在` });
+        continue;
+      }
+
+      // 校验是否存在并插入/更新
+      const exist = await this.metricCalcRep.findOne({ where: { zoneCode, metricType, pointCode } });
+      if (exist) {
+        await this.metricCalcRep.update(exist.id, { calcSign });
+      } else {
+        const entity = new WaterZoneMetricCalcEntity();
+        entity.zoneCode = zoneCode;
+        entity.metricType = metricType;
+        entity.pointCode = pointCode;
+        entity.calcSign = calcSign;
+        await this.metricCalcRep.save(entity);
+      }
+      
+      successCount++;
+      results.push({ code: pointCode, success: true, reason: '配置成功' });
+    }
+
+    return ResultData.ok({ successCount, failCount, results });
+  }
+
   // ================= 指标计算配置接口 =================
 
   async getMetricCalcTree(zoneCode: string) {

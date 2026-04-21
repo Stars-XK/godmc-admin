@@ -13,8 +13,9 @@
       <div class="info-alert">
         <el-icon class="info-icon"><InfoFilled /></el-icon>
         <div class="info-text">
-          <p>请先下载 <strong>{{ type === 'device' ? '全局设备关联模板' : '全局营收关联模板' }}</strong></p>
-          <span>在模板中填入对应的分区编码与{{ type === 'device' ? '设备' : '用户' }}编码后上传。系统会自动匹配更新关联关系。</span>
+          <p>请先下载 <strong>{{ templateName }}</strong></p>
+          <span v-if="type === 'metric'">在模板中填入分区编码、指标类型、测点编码和计算符号(1为进水/-1为出水)后上传。</span>
+          <span v-else>在模板中填入对应的分区编码与{{ type === 'device' ? '设备' : '用户' }}编码后上传。系统会自动匹配更新关联关系。</span>
         </div>
       </div>
 
@@ -79,13 +80,13 @@ import { ref, computed } from 'vue'
 import { ElMessage, ElNotification } from 'element-plus'
 import { download } from '@/utils/request'
 import * as XLSX from 'xlsx'
-import { importGlobalBindDevices, importGlobalBindRevenueUsers } from '@/api/water-basic/zone-bind'
+import { importGlobalBindDevices, importGlobalBindRevenueUsers, importGlobalBindMetrics } from '@/api/water-basic/zone-bind'
 
 const props = defineProps({
   modelValue: Boolean,
   type: {
     type: String,
-    default: 'device' // 'device' 或 'revenue'
+    default: 'device' // 'device' 或 'revenue' 或 'metric'
   }
 })
 
@@ -97,7 +98,17 @@ const visible = computed({
 })
 
 const title = computed(() => {
-  return props.type === 'device' ? '批量导入设备关联' : '批量导入营收关联'
+  if (props.type === 'device') return '批量导入设备关联'
+  if (props.type === 'revenue') return '批量导入营收关联'
+  if (props.type === 'metric') return '批量导入指标计算配置'
+  return '批量导入'
+})
+
+const templateName = computed(() => {
+  if (props.type === 'device') return '全局设备关联模板.xlsx'
+  if (props.type === 'revenue') return '全局营收关联模板.xlsx'
+  if (props.type === 'metric') return '全局指标测点配置模板.xlsx'
+  return '关联模板.xlsx'
 })
 
 const selectedFile = ref(null)
@@ -117,9 +128,11 @@ function removeFile() {
 
 function downloadTemplate() {
   if (props.type === 'device') {
-    download('/water-basic/zone/global-bind/device/template', {}, `全局设备关联模板.xlsx`)
-  } else {
-    download('/water-basic/zone/global-bind/revenue/template', {}, `全局营收关联模板.xlsx`)
+    download('/water-basic/zone/global-bind/device/template', {}, templateName.value)
+  } else if (props.type === 'revenue') {
+    download('/water-basic/zone/global-bind/revenue/template', {}, templateName.value)
+  } else if (props.type === 'metric') {
+    download('/water-basic/zone/global-bind/metric/template', {}, templateName.value)
   }
 }
 
@@ -155,8 +168,10 @@ async function submitImport() {
     let res
     if (props.type === 'device') {
       res = await importGlobalBindDevices(data)
-    } else {
+    } else if (props.type === 'revenue') {
       res = await importGlobalBindRevenueUsers(data)
+    } else if (props.type === 'metric') {
+      res = await importGlobalBindMetrics(data)
     }
 
     progress.value = 100
@@ -171,7 +186,7 @@ async function submitImport() {
           duration: 0
         })
       } else {
-        ElMessage.success(`导入成功，共关联 ${successCount} 条数据！`)
+        ElMessage.success(`导入成功，共处理 ${successCount} 条数据！`)
       }
       emit('success')
       visible.value = false

@@ -72,6 +72,15 @@ export function importGlobalBindRevenueUsers(data) {
   })
 }
 
+export function importGlobalBindMetrics(data) {
+  return request({
+    url: '/water-basic/zone/global-bind/metric/import',
+    method: 'post',
+    data: data,
+    timeout: 600000
+  })
+}
+
 // ================= 指标计算配置接口 =================
 
 export function getMetricCalcTree(zoneCode) {
