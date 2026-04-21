@@ -30,5 +30,25 @@ const activeTab = ref('overview')
 <style scoped>
 .app-container {
   padding: 20px;
+  height: calc(100vh - 84px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.el-tabs) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.el-tabs__content) {
+  flex: 1;
+  padding: 15px;
+  overflow: hidden;
+}
+
+:deep(.el-tab-pane) {
+  height: 100%;
 }
 </style>

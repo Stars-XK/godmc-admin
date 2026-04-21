@@ -22,15 +22,14 @@
               />
             </div>
           </template>
-          <div class="tree-container custom-scrollbar">
-            <el-tree
+          <div class="tree-container">
+            <el-tree-v2
               :key="treeKey"
-              lazy
-              :load="loadNode"
+              :data="treeData"
               :props="treeProps"
-              node-key="id"
+              :height="treeHeight"
               :expand-on-click-node="false"
-              class="custom-tree"
+              class="custom-tree custom-scrollbar"
             >
               <template #default="{ node, data }">
                 <div class="custom-tree-node">
@@ -38,12 +37,11 @@
                     <el-icon><component :is="getIcon(data.nodeType)" /></el-icon>
                   </div>
                   <span class="node-label" :title="node.label">{{ node.label }}</span>
-                  <!-- 为了极致的懒加载性能，这里移除了深层节点的子级数量徽章计算，只保留类型标识 -->
                   <el-tag v-if="data.nodeType === 'device'" size="small" type="info" class="badge" effect="plain">设备</el-tag>
                   <el-tag v-if="data.nodeType === 'point'" size="small" type="warning" class="badge" effect="plain">测点</el-tag>
                 </div>
               </template>
-            </el-tree>
+            </el-tree-v2>
           </div>
         </el-card>
       </el-col>
@@ -119,17 +117,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { listStation, listDevice, listPoint } from '@/api/water-basic/equipment'
 
 const stats = ref({ stationCount: 0, deviceCount: 0, pointCount: 0 })
 const searchName = ref('')
 const treeKey = ref(1)
+const treeData = ref([])
+const treeHeight = ref(500)
 
 const treeProps = {
+  value: 'id',
   label: 'label',
-  children: 'children',
-  isLeaf: 'isLeaf'
+  children: 'children'
 }
 
 function getIcon(type) {
@@ -161,73 +161,76 @@ async function loadStats() {
   }
 }
 
-async function loadNode(node, resolve) {
-  if (node.level === 0) {
-    // 懒加载第一层：站点（为应对海量数据，这里最大加载 10000 条顶级站点，并支持前端按名字搜索）
-    try {
-      const res = await listStation({ pageNum: 1, pageSize: 10000, name: searchName.value })
-      const list = res.rows || (res.data && res.data.list) || []
-      const stations = list.map(s => ({
-        ...s,
-        label: s.name,
-        nodeType: 'station',
-        id: `s_${s.id}`,
-        isLeaf: false
-      }))
-      resolve(stations)
-    } catch (error) {
-      resolve([])
-    }
-  } else if (node.level === 1) {
-    // 懒加载第二层：设备
-    try {
-      const res = await listDevice({ stationCode: node.data.code, pageNum: 1, pageSize: 1000 })
-      const list = res.rows || (res.data && res.data.list) || []
-      const devices = list.map(d => ({
+async function loadAllTopology() {
+  try {
+    // 并行获取全量数据，为 el-tree-v2 构建虚拟树。
+    // 如果站点确实非常多，这里依然可以使用一次性加载，因为渲染层交给了虚拟滚动。
+    const sRes = await listStation({ pageNum: 1, pageSize: 100000, name: searchName.value })
+    const dRes = await listDevice({ pageNum: 1, pageSize: 100000 })
+    const pRes = await listPoint({ pageNum: 1, pageSize: 100000 })
+
+    const stations = sRes.rows || (sRes.data && sRes.data.list) || []
+    const devices = dRes.rows || (dRes.data && dRes.data.list) || []
+    const points = pRes.rows || (pRes.data && pRes.data.list) || []
+
+    const pointMap = {}
+    points.forEach(p => {
+      if (!pointMap[p.deviceCode]) pointMap[p.deviceCode] = []
+      pointMap[p.deviceCode].push({
+        ...p,
+        label: p.name,
+        nodeType: 'point',
+        id: `p_${p.id}`
+      })
+    })
+
+    const deviceMap = {}
+    devices.forEach(d => {
+      if (!deviceMap[d.stationCode]) deviceMap[d.stationCode] = []
+      deviceMap[d.stationCode].push({
         ...d,
         label: d.name,
         nodeType: 'device',
         id: `d_${d.id}`,
-        isLeaf: false
-      }))
-      resolve(devices)
-    } catch (error) {
-      resolve([])
-    }
-  } else if (node.level === 2) {
-    // 懒加载第三层：测点
-    try {
-      const res = await listPoint({ deviceCode: node.data.code, pageNum: 1, pageSize: 1000 })
-      const list = res.rows || (res.data && res.data.list) || []
-      const points = list.map(p => ({
-        ...p,
-        label: p.name,
-        nodeType: 'point',
-        id: `p_${p.id}`,
-        isLeaf: true
-      }))
-      resolve(points)
-    } catch (error) {
-      resolve([])
-    }
-  } else {
-    resolve([])
+        children: pointMap[d.code] || []
+      })
+    })
+
+    const tree = stations.map(s => ({
+      ...s,
+      label: s.name,
+      nodeType: 'station',
+      id: `s_${s.id}`,
+      children: deviceMap[s.code] || []
+    }))
+
+    treeData.value = tree
+  } catch (error) {
+    console.error('加载拓扑树失败', error)
   }
 }
 
 function handleSearch() {
-  treeKey.value++ // 重置 key 触发 tree 重新加载 root 节点
+  loadAllTopology()
 }
 
 onMounted(() => {
   loadStats()
+  loadAllTopology()
+  
+  // 动态计算虚拟树高度
+  nextTick(() => {
+    const treeContainer = document.querySelector('.tree-container')
+    if (treeContainer) {
+      treeHeight.value = treeContainer.clientHeight - 20
+    }
+  })
 })
 </script>
 
 <style scoped>
 .overview-container {
-  height: calc(100vh - 170px);
-  min-height: 600px;
+  height: 100%;
   box-sizing: border-box;
 }
 
