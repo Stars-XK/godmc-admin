@@ -2,7 +2,7 @@ import { Controller, Get, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { QueryService } from './query.service';
 import { ResultData } from '@app/common/utils/result';
-import { NotRequireAuth } from '@app/common/decorators/not-require-auth.decorator';
+import { NotRequireAuth } from '@app/common/decorators/user.decorator';
 
 @ApiTags('时序数据查询')
 @Controller('data-integration/query')
