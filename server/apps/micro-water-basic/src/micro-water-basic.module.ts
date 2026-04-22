@@ -13,6 +13,8 @@ import { PermissionGuard } from '@app/common/guards/permission.guard';
 import { RolesGuard } from '@app/common/guards/roles.guard';
 import { JwtModule } from '@nestjs/jwt';
 import { RegistryModule, WaterPointEntity, WaterDeviceEntity, WaterStationEntity } from '@app/common';
+import { MicroWaterBasicController } from './micro-water-basic.controller';
+import { MicroWaterBasicService } from './micro-water-basic.service';
 
 @Module({
   imports: [
@@ -50,7 +52,9 @@ import { RegistryModule, WaterPointEntity, WaterDeviceEntity, WaterStationEntity
     RegistryModule,
     TypeOrmModule.forFeature([WaterPointEntity, WaterDeviceEntity, WaterStationEntity]),
   ],
+  controllers: [MicroWaterBasicController],
   providers: [
+    MicroWaterBasicService,
     JwtStrategy,
     {
       provide: APP_GUARD,
