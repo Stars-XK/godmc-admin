@@ -18,6 +18,7 @@
                 placeholder="输入站点名称搜索"
                 prefix-icon="Search"
                 clearable
+                @input="handleSearchDebounced"
                 @keyup.enter="handleSearch"
                 @clear="handleSearch"
               />
@@ -113,7 +114,15 @@
                 <div class="card-header" style="justify-content: space-between; display: flex;">
                   <div class="header-title" style="display: flex; align-items: center;">
                     <div class="title-accent"></div>
-                    <span style="font-weight: bold; font-size: 15px;">{{ selectedNode ? selectedNode.name : '全网' }} - 实时数据视图</span>
+                    <span style="font-weight: bold; font-size: 15px;">
+                      {{ selectedNode ? selectedNode.name : '全网' }} - 实时数据视图
+                      <span v-if="selectedNode" class="header-subcode">{{ selectedNode.code }}</span>
+                    </span>
+                  </div>
+                  <div v-if="selectedNode" class="header-right">
+                    <el-tag size="small" :type="getStatusTagType(selectedNode.status)" effect="light">
+                      {{ getStatusText(selectedNode.status) }}
+                    </el-tag>
                   </div>
                 </div>
               </template>
@@ -137,6 +146,7 @@
 import { ref, onMounted } from 'vue'
 import { listStation, listDevice, listPoint } from '@/api/water-basic/equipment'
 import DataViewer from '@/components/DataViewer/index.vue'
+import { useDebounceFn } from '@vueuse/core'
 
 const stats = ref({ stationCount: 0, deviceCount: 0, pointCount: 0 })
 const selectedNode = ref(null)
@@ -157,6 +167,20 @@ function getStationStatusClass(station) {
   if (s === '0') return 'status-online'
   if (s === '1') return 'status-abnormal'
   return 'status-offline'
+}
+
+function getStatusTagType(status) {
+  const s = String(status ?? '0')
+  if (s === '0') return 'success'
+  if (s === '1') return 'warning'
+  return 'info'
+}
+
+function getStatusText(status) {
+  const s = String(status ?? '0')
+  if (s === '0') return '在线'
+  if (s === '1') return '异常'
+  return '离线'
 }
 
 async function loadStats() {
@@ -192,11 +216,14 @@ function handleSearch() {
   loadStations()
 }
 
+const handleSearchDebounced = useDebounceFn(handleSearch, 300)
+
 function handleStationClick(station) {
   selectedNode.value = {
     nodeType: 'station',
     code: station.code,
     name: station.name,
+    status: station.iotStatus || station.status || '0',
     parentCode: ''
   }
 }
@@ -259,6 +286,19 @@ onMounted(() => {
   font-weight: 600;
   font-size: 16px;
   color: #303133;
+}
+
+.header-subcode {
+  margin-left: 10px;
+  font-size: 12px;
+  color: #909399;
+  font-weight: 500;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .title-accent {
