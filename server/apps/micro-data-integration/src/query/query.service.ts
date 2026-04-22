@@ -71,17 +71,82 @@ export class QueryService {
 
     // 从原始数据的超级表利用 tag 查找最新数据
     const sql = `
-      SELECT LAST_ROW(ts, val) 
-      FROM ${tableName} 
-      WHERE device_code = '${deviceCode}' 
+      SELECT LAST_ROW(ts, val)
+      FROM ${tableName}
+      WHERE device_code = '${deviceCode}'
         AND point_code = '${pointCode}'
     `;
-
     try {
       const res = await this.tdengineService.querySql(sql);
       return res;
     } catch (error) {
-      return { head: [], data: [], rows: 0 };
+      return null;
+    }
+  }
+
+  /**
+   * 批量获取设备最新实时数据
+   */
+  async getLatestDataBatch(deviceCode?: string, pointCodes?: string) {
+    let sql = `SELECT LAST_ROW(ts, val), device_code, point_code FROM water_iot.meters WHERE 1=1`;
+    if (deviceCode) {
+      sql += ` AND device_code = '${deviceCode}'`;
+    }
+    if (pointCodes) {
+      const codes = pointCodes.split(',').map(c => `'${c}'`).join(',');
+      sql += ` AND point_code IN (${codes})`;
+    }
+    sql += ` GROUP BY device_code, point_code`;
+    
+    try {
+      const res = await this.tdengineService.querySql(sql);
+      const result = [];
+      if (res && res.data) {
+        res.data.forEach(row => {
+          result.push({
+            ts: row[0],
+            val: row[1],
+            deviceCode: row[2],
+            pointCode: row[3]
+          });
+        });
+      }
+      return result;
+    } catch (error) {
+      return [];
+    }
+  }
+
+  async getHistoryData(deviceCode: string, pointCode: string, startTime: string, endTime: string, interval: string = 'raw') {
+    let tableName = `water_iot.meters`;
+    let valColumn = 'val';
+
+    if (interval === '5m') {
+      tableName = `water_iot.meters_5m`;
+      valColumn = 'avg_val';
+    } else if (interval === '1h') {
+      tableName = `water_iot.meters_1h`;
+      valColumn = 'avg_val';
+    } else if (interval === '1d') {
+      tableName = `water_iot.meters_1d`;
+      valColumn = 'avg_val';
+    }
+
+    let sql = `SELECT ts, ${valColumn} as val FROM ${tableName} WHERE ts >= '${startTime}' AND ts <= '${endTime}'`;
+    sql += ` AND device_code = '${deviceCode}' AND point_code = '${pointCode}'`;
+    sql += ` ORDER BY ts ASC LIMIT 10000`;
+
+    try {
+      const res = await this.tdengineService.querySql(sql);
+      const result = [];
+      if (res && res.data) {
+        res.data.forEach(row => {
+          result.push({ ts: row[0], val: row[1] });
+        });
+      }
+      return result;
+    } catch (error) {
+      return [];
     }
   }
 }

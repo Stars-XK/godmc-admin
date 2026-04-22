@@ -2,7 +2,32 @@
   <div class="data-viewer-container">
     <!-- 站点视图 -->
     <div v-if="viewType === 'station'" class="station-view">
-      <el-empty description="请在左侧点击设备或测点查看详细数据"></el-empty>
+      <div class="view-header">
+        <div class="header-left">
+          <h3>{{ name || code }} - 下属设备实时数据</h3>
+        </div>
+        <el-button type="primary" link icon="Refresh" @click="fetchStationData">刷新</el-button>
+      </div>
+      <div v-loading="loading" class="station-device-list">
+        <div v-for="device in stationDevices" :key="device.code" class="device-section">
+          <h4 class="device-title">
+            <el-icon><Cpu /></el-icon> {{ device.name }} ({{ device.code }})
+          </h4>
+          <el-row :gutter="20">
+            <el-col :span="12" :md="8" :lg="6" v-for="(item, index) in device.latestData" :key="index" style="margin-bottom: 20px;">
+              <el-card shadow="hover" class="point-card">
+                <div class="point-title" :title="item.pointCode">{{ item.pointCode }}</div>
+                <div class="point-value">{{ item.val }}</div>
+                <div class="point-time">{{ formatTime(item.ts) }}</div>
+              </el-card>
+            </el-col>
+            <el-col :span="24" v-if="!device.latestData || device.latestData.length === 0">
+              <el-empty description="暂无感知数据" :image-size="60"></el-empty>
+            </el-col>
+          </el-row>
+        </div>
+        <el-empty v-if="stationDevices.length === 0 && !loading" description="该站点下暂无设备"></el-empty>
+      </div>
     </div>
 
     <!-- 设备视图 -->
@@ -62,6 +87,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { getLatestDataBatch, getHistoryData } from '@/api/data-integration/query'
+import { listDevice } from '@/api/water-basic/equipment'
 import * as echarts from 'echarts'
 
 const props = defineProps({
@@ -72,6 +98,7 @@ const props = defineProps({
 })
 
 const loading = ref(false)
+const stationDevices = ref([])
 const latestData = ref([])
 const dateRange = ref([])
 const historyParams = ref({ interval: 'raw' })
@@ -91,6 +118,30 @@ function initDateRange() {
   const start = new Date()
   start.setTime(start.getTime() - 3600 * 1000 * 24) // 默认 24 小时
   dateRange.value = [formatTime(start), formatTime(end)]
+}
+
+async function fetchStationData() {
+  if (!props.code) return
+  loading.value = true
+  try {
+    const res = await listDevice({ stationCode: props.code, pageNum: 1, pageSize: 100 })
+    const devices = res.data.list || []
+    
+    // 对于每个设备，获取最新数据
+    await Promise.all(devices.map(async (device) => {
+      try {
+        const latestRes = await getLatestDataBatch({ deviceCode: device.code })
+        device.latestData = latestRes.data || []
+      } catch (e) {
+        device.latestData = []
+      }
+    }))
+    stationDevices.value = devices
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loading.value = false
+  }
 }
 
 async function fetchLatest() {
@@ -186,7 +237,9 @@ function handleResize() {
 
 watch(() => props.code, (newVal) => {
   if (newVal) {
-    if (props.viewType === 'device') {
+    if (props.viewType === 'station') {
+      fetchStationData()
+    } else if (props.viewType === 'device') {
       fetchLatest()
     } else if (props.viewType === 'point') {
       if(dateRange.value.length === 0) initDateRange()
@@ -255,5 +308,26 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 450px;
   flex-grow: 1;
+}
+.station-device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  padding-right: 10px;
+}
+.device-section {
+  border-bottom: 1px solid #ebeef5;
+  padding-bottom: 20px;
+}
+.device-section:last-child {
+  border-bottom: none;
+}
+.device-title {
+  margin: 0 0 15px 0;
+  color: #303133;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style>

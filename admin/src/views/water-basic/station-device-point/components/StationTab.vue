@@ -64,6 +64,7 @@
           </el-table-column>
           <el-table-column label="操作" align="center" width="200" class-name="small-padding fixed-width">
             <template #default="scope">
+              <el-button link type="primary" icon="DataLine" @click="handleDataView(scope.row)">实时数据</el-button>
               <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['water-basic:station:edit']">修改</el-button>
               <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['water-basic:station:remove']">删除</el-button>
             </template>
@@ -73,6 +74,11 @@
         <pagination v-show="total>0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
       </el-col>
     </el-row>
+
+    <!-- 实时数据抽屉 -->
+    <el-drawer v-model="drawerOpen" :title="drawerTitle" size="50%">
+      <DataViewer v-if="drawerOpen" viewType="station" :code="drawerCode" :name="drawerName" />
+    </el-drawer>
 
     <!-- 添加或修改站点对话框 -->
     <el-dialog :title="title" v-model="open" width="700px" append-to-body>
@@ -211,6 +217,7 @@ import { listStation, delStation, getStation, addStation, updateStation, importS
 import { listUser } from "@/api/system/user"
 import * as XLSX from 'xlsx'
 import { getToken } from "@/utils/auth"
+import DataViewer from '@/components/DataViewer/index.vue'
 
 const { proxy } = getCurrentInstance()
 const { water_station_type, sys_normal_disable } = proxy.useDict('water_station_type', 'sys_normal_disable')
@@ -220,6 +227,18 @@ const showSearch = ref(true)
 const total = ref(0)
 const uploadRef = ref(null)
 const userOptions = ref([])
+
+const drawerOpen = ref(false)
+const drawerTitle = ref('')
+const drawerCode = ref('')
+const drawerName = ref('')
+
+function handleDataView(row) {
+  drawerCode.value = row.code
+  drawerName.value = row.name
+  drawerTitle.value = '站点数据 - ' + row.name
+  drawerOpen.value = true
+}
 
 /**
  * @typedef {Object} StationRecord
