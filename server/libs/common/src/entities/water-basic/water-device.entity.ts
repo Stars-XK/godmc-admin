@@ -30,6 +30,10 @@ export class WaterDeviceEntity extends BaseEntity {
   @Column({ type: 'varchar', name: 'type', length: 20, comment: '设备类型', default: '1' })
   public type: string;
 
+  @ApiProperty({ type: Number, description: '预期数据周期(分钟)', required: false })
+  @Column({ type: 'int', name: 'expected_cycle', comment: '预期数据周期(分钟)', nullable: true })
+  public expectedCycle: number;
+
   @ApiProperty({ type: String, description: '设备型号' })
   @Column({ type: 'varchar', name: 'model', length: 100, comment: '设备型号', nullable: true })
   public model: string;

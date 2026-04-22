@@ -26,6 +26,10 @@ export class WaterPointEntity extends BaseEntity {
   @Column({ type: 'varchar', name: 'type', length: 20, comment: '测点类型', default: '1' })
   public type: string;
 
+  @ApiProperty({ type: Number, description: '预期数据周期(分钟)', required: false })
+  @Column({ type: 'int', name: 'expected_cycle', comment: '预期数据周期(分钟)', nullable: true })
+  public expectedCycle: number;
+
   @ApiProperty({ type: String, description: '量程上限' })
   @Column({ type: 'decimal', name: 'range_max', precision: 10, scale: 2, comment: '量程上限', nullable: true })
   public rangeMax: number;
