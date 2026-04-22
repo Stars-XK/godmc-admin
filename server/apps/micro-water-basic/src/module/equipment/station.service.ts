@@ -36,7 +36,11 @@ export class StationService {
       entity.andWhere('station.deptId = :deptId', { deptId: user.deptId });
     }
 
-    entity.orderBy('station.sort', 'ASC').addOrderBy('station.createTime', 'DESC');
+    // 按 status 状态排序（0优先，然后1，最后2），然后按 sort 排序
+    entity
+      .orderBy('station.status', 'ASC')
+      .addOrderBy('station.sort', 'ASC')
+      .addOrderBy('station.createTime', 'DESC');
     
     const [list, total] = await entity.skip((query.pageNum - 1) * query.pageSize).take(query.pageSize).getManyAndCount();
     return ResultData.ok({ list, total });

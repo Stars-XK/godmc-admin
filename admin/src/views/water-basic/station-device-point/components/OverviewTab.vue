@@ -269,6 +269,190 @@ onMounted(() => {
   margin-right: 10px;
 }
 
+.custom-tag {
+  border-radius: 12px;
+  padding: 0 10px;
+  font-weight: 500;
+}
+
+/* 左侧列表样式 */
+.list-card {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.list-card :deep(.el-card__body) {
+  padding: 0;
+}
+
+.station-list-container {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.station-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #ebeef5;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.station-item:hover {
+  background-color: #f5f7fa;
+}
+
+.station-item.is-active {
+  background-color: #ecf5ff;
+}
+
+.station-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.station-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.station-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.station-code {
+  font-size: 12px;
+  color: #909399;
+}
+
+.station-status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 10px;
+  flex-shrink: 0;
+}
+
+.status-online { color: #67C23A; background-color: #f0f9eb; }
+.status-online.station-status-indicator { background-color: #67C23A; }
+
+.status-abnormal { color: #E6A23C; background-color: #fdf6ec; }
+.status-abnormal.station-status-indicator { background-color: #E6A23C; }
+
+.status-offline { color: #909399; background-color: #f4f4f5; }
+.status-offline.station-status-indicator { background-color: #909399; }
+
+.pagination-container {
+  padding: 12px;
+  border-top: 1px solid #ebeef5;
+  background-color: #fff;
+  display: flex;
+  justify-content: center;
+}
+
+/* 右侧统计卡片区 */
+.stat-row {
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  position: relative;
+  height: 100px;
+  border-radius: 12px;
+  background-color: #fff;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  border: 1px solid #ebeef5;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.stat-bg-shape {
+  position: absolute;
+  right: -20px;
+  top: -20px;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  opacity: 0.1;
+  z-index: 0;
+}
+
+.stat-station .stat-bg-shape { background: #409EFF; }
+.stat-device .stat-bg-shape { background: #67C23A; }
+.stat-point .stat-bg-shape { background: #E6A23C; }
+
+.stat-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+  padding: 0 24px;
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-title {
+  font-size: 14px;
+  color: #909399;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: bold;
+  color: #303133;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  line-height: 1;
+}
+
+.stat-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+}
+
+.stat-station .stat-icon-box { background: #ecf5ff; color: #409EFF; }
+.stat-device .stat-icon-box { background: #f0f9eb; color: #67C23A; }
+.stat-point .stat-icon-box { background: #fdf6ec; color: #E6A23C; }
+
+/* 滚动条美化 */
+.el-scrollbar {
+  height: 100%;
+}
+</style>
+
 .title-accent.accent-purple {
   background-color: #8a2be2;
 }
