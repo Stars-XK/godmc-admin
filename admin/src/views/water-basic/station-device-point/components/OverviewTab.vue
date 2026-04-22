@@ -207,7 +207,7 @@ function createPlaceholder(parentId) {
 
 async function loadStations() {
   try {
-    const sRes = await listStation({ pageNum: 1, pageSize: 100000, name: searchName.value })
+    const sRes = await listStation({ pageNum: 1, pageSize: 2000, name: searchName.value })
     const stations = sRes.rows || (sRes.data && sRes.data.list) || []
     treeData.value = stations.map(s => ({
       ...s,
@@ -233,7 +233,7 @@ async function handleNodeExpand(data) {
   if (data.nodeType === 'station' && !data._loaded) {
     data.children = createPlaceholder(data.id)
     try {
-      const res = await listDevice({ stationCode: data.code, pageNum: 1, pageSize: 50000 })
+      const res = await listDevice({ stationCode: data.code, pageNum: 1, pageSize: 2000 })
       const list = res.rows || (res.data && res.data.list) || []
       data.children = list.map(d => ({
         ...d,
@@ -256,7 +256,7 @@ async function handleNodeExpand(data) {
   if (data.nodeType === 'device' && !data._loaded) {
     data.children = createPlaceholder(data.id)
     try {
-      const res = await listPoint({ deviceCode: data.code, pageNum: 1, pageSize: 50000 })
+      const res = await listPoint({ deviceCode: data.code, pageNum: 1, pageSize: 2000 })
       const list = res.rows || (res.data && res.data.list) || []
       data.children = list.map(p => ({
         ...p,
