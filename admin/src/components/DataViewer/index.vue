@@ -94,7 +94,8 @@ const props = defineProps({
   viewType: { type: String, required: true }, // 'station' | 'device' | 'point'
   code: { type: String, required: true },
   name: { type: String, default: '' },
-  parentCode: { type: String, default: '' } // 仅测点需要 deviceCode
+  parentCode: { type: String, default: '' }, // 仅测点需要 deviceCode
+  pointType: { type: String, default: '' } // 新增测点类型(例如 FLOW, PRESSURE 等)
 })
 
 const loading = ref(false)
@@ -170,7 +171,14 @@ async function fetchHistory() {
       pointCode: props.code,
       startTime: dateRange.value[0],
       endTime: dateRange.value[1],
-      interval: historyParams.value.interval
+      interval: historyParams.value.interval,
+      // 如果后端要求传 pointType（'instantaneous'|'cumulative'|'incremental'），
+      // 目前没有在前端完全判断这个逻辑，先传 default，或者通过后端查表决定。
+      // 因为后端 QueryController 中定义了 @Query('pointType')，并且必填。
+      // 我们可以先传递 'instantaneous'，因为 TdengineAggService 中现在自动判断。
+      // 注意：目前后端 QueryController 接口定义了 pointType 是必填参数，
+      // 所以我们临时传一个默认值，后端在 1.2.4 更新中其实也可以通过字典自动处理。
+      pointType: 'instantaneous'
     })
     renderChart(res.data || [])
   } catch (e) {

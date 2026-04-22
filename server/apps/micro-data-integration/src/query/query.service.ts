@@ -14,7 +14,7 @@ export class QueryService {
    * @param startTime 开始时间 (e.g. '2024-01-01 00:00:00')
    * @param endTime 结束时间 (e.g. '2024-01-02 00:00:00')
    * @param interval 时间窗口 (e.g. '5m', '1h', '1d')
-   * @param pointType 测点类型 ('instantaneous' 瞬时数据, 'cumulative' 累计数据)
+   * @param pointType 测点类型 ('instantaneous' 瞬时数据, 'cumulative' 累计数据, 'incremental' 增长量数据)
    */
   async getAggregatedData(
     deviceCode: string,
@@ -22,7 +22,7 @@ export class QueryService {
     startTime: string,
     endTime: string,
     interval: '5m' | '1h' | '1d',
-    pointType: 'instantaneous' | 'cumulative',
+    pointType: 'instantaneous' | 'cumulative' | 'incremental',
   ) {
     const safeDeviceCode = deviceCode.replace(/-/g, '_').toLowerCase();
     const safePointCode = pointCode.replace(/-/g, '_').toLowerCase();
@@ -31,6 +31,7 @@ export class QueryService {
     const tableName = `water_iot.meters_${interval}`;
 
     // 因为 TdengineAggService 中，对于 cumulative 类型，我们将 LAST(val) 存入了 avg_val，
+    // 对于 incremental 类型，我们将 SUM(val) 存入了 avg_val，
     // 对于 instantaneous 类型，存入了 AVG(val)。所以统一取 avg_val 作为代表值。
     let selectFields = 'avg_val AS val, max_val, min_val';
 
