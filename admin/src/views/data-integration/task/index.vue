@@ -65,6 +65,10 @@
           <el-switch v-model="form.autoBackfill" active-text="开启" inactive-text="关闭" />
           <div class="el-upload__tip">开启后，若单次抓取了跨越整点的大量历史数据，引擎将自动触发时序聚合重算。</div>
         </el-form-item>
+        <el-form-item label="自动插值补全" v-if="form.autoBackfill">
+          <el-switch v-model="form.interpolation" active-text="开启" inactive-text="关闭" />
+          <div class="el-upload__tip">开启后，回填聚合数据时若存在空洞（如设备断网导致无数据），将使用前值(PREV)或线性(LINEAR)算法自动插值填补。</div>
+        </el-form-item>
         <el-form-item label="任务状态" prop="status">
           <el-radio-group v-model="form.status">
             <el-radio label="0">正常</el-radio>
@@ -137,7 +141,8 @@ const quickCron = ref(null);
 const data = reactive({
   form: {
     status: '0',
-    autoBackfill: false
+    autoBackfill: false,
+    interpolation: false
   },
   rules: {
     name: [{ required: true, message: '任务名称不能为空', trigger: 'blur' }],
@@ -228,6 +233,7 @@ function reset() {
   form.querySqlOrTopic = undefined;
   form.status = '0';
   form.autoBackfill = false;
+  form.interpolation = false;
   quickCron.value = null;
   if (taskRef.value) taskRef.value.resetFields();
 }
@@ -247,6 +253,7 @@ function handleUpdate(row) {
   form.querySqlOrTopic = row.querySqlOrTopic;
   form.status = row.status;
   form.autoBackfill = row.autoBackfill === 1 || row.autoBackfill === true;
+  form.interpolation = row.interpolation === 1 || row.interpolation === true;
   open.value = true;
   title.value = '修改接入任务';
 }
@@ -254,7 +261,11 @@ function handleUpdate(row) {
 function submitForm() {
   taskRef.value.validate(valid => {
     if (valid) {
-      const submitData = { ...form, autoBackfill: form.autoBackfill ? 1 : 0 };
+      const submitData = { 
+        ...form, 
+        autoBackfill: form.autoBackfill ? 1 : 0,
+        interpolation: form.interpolation ? 1 : 0 
+      };
       if (form.id != null) {
         updateTask(submitData).then(response => {
           ElMessage.success('修改成功');

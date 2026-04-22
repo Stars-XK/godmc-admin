@@ -30,6 +30,10 @@ export class DataIntegrationTaskEntity extends BaseEntity {
   @Column({ name: 'auto_backfill', type: 'tinyint', default: 0, comment: '是否自动触发历史补录 (0-否 1-是)' })
   public autoBackfill: number;
 
+  @ApiProperty({ description: '是否自动插值补全空洞 (0-否 1-是)' })
+  @Column({ name: 'interpolation', type: 'tinyint', default: 0, comment: '是否自动插值补全空洞 (0-否 1-是)' })
+  public interpolation: number;
+
   @ApiProperty({ type: String, description: '任务状态 (0正常 1停用)' })
   @Column({ type: 'char', name: 'status', length: 1, default: '0', comment: '任务状态 (0正常 1停用)' })
   public status: string;

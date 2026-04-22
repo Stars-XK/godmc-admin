@@ -108,7 +108,7 @@ export class ReceiverService {
   /**
    * 通用 HTTP 数据推送接收器
    */
-  async receiveData(taskId: number, payload: any | any[], autoBackfill: boolean = false) {
+  async receiveData(taskId: number, payload: any | any[], autoBackfill: boolean = false, interpolation: boolean = false) {
     const dataList = Array.isArray(payload) ? payload : [payload];
     if (dataList.length === 0) return { success: 0, failed: 0 };
 
@@ -168,7 +168,7 @@ export class ReceiverService {
         const startTsStr = new Date(record.startTs).toISOString();
         const endTsStr = new Date(record.endTs).toISOString();
         for (const pointCode of record.pointCodes) {
-          await this.backfillHistoricalData(deviceCode, pointCode, startTsStr, endTsStr);
+          await this.backfillHistoricalData(deviceCode, pointCode, startTsStr, endTsStr, interpolation);
         }
       }
     }
@@ -180,7 +180,7 @@ export class ReceiverService {
   /**
    * 将历史数据回填写入到 5m, 1h, 1d 的聚合表中
    */
-  private async backfillHistoricalData(deviceCode: string, pointCode: string, startTs: string, endTs: string) {
+  private async backfillHistoricalData(deviceCode: string, pointCode: string, startTs: string, endTs: string, useInterpolation: boolean = false) {
     try {
       const safeDeviceCode = deviceCode.replace(/-/g, '_').toLowerCase();
       const safePointCode = pointCode.replace(/-/g, '_').toLowerCase();
@@ -192,6 +192,8 @@ export class ReceiverService {
       const t5m = `water_iot.a5m_${safeDeviceCode}_${safePointCode}`;
       const t1h = `water_iot.a1h_${safeDeviceCode}_${safePointCode}`;
       const t1d = `water_iot.a1d_${safeDeviceCode}_${safePointCode}`;
+
+      const fillClause = useInterpolation ? ' FILL(PREV)' : '';
 
       await this.tdengineService.querySql(`CREATE TABLE IF NOT EXISTS ${t5m} USING water_iot.meters_5m TAGS ('${deviceCode}', '${pointCode}')`);
       await this.tdengineService.querySql(`CREATE TABLE IF NOT EXISTS ${t1h} USING water_iot.meters_1h TAGS ('${deviceCode}', '${pointCode}')`);
@@ -206,7 +208,7 @@ export class ReceiverService {
         SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val)
         FROM ${tName}
         WHERE ts >= '${start}' AND ts <= '${end}'
-        INTERVAL(5m)
+        INTERVAL(5m)${fillClause}
       `);
 
       await this.tdengineService.querySql(`
@@ -214,7 +216,7 @@ export class ReceiverService {
         SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val)
         FROM ${tName}
         WHERE ts >= '${start}' AND ts <= '${end}'
-        INTERVAL(1h)
+        INTERVAL(1h)${fillClause}
       `);
 
       await this.tdengineService.querySql(`
@@ -222,10 +224,10 @@ export class ReceiverService {
         SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val)
         FROM ${tName}
         WHERE ts >= '${start}' AND ts <= '${end}'
-        INTERVAL(1d)
+        INTERVAL(1d)${fillClause}
       `);
       
-      this.logger.log(`历史数据回填聚合表完成: ${deviceCode}-${pointCode}`);
+      this.logger.log(`历史数据回填聚合表完成 (插值: ${useInterpolation}): ${deviceCode}-${pointCode}`);
     } catch (err) {
       this.logger.error(`手动回填历史聚合数据失败: ${err.message}`);
     }
