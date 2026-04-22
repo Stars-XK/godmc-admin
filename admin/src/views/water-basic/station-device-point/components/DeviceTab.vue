@@ -67,12 +67,18 @@
           <el-table-column label="操作" align="center" width="200" class-name="small-padding fixed-width">
             <template #default="scope">
               <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['water-basic:device:edit']">修改</el-button>
+              <el-button link type="success" icon="DataLine" @click="handleDataView(scope.row)">实时数据</el-button>
               <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['water-basic:device:remove']">删除</el-button>
             </template>
           </el-table-column>
         </el-table>
 
         <pagination v-show="total>0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
+
+        <!-- 数据视图抽屉 -->
+        <el-drawer v-model="drawerOpen" :title="drawerTitle" size="50%">
+          <DataViewer v-if="drawerOpen" viewType="device" :code="drawerCode" :name="drawerName" />
+        </el-drawer>
       </el-col>
     </el-row>
 
@@ -208,6 +214,7 @@ import { listDevice, delDevice, getDevice, addDevice, updateDevice, importDevice
 import { listUser } from "@/api/system/user"
 import * as XLSX from 'xlsx'
 import { getToken } from "@/utils/auth"
+import DataViewer from '@/components/DataViewer/index.vue'
 
 const { proxy } = getCurrentInstance()
 const { water_device_type, sys_normal_disable } = proxy.useDict('water_device_type', 'sys_normal_disable')
@@ -217,6 +224,11 @@ const showSearch = ref(true)
 const total = ref(0)
 const uploadRef = ref(null)
 const userOptions = ref([])
+
+const drawerOpen = ref(false)
+const drawerTitle = ref('')
+const drawerCode = ref('')
+const drawerName = ref('')
 
 /**
  * @typedef {Object} DeviceRecord
@@ -327,6 +339,13 @@ function getList() {
 
 function handleQuery() { queryParams.value.pageNum = 1; getList() }
 function resetQuery() { proxy.resetForm("queryRef"); handleQuery() }
+
+function handleDataView(row) {
+  drawerCode.value = row.code
+  drawerName.value = row.name
+  drawerTitle.value = '设备数据 - ' + row.name
+  drawerOpen.value = true
+}
 
 function handleDelete(row) {
   proxy.$modal.confirm('是否确认删除设备"' + row.name + '"？').then(() => {
