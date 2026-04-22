@@ -275,7 +275,7 @@ async function handleNodeExpand(data) {
   }
 }
 
-function initCharts() {
+async function initCharts() {
   // 1. 站点类型分布 (Pie Chart)
   if (stationTypeChartRef.value) {
     stationChartInstance = echarts.init(stationTypeChartRef.value)
@@ -482,9 +482,9 @@ function initCharts() {
 }
 
 function handleResize() {
-  if (stationChartInstance) stationChartInstance.resize()
-  if (deviceChartInstance) deviceChartInstance.resize()
-  if (trendChartInstance) trendChartInstance.resize()
+  if (stationChartInstance) stationChartInstance.resize();
+  if (deviceChartInstance) deviceChartInstance.resize();
+  if (trendChartInstance) trendChartInstance.resize();
 }
 
 onMounted(() => {
