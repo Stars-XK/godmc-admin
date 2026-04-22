@@ -44,17 +44,20 @@
               class="custom-tree"
             >
               <template #default="{ node, data }">
-                <div class="custom-tree-node">
+                <div class="custom-tree-node" :class="{ 'is-disabled-node': data.isPoint && isPointInPool(data.code) }">
                   <el-icon v-if="!data.isPoint"><Cpu /></el-icon>
                   <el-icon v-else class="point-icon"><LocationInformation /></el-icon>
                   <span class="node-label" :class="{ 'is-point': data.isPoint }">{{ node.label }}</span>
-                  <div v-if="data.isPoint" class="node-actions">
-                    <el-button type="primary" link size="small" @click="addPoint(data, 1)" title="添加为进水(加)">
+                  <div v-if="data.isPoint && !isPointInPool(data.code)" class="node-actions">
+                    <el-button type="primary" link size="small" @click.stop="addPoint(data, 1)" title="添加为进水(加)">
                       <el-icon><Plus /></el-icon> 进水
                     </el-button>
-                    <el-button type="danger" link size="small" @click="addPoint(data, -1)" title="添加为出水(减)">
+                    <el-button type="danger" link size="small" @click.stop="addPoint(data, -1)" title="添加为出水(减)">
                       <el-icon><Minus /></el-icon> 出水
                     </el-button>
+                  </div>
+                  <div v-else-if="data.isPoint && isPointInPool(data.code)" class="node-status">
+                    <el-tag size="small" type="info" effect="plain">已添加</el-tag>
                   </div>
                 </div>
               </template>
@@ -217,6 +220,12 @@ function removePoint(pointCode, sign) {
   }
 }
 
+// 检查该测点是否已经在计算池中（左侧树样式绑定用）
+function isPointInPool(pointCode) {
+  return inPoints.value.some(p => p.pointCode === pointCode) || 
+         outPoints.value.some(p => p.pointCode === pointCode);
+}
+
 // 提交保存
 async function submitSave() {
   saving.value = true
@@ -329,6 +338,16 @@ async function submitSave() {
 .custom-tree-node:hover .node-actions {
   display: flex;
   gap: 4px;
+}
+.is-disabled-node {
+  opacity: 0.6;
+}
+.is-disabled-node .point-icon {
+  color: #909399;
+}
+.node-status {
+  display: flex;
+  align-items: center;
 }
 
 /* 右侧画板 */
