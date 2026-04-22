@@ -28,10 +28,10 @@ cos:
 # 数据库配置
 db:
   mysql:
-    host: '127.0.0.1'
-    username: 'root'
-    password: 'yehuozhili'
-    database: 'nest-admin'
+    host: '139.224.26.134'
+    username: 'dma'
+    password: 'QzwTwHR3YT85AbNf'
+    database: 'dma'
     port: 3306
     charset: 'utf8mb4'
     logger: 'file'
@@ -49,21 +49,21 @@ db:
 # redis 配置
 redis:
   host: 'localhost'
-  password: '*********'
+  password: '123456'
   port: 6379
   db: 2
   keyPrefix: ''
 
 # TDengine 配置
 tdengine:
-  host: '127.0.0.1'
+  host: '139.224.26.134'
   port: 6041
   user: 'root'
   password: 'taosdata'
 
 # jwt 配置
 jwt:
-  secretkey: 'you_secretkey'
+  secretkey: 'QzwTwHR3YT85AbNf'
   expiresin: '1h'
   refreshExpiresIn: '2h'
 # 权限 白名单配置
