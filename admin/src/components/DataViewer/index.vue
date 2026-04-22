@@ -187,9 +187,29 @@ function renderChart(dataList) {
   }
 
   // 转换数据为时间轴格式 [timestamp, value]
-  const seriesData = dataList.map(item => {
-    return [new Date(item.ts).getTime(), item.val]
-  })
+  // 动态判断数据断档，超过指定间隔则插入 null 断开连线
+  const seriesData = []
+  
+  // 根据不同的时间粒度设置断开连线的阈值（毫秒）
+  // 原始数据假定如果超过 30 分钟没有数据则认为断线，其他聚合按其粒度的 1.5 - 2 倍计算
+  let gapThreshold = 30 * 60 * 1000 
+  if (historyParams.value.interval === '5m') gapThreshold = 10 * 60 * 1000
+  if (historyParams.value.interval === '1h') gapThreshold = 2 * 60 * 60 * 1000
+  if (historyParams.value.interval === '1d') gapThreshold = 2 * 24 * 60 * 60 * 1000
+
+  for (let i = 0; i < dataList.length; i++) {
+    const currentTs = new Date(dataList[i].ts).getTime()
+    
+    // 如果不是第一个点，且与上一个点的时间差超过了阈值，插入一个包含 null 值的断点
+    if (i > 0) {
+      const prevTs = new Date(dataList[i - 1].ts).getTime()
+      if (currentTs - prevTs > gapThreshold) {
+        // 在前一个点之后 1 秒插入一个空点来强行断开
+        seriesData.push([prevTs + 1000, null])
+      }
+    }
+    seriesData.push([currentTs, dataList[i].val])
+  }
 
   // 固定 X 轴范围为用户选择的时间范围
   const startTime = new Date(dateRange.value[0]).getTime()
