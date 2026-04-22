@@ -1,56 +1,66 @@
 <template>
   <div class="overview-container">
     <el-row :gutter="20" class="full-height-row">
-      <!-- 左侧：拓扑树 -->
+      <!-- 左侧：站点列表 -->
       <el-col :span="8" class="left-col">
-        <el-card class="box-card tree-card" shadow="never">
+        <el-card class="box-card list-card" shadow="never">
           <template #header>
             <div class="card-header">
               <div class="header-title">
                 <div class="title-accent"></div>
-                <span>物联拓扑结构</span>
+                <span>物联站点列表</span>
               </div>
-              <el-tag size="small" effect="light" class="custom-tag">{{ stats.stationCount }} 站点</el-tag>
+              <el-tag size="small" effect="light" class="custom-tag">{{ total }} 站点</el-tag>
             </div>
-            <div class="search-box">
+            <div class="search-box" style="margin-top: 15px;">
               <el-input
-                v-model="searchName"
+                v-model="queryParams.name"
                 placeholder="输入站点名称搜索"
                 prefix-icon="Search"
                 clearable
-                @change="handleSearch"
+                @keyup.enter="handleSearch"
+                @clear="handleSearch"
               />
             </div>
           </template>
-          <div class="tree-container">
-            <el-tree-v2
-              :key="treeKey"
-              :data="treeData"
-              :props="treeProps"
-              :height="treeHeight"
-              :expand-on-click-node="false"
-              @node-click="handleNodeClick"
-              @node-expand="handleNodeClick"
-              class="custom-tree custom-scrollbar"
-            >
-              <template #default="{ node, data }">
-                <div class="custom-tree-node">
-                  <div class="node-icon-wrapper" :class="'icon-' + data.nodeType">
-                    <el-icon><component :is="getIcon(data.nodeType)" /></el-icon>
-                  </div>
-                  <span class="node-label" :title="node.label">{{ node.label }}</span>
-                  <el-tag v-if="data.nodeType === 'device'" size="small" type="info" class="badge" effect="plain">设备</el-tag>
-                  <el-tag v-if="data.nodeType === 'point'" size="small" type="warning" class="badge" effect="plain">测点</el-tag>
+          <div class="station-list-container" v-loading="loading">
+            <el-scrollbar>
+              <div
+                v-for="station in stationList"
+                :key="station.id"
+                class="station-item"
+                :class="{ 'is-active': selectedNode && selectedNode.code === station.code }"
+                @click="handleStationClick(station)"
+              >
+                <div class="station-icon" :class="getStationStatusClass(station)">
+                  <el-icon><OfficeBuilding /></el-icon>
                 </div>
-              </template>
-            </el-tree-v2>
+                <div class="station-info">
+                  <div class="station-name" :title="station.name">{{ station.name }}</div>
+                  <div class="station-code">{{ station.code }}</div>
+                </div>
+                <div class="station-status-indicator" :class="getStationStatusClass(station)"></div>
+              </div>
+              <el-empty v-if="stationList.length === 0 && !loading" description="暂无站点数据" :image-size="60"></el-empty>
+            </el-scrollbar>
+          </div>
+          <div class="pagination-container">
+            <el-pagination
+              v-model:current-page="queryParams.pageNum"
+              v-model:page-size="queryParams.pageSize"
+              :total="total"
+              layout="prev, pager, next"
+              small
+              background
+              @current-change="loadStations"
+            />
           </div>
         </el-card>
       </el-col>
 
-      <!-- 右侧：统计与图表 -->
+      <!-- 右侧：统计与数据视图 -->
       <el-col :span="16" class="right-col">
-        <!-- 未选中节点或选中站点时显示全局统计 -->
+        <!-- 顶部统计 -->
         <div v-if="!selectedNode || selectedNode.nodeType === 'station'" class="global-dashboard" style="display: flex; flex-direction: column; height: 100%;">
           <el-row :gutter="20" class="stat-row">
             <el-col :span="8">
@@ -97,67 +107,26 @@
             </el-col>
           </el-row>
 
-          <el-row :gutter="20" class="chart-row">
-            <el-col :span="12">
-              <el-card class="box-card sub-chart-card" shadow="never">
-                <template #header>
-                  <div class="card-header">
-                    <div class="header-title">
-                      <div class="title-accent accent-green"></div>
-                      <span>站点类型分布</span>
-                    </div>
+          <div class="detail-dashboard" style="height: 100%; flex: 1;">
+            <el-card class="box-card chart-card" shadow="never" style="height: 100%; border: none;">
+              <template #header>
+                <div class="card-header" style="justify-content: space-between; display: flex;">
+                  <div class="header-title" style="display: flex; align-items: center;">
+                    <div class="title-accent"></div>
+                    <span style="font-weight: bold; font-size: 15px;">{{ selectedNode ? selectedNode.name : '全网' }} - 实时数据视图</span>
                   </div>
-                </template>
-                <div class="sub-chart-container" ref="stationTypeChartRef"></div>
-              </el-card>
-            </el-col>
-            <el-col :span="12">
-              <el-card class="box-card sub-chart-card" shadow="never">
-                <template #header>
-                  <div class="card-header">
-                    <div class="header-title">
-                      <div class="title-accent accent-purple"></div>
-                      <span>设备状态监控</span>
-                    </div>
-                  </div>
-                </template>
-                <div class="sub-chart-container" ref="deviceStatusChartRef"></div>
-              </el-card>
-            </el-col>
-          </el-row>
-
-          <el-card class="box-card chart-card" shadow="never">
-            <template #header>
-              <div class="card-header">
-                <div class="header-title">
-                  <div class="title-accent accent-orange"></div>
-                  <span>近七日测点数据量趋势</span>
                 </div>
-              </div>
-            </template>
-            <div class="chart-container" ref="trendChartRef"></div>
-          </el-card>
-        </div>
-
-        <!-- 选中设备或测点时显示具体数据视图 -->
-        <div v-else class="detail-dashboard" style="height: 100%;">
-           <el-card class="box-card chart-card" shadow="never" style="height: 100%; border: none;">
-             <template #header>
-               <div class="card-header" style="justify-content: space-between; display: flex;">
-                 <div class="header-title" style="display: flex; align-items: center;">
-                   <div class="title-accent"></div>
-                   <span style="font-weight: bold; font-size: 15px;">{{ selectedNode.name || selectedNode.label }} - 数据视图</span>
-                 </div>
-                 <el-button link type="primary" @click="selectedNode = null">返回总览</el-button>
-               </div>
-             </template>
-             <DataViewer 
-               :viewType="selectedNode.nodeType" 
-               :code="selectedNode.code" 
-               :parentCode="selectedNode.parentCode"
-               :name="selectedNode.name || selectedNode.label" 
-             />
-           </el-card>
+              </template>
+              <DataViewer
+                v-if="selectedNode"
+                :viewType="selectedNode.nodeType"
+                :code="selectedNode.code"
+                :parentCode="selectedNode.parentCode"
+                :name="selectedNode.name || selectedNode.label"
+              />
+              <el-empty v-else description="请在左侧点击站点查看实时数据" :image-size="80"></el-empty>
+            </el-card>
+          </div>
         </div>
       </el-col>
     </el-row>
@@ -165,44 +134,29 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick, getCurrentInstance } from 'vue'
+import { ref, onMounted } from 'vue'
 import { listStation, listDevice, listPoint } from '@/api/water-basic/equipment'
-import * as echarts from 'echarts'
 import DataViewer from '@/components/DataViewer/index.vue'
 
 const stats = ref({ stationCount: 0, deviceCount: 0, pointCount: 0 })
-const searchName = ref('')
 const selectedNode = ref(null)
-const treeKey = ref(1)
-const treeData = ref([])
-const treeHeight = ref(500)
 
-const stationTypeChartRef = ref(null)
-const deviceStatusChartRef = ref(null)
-const trendChartRef = ref(null)
+const loading = ref(false)
+const stationList = ref([])
+const total = ref(0)
+const queryParams = ref({
+  pageNum: 1,
+  pageSize: 20,
+  name: undefined
+})
 
-let stationChartInstance = null
-let deviceChartInstance = null
-let trendChartInstance = null
-
-const treeProps = {
-  value: 'id',
-  label: 'label',
-  children: 'children'
-}
-
-function getIcon(type) {
-  if (type === 'station') return 'OfficeBuilding'
-  if (type === 'device') return 'Cpu'
-  if (type === 'point') return 'Odometer'
-  return 'Folder'
-}
-
-function getIconColor(type) {
-  if (type === 'station') return '#409EFF'
-  if (type === 'device') return '#67C23A'
-  if (type === 'point') return '#E6A23C'
-  return '#909399'
+function getStationStatusClass(station) {
+  // 根据用户需求：在线绿色(0)，异常黄色(1)，离线灰色(2)
+  // 这里暂时用 status (0=正常 1=停用) 做 fallback
+  const s = String(station.iotStatus || station.status || '0')
+  if (s === '0') return 'status-online'
+  if (s === '1') return 'status-abnormal'
+  return 'status-offline'
 }
 
 async function loadStats() {
@@ -220,24 +174,38 @@ async function loadStats() {
   }
 }
 
-function createPlaceholder(parentId) {
-  return [
-    {
-      id: `${parentId}_placeholder`,
-      label: '加载中...',
-      nodeType: 'placeholder',
-      disabled: true,
-      children: []
-    }
-  ]
+async function loadStations() {
+  loading.value = true
+  try {
+    const sRes = await listStation(queryParams.value)
+    stationList.value = sRes.rows || (sRes.data && sRes.data.list) || []
+    total.value = sRes.total || (sRes.data && sRes.data.total) || 0
+  } catch (error) {
+    console.error('加载站点列表失败', error)
+  } finally {
+    loading.value = false
+  }
 }
 
-async function loadStations() {
-  try {
-    const sRes = await listStation({ pageNum: 1, pageSize: 2000, name: searchName.value })
-    const stations = sRes.rows || (sRes.data && sRes.data.list) || []
-    treeData.value = stations.map(s => ({
-      ...s,
+function handleSearch() {
+  queryParams.value.pageNum = 1
+  loadStations()
+}
+
+function handleStationClick(station) {
+  selectedNode.value = {
+    nodeType: 'station',
+    code: station.code,
+    name: station.name,
+    parentCode: ''
+  }
+}
+
+onMounted(() => {
+  loadStats()
+  loadStations()
+})
+</script>
       id: `s_${s.id}`,
       label: s.name,
       nodeType: 'station',
@@ -309,247 +277,6 @@ async function handleNodeClick(data) {
     }
   }
 }
-
-async function initCharts() {
-  // 1. 站点类型分布 (Pie Chart)
-  if (stationTypeChartRef.value) {
-    stationChartInstance = echarts.init(stationTypeChartRef.value)
-    
-    // 从后端真实获取站点类型统计
-    let typeCounts = {}
-    try {
-      const res = await listStation({ pageNum: 1, pageSize: 100000 })
-      const list = res.rows || (res.data && res.data.list) || []
-      list.forEach(station => {
-        const t = String(station.type) || 'UNKNOWN'
-        typeCounts[t] = (typeCounts[t] || 0) + 1
-      })
-    } catch (e) {
-      console.error('获取站点类型统计失败', e)
-    }
-
-    // 映射字典
-    const { proxy } = getCurrentInstance() || { proxy: { useDict: () => ({ water_station_type: { value: [] } }) } }
-    const { water_station_type } = proxy.useDict('water_station_type')
-    
-    const typeData = []
-    Object.keys(typeCounts).forEach(key => {
-      const dictItem = water_station_type.value.find(d => String(d.value) === key)
-      const label = dictItem ? dictItem.label : (key === 'UNKNOWN' ? '其他' : key)
-      typeData.push({ name: label, value: typeCounts[key] })
-    })
-
-    if (typeData.length === 0) {
-      typeData.push({ name: '暂无数据', value: 0 })
-    }
-
-    const option = {
-      tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-      legend: { bottom: '0%', left: 'center', icon: 'circle', itemWidth: 10, itemHeight: 10 },
-      color: ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399', '#8e44ad', '#f1c40f'],
-      series: [
-        {
-          name: '站点类型',
-          type: 'pie',
-          radius: ['45%', '70%'],
-          center: ['50%', '45%'],
-          avoidLabelOverlap: false,
-          itemStyle: {
-            borderRadius: 8,
-            borderColor: '#fff',
-            borderWidth: 2
-          },
-          label: { show: false, position: 'center' },
-          emphasis: {
-            label: { show: true, fontSize: 16, fontWeight: 'bold' }
-          },
-          labelLine: { show: false },
-          data: typeData
-        }
-      ]
-    }
-    stationChartInstance.setOption(option)
-  }
-
-  // 2. 设备状态监控 (Bar Chart)
-  if (deviceStatusChartRef.value) {
-    deviceChartInstance = echarts.init(deviceStatusChartRef.value)
-    
-    // 从后端真实获取设备状态统计
-    let statusCounts = { '0': 0, '1': 0, '2': 0 }
-    try {
-      // 获取所有设备的列表来统计状态，如果设备太多也可以后续让后端加个聚合接口
-      const res = await listDevice({ pageNum: 1, pageSize: 100000 })
-      const list = res.rows || (res.data && res.data.list) || []
-      list.forEach(device => {
-        const s = String(device.status)
-        if (statusCounts[s] !== undefined) {
-          statusCounts[s]++
-        } else {
-          statusCounts['0']++ // 默认当正常
-        }
-      })
-    } catch (e) {
-      console.error('获取设备状态统计失败', e)
-    }
-
-    const option = {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      grid: { left: '5%', right: '5%', bottom: '5%', top: '15%', containLabel: true },
-      xAxis: {
-        type: 'category',
-        data: ['在线运行(全)', '数据异常(分)', '完全离线'],
-        axisLine: { lineStyle: { color: '#e4e7ed' } },
-        axisLabel: { color: '#606266' },
-        axisTick: { show: false }
-      },
-      yAxis: {
-        type: 'value',
-        splitLine: { lineStyle: { type: 'dashed', color: '#ebeef5' } },
-        axisLabel: { color: '#909399' }
-      },
-      series: [
-        {
-          name: '设备数量',
-          type: 'bar',
-          barWidth: '40%',
-          itemStyle: {
-            color: function(params) {
-              const colorList = [
-                ['#a18cd1', '#fbc2eb'], // 在线 (紫粉)
-                ['#f6d365', '#fda085'], // 异常 (黄橙)
-                ['#cfd9df', '#e2ebf0']  // 离线 (灰)
-              ]
-              return new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: colorList[params.dataIndex][0] },
-                { offset: 1, color: colorList[params.dataIndex][1] }
-              ])
-            },
-            borderRadius: [6, 6, 0, 0]
-          },
-          data: [
-            statusCounts['0'],
-            statusCounts['1'],
-            statusCounts['2']
-          ]
-        }
-      ]
-    }
-    deviceChartInstance.setOption(option)
-  }
-
-  // 3. 测点数据量趋势 (Line Chart)
-  if (trendChartRef.value) {
-    trendChartInstance = echarts.init(trendChartRef.value)
-    
-    // Generate dates for the last 7 days
-    const dates = []
-    for(let i = 6; i >= 0; i--) {
-      const d = new Date()
-      d.setDate(d.getDate() - i)
-      dates.push(`${d.getMonth()+1}-${d.getDate()}`)
-    }
-    
-    const baseValue = stats.value.pointCount > 0 ? stats.value.pointCount : 10000;
-    
-    const option = {
-      tooltip: {
-        trigger: 'axis',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        borderColor: '#eee',
-        textStyle: { color: '#333' }
-      },
-      legend: { data: ['流量数据', '压力数据'], top: '2%', right: '5%', icon: 'roundRect' },
-      grid: { left: '3%', right: '4%', bottom: '5%', top: '18%', containLabel: true },
-      xAxis: {
-        type: 'category',
-        boundaryGap: false,
-        data: dates,
-        axisLine: { lineStyle: { color: '#dcdfe6' } },
-        axisLabel: { color: '#606266' }
-      },
-      yAxis: {
-        type: 'value',
-        splitLine: { lineStyle: { type: 'dashed', color: '#ebeef5' } },
-        axisLabel: { color: '#909399' }
-      },
-      series: [
-        {
-          name: '流量数据',
-          type: 'line',
-          smooth: true,
-          symbolSize: 8,
-          lineStyle: { width: 3, color: '#E6A23C' },
-          itemStyle: { color: '#E6A23C', borderWidth: 2, borderColor: '#fff' },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(230,162,60,0.3)' },
-              { offset: 1, color: 'rgba(230,162,60,0.05)' }
-            ])
-          },
-          data: [
-            baseValue * 0.8, baseValue * 0.85, baseValue * 0.82, 
-            baseValue * 0.9, baseValue * 0.95, baseValue * 0.98, baseValue
-          ].map(Math.floor)
-        },
-        {
-          name: '压力数据',
-          type: 'line',
-          smooth: true,
-          symbolSize: 8,
-          lineStyle: { width: 3, color: '#409EFF' },
-          itemStyle: { color: '#409EFF', borderWidth: 2, borderColor: '#fff' },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(64,158,255,0.3)' },
-              { offset: 1, color: 'rgba(64,158,255,0.05)' }
-            ])
-          },
-          data: [
-            baseValue * 0.5, baseValue * 0.52, baseValue * 0.58, 
-            baseValue * 0.55, baseValue * 0.6, baseValue * 0.65, baseValue * 0.7
-          ].map(Math.floor)
-        }
-      ]
-    }
-    trendChartInstance.setOption(option)
-  }
-}
-
-function handleResize() {
-  if (stationChartInstance) stationChartInstance.resize();
-  if (deviceChartInstance) deviceChartInstance.resize();
-  if (trendChartInstance) trendChartInstance.resize();
-}
-
-onMounted(() => {
-  loadStats().then(() => {
-    nextTick(() => {
-      initCharts()
-    })
-  })
-  loadStations()
-  
-  // Resize tree based on window height
-  const updateHeight = () => {
-    const treeEl = document.querySelector('.tree-container')
-    if (treeEl) {
-      treeHeight.value = treeEl.clientHeight
-    } else {
-      treeHeight.value = window.innerHeight - 240
-    }
-  }
-  updateHeight()
-  window.addEventListener('resize', updateHeight)
-  window.addEventListener('resize', handleResize)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', handleResize)
-  if (stationChartInstance) stationChartInstance.dispose()
-  if (deviceChartInstance) deviceChartInstance.dispose()
-  if (trendChartInstance) trendChartInstance.dispose()
-})
 </script>
 
 <style scoped>

@@ -48,7 +48,7 @@
               <dict-tag :options="water_station_type" :value="String(scope.row.type)" />
             </template>
           </el-table-column>
-          <el-table-column label="经纬度" align="center" width="150">
+          <el-table-column label="经纬度" align="center" min-width="250">
             <template #default="{ row }">
               <span v-if="row.longitude && row.latitude">{{ row.longitude }}, {{ row.latitude }}</span>
               <span v-else>-</span>
