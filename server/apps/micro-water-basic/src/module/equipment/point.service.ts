@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
-import { WaterPointEntity, Paginate } from '@app/common';
+import { SysDictDataEntity, WaterPointEntity, Paginate } from '@app/common';
 import { Response } from 'express';
 import { ExportTable } from '@app/common/utils/export';
 import * as exceljs from 'exceljs';
@@ -12,7 +12,46 @@ export class PointService {
   constructor(
     @InjectRepository(WaterPointEntity)
     private readonly rep: Repository<WaterPointEntity>,
+    @InjectRepository(SysDictDataEntity)
+    private readonly dictRep: Repository<SysDictDataEntity>,
   ) {}
+
+  private async getDictMaps(dictType: string) {
+    const rows = await this.dictRep.find({ where: { dictType, delFlag: '0' as any } });
+    const byLabel = new Map<string, string>();
+    const byValue = new Map<string, string>();
+    for (const r of rows) {
+      byLabel.set(String(r.dictLabel || '').trim(), String(r.dictValue || '').trim());
+      byValue.set(String(r.dictValue || '').trim(), String(r.dictValue || '').trim());
+    }
+    return { rows, byLabel, byValue };
+  }
+
+  private async normalizePointType(raw: any) {
+    const input = String(raw ?? '').trim();
+    if (!input) return { ok: true, value: 'OTHER' };
+
+    const legacyMap: Record<string, string> = {
+      '1': 'FLOW',
+      '2': 'PRESSURE',
+      '3': 'LEVEL',
+      '4': 'QUALITY_CHLORINE',
+      '5': 'QUALITY_TURBIDITY',
+      '6': 'QUALITY_PH',
+    };
+
+    if (legacyMap[input]) return { ok: true, value: legacyMap[input] };
+
+    const { rows, byLabel, byValue } = await this.getDictMaps('water_point_type');
+    if (byValue.has(input)) return { ok: true, value: input };
+    if (byLabel.has(input)) return { ok: true, value: byLabel.get(input) };
+
+    return {
+      ok: false,
+      value: input,
+      allowed: rows.map((r) => ({ label: r.dictLabel, value: r.dictValue })),
+    };
+  }
 
   async create(createDto: any, user: any) {
     createDto.createBy = user.userName;
@@ -91,7 +130,7 @@ export class PointService {
       { header: '所属设备编码(必填)', key: 'deviceCode', width: 20 },
       { header: '测点名称(必填)', key: 'name', width: 20 },
       { header: '测点编码(必填)', key: 'code', width: 20 },
-      { header: '测点类型(1/2/3/4/5)', key: 'type', width: 15 },
+      { header: '测点类型(填写字典值或中文名称)', key: 'type', width: 28 },
       { header: '量程上限', key: 'rangeMax', width: 15 },
       { header: '量程下限', key: 'rangeMin', width: 15 },
       { header: '报警上限', key: 'alarmMax', width: 15 },
@@ -101,7 +140,7 @@ export class PointService {
       { header: '读写属性(R/W)', key: 'rwAttr', width: 15 },
     ];
     worksheet.addRow({
-      deviceCode: 'DEV-001', name: '出水压力', code: 'PT-001', type: '2', rangeMax: 1.0, rangeMin: 0, alarmMax: 0.8, alarmMin: 0.2, unit: 'MPa', dataType: 'float', rwAttr: 'R'
+      deviceCode: 'DEV-001', name: '出水压力', code: 'PT-001', type: 'PRESSURE', rangeMax: 1.0, rangeMin: 0, alarmMax: 0.8, alarmMin: 0.2, unit: 'MPa', dataType: 'float', rwAttr: 'R'
     });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -142,7 +181,23 @@ export class PointService {
     const validData = dataList.filter(item => !!item.name && !!item.code);
     if (!validData || validData.length === 0) return ResultData.ok();
 
-    const insertData = validData.map((item, index) => ({
+    const errors: any[] = [];
+    const normalized: any[] = [];
+    for (let i = 0; i < validData.length; i++) {
+      const item = validData[i];
+      const normType = await this.normalizePointType(item.type);
+      if (!normType.ok) {
+        errors.push({ row: i + 2, field: 'type', value: item.type, allowed: normType.allowed });
+        continue;
+      }
+      normalized.push({ ...item, type: normType.value });
+    }
+
+    if (errors.length > 0) {
+      return ResultData.fail(500, `导入失败：测点类型不匹配（示例：PRESSURE/压力参数）`, { errors });
+    }
+
+    const insertData = normalized.map((item, index) => ({
       ...item,
       createBy: user.userName,
       deptId: user.deptId,

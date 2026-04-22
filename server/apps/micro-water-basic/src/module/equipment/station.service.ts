@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
-import { WaterStationEntity, Paginate } from '@app/common';
+import { SysDictDataEntity, WaterStationEntity, Paginate } from '@app/common';
 import { Response } from 'express';
 import { ExportTable } from '@app/common/utils/export';
 import * as exceljs from 'exceljs';
@@ -12,7 +12,45 @@ export class StationService {
   constructor(
     @InjectRepository(WaterStationEntity)
     private readonly rep: Repository<WaterStationEntity>,
+    @InjectRepository(SysDictDataEntity)
+    private readonly dictRep: Repository<SysDictDataEntity>,
   ) {}
+
+  private async getDictMaps(dictType: string) {
+    const rows = await this.dictRep.find({ where: { dictType, delFlag: '0' as any } });
+    const byLabel = new Map<string, string>();
+    const byValue = new Map<string, string>();
+    for (const r of rows) {
+      byLabel.set(String(r.dictLabel || '').trim(), String(r.dictValue || '').trim());
+      byValue.set(String(r.dictValue || '').trim(), String(r.dictValue || '').trim());
+    }
+    return { rows, byLabel, byValue };
+  }
+
+  private async normalizeStationType(raw: any) {
+    const input = String(raw ?? '').trim();
+    if (!input) return { ok: true, value: 'OTHER' };
+
+    const legacyMap: Record<string, string> = {
+      '1': 'WATER_PLANT',
+      '2': 'PUMP_STATION',
+      '3': 'OTHER',
+      '4': 'OTHER',
+      '5': 'MONITOR',
+    };
+
+    if (legacyMap[input]) return { ok: true, value: legacyMap[input] };
+
+    const { rows, byLabel, byValue } = await this.getDictMaps('water_station_type');
+    if (byValue.has(input)) return { ok: true, value: input };
+    if (byLabel.has(input)) return { ok: true, value: byLabel.get(input) };
+
+    return {
+      ok: false,
+      value: input,
+      allowed: rows.map((r) => ({ label: r.dictLabel, value: r.dictValue })),
+    };
+  }
 
   async create(createDto: any, user: any) {
     createDto.createBy = user.userName;
@@ -75,7 +113,7 @@ export class StationService {
         { title: '所属分区编码', dataIndex: 'zoneCode' },
         { title: '站点名称', dataIndex: 'name' },
         { title: '站点编码', dataIndex: 'code' },
-        { title: '站点类型(1/2/3/4/5)', dataIndex: 'type' },
+        { title: '站点类型', dataIndex: 'type' },
         { title: '经度(X)', dataIndex: 'longitude' },
         { title: '纬度(Y)', dataIndex: 'latitude' },
         { title: '设计能力', dataIndex: 'designCapacity' },
@@ -96,7 +134,7 @@ export class StationService {
       { header: '所属分区编码', key: 'zoneCode', width: 15 },
       { header: '站点名称(必填)', key: 'name', width: 20 },
       { header: '站点编码(必填)', key: 'code', width: 20 },
-      { header: '站点类型(1水厂/2泵站/3水库)', key: 'type', width: 25 },
+      { header: '站点类型(填写字典值或中文名称)', key: 'type', width: 28 },
       { header: '经度(X)', key: 'longitude', width: 15 },
       { header: '纬度(Y)', key: 'latitude', width: 15 },
       { header: '设计能力', key: 'designCapacity', width: 15 },
@@ -107,7 +145,7 @@ export class StationService {
       { header: '详细地址', key: 'address', width: 30 },
     ];
     worksheet.addRow({
-      zoneCode: 'ZONE-01', name: '示例站点', code: 'ST-001', type: '1', longitude: '118.58', latitude: '24.93', designCapacity: 50000, constructionUnit: '市水务集团', commissioningDate: '2023-01-01', managerName: '张三', managerPhone: '13812345678', address: '某某路100号'
+      zoneCode: 'ZONE-01', name: '示例站点', code: 'ST-001', type: 'WATER_PLANT', longitude: '118.58', latitude: '24.93', designCapacity: 50000, constructionUnit: '市水务集团', commissioningDate: '2023-01-01', managerName: '张三', managerPhone: '13812345678', address: '某某路100号'
     });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -156,7 +194,23 @@ export class StationService {
     const validData = dataList.filter(item => !!item.name && !!item.code);
     if (!validData || validData.length === 0) return ResultData.ok();
 
-    const insertData = validData.map((item, index) => ({
+    const errors: any[] = [];
+    const normalized: any[] = [];
+    for (let i = 0; i < validData.length; i++) {
+      const item = validData[i];
+      const normType = await this.normalizeStationType(item.type);
+      if (!normType.ok) {
+        errors.push({ row: i + 2, field: 'type', value: item.type, allowed: normType.allowed });
+        continue;
+      }
+      normalized.push({ ...item, type: normType.value });
+    }
+
+    if (errors.length > 0) {
+      return ResultData.fail(500, `导入失败：站点类型不匹配（示例：WATER_PLANT/水厂）`, { errors });
+    }
+
+    const insertData = normalized.map((item, index) => ({
       ...item,
       createBy: user.userName,
       deptId: user.deptId,

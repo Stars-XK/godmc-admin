@@ -23,7 +23,7 @@ export class WaterPointEntity extends BaseEntity {
   public deviceCode: string;
 
   @ApiProperty({ type: String, description: '测点类型(流量/压力/液位/水质等)' })
-  @Column({ type: 'varchar', name: 'type', length: 20, comment: '测点类型', default: '1' })
+  @Column({ type: 'varchar', name: 'type', length: 20, comment: '测点类型', default: 'OTHER' })
   public type: string;
 
   @ApiProperty({ type: Number, description: '预期数据周期(分钟)', required: false })

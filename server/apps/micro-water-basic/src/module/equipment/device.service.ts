@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
-import { WaterDeviceEntity, Paginate } from '@app/common';
+import { SysDictDataEntity, WaterDeviceEntity, Paginate } from '@app/common';
 import { Response } from 'express';
 import { ExportTable } from '@app/common/utils/export';
 import * as exceljs from 'exceljs';
@@ -12,7 +12,45 @@ export class DeviceService {
   constructor(
     @InjectRepository(WaterDeviceEntity)
     private readonly rep: Repository<WaterDeviceEntity>,
+    @InjectRepository(SysDictDataEntity)
+    private readonly dictRep: Repository<SysDictDataEntity>,
   ) {}
+
+  private async getDictMaps(dictType: string) {
+    const rows = await this.dictRep.find({ where: { dictType, delFlag: '0' as any } });
+    const byLabel = new Map<string, string>();
+    const byValue = new Map<string, string>();
+    for (const r of rows) {
+      byLabel.set(String(r.dictLabel || '').trim(), String(r.dictValue || '').trim());
+      byValue.set(String(r.dictValue || '').trim(), String(r.dictValue || '').trim());
+    }
+    return { rows, byLabel, byValue };
+  }
+
+  private async normalizeDeviceType(raw: any) {
+    const input = String(raw ?? '').trim();
+    if (!input) return { ok: true, value: 'OTHER' };
+
+    const legacyMap: Record<string, string> = {
+      '1': 'PUMP',
+      '2': 'VALVE',
+      '3': 'INSTRUMENT_FLOW',
+      '4': 'INSTRUMENT_PRESSURE',
+      '5': 'INSTRUMENT_QUALITY',
+    };
+
+    if (legacyMap[input]) return { ok: true, value: legacyMap[input] };
+
+    const { rows, byLabel, byValue } = await this.getDictMaps('water_device_type');
+    if (byValue.has(input)) return { ok: true, value: input };
+    if (byLabel.has(input)) return { ok: true, value: byLabel.get(input) };
+
+    return {
+      ok: false,
+      value: input,
+      allowed: rows.map((r) => ({ label: r.dictLabel, value: r.dictValue })),
+    };
+  }
 
   async create(createDto: any, user: any) {
     createDto.createBy = user.userName;
@@ -91,7 +129,7 @@ export class DeviceService {
       { header: '所属站点编码(必填)', key: 'stationCode', width: 20 },
       { header: '设备名称(必填)', key: 'name', width: 20 },
       { header: '设备编码(必填)', key: 'code', width: 20 },
-      { header: '设备类型(1/2/3/4/5)', key: 'type', width: 15 },
+      { header: '设备类型(填写字典值或中文名称)', key: 'type', width: 28 },
       { header: '型号', key: 'model', width: 20 },
       { header: '厂家', key: 'manufacturer', width: 20 },
       { header: '安装日期(YYYY-MM-DD)', key: 'installDate', width: 20 },
@@ -101,7 +139,7 @@ export class DeviceService {
       { header: '电话', key: 'managerPhone', width: 15 },
     ];
     worksheet.addRow({
-      stationCode: 'ST-001', name: '1号水泵', code: 'DEV-001', type: '1', model: 'A-100', manufacturer: '某某设备厂', installDate: '2023-01-01', lifespan: 10, power: '15.5', managerName: '李四', managerPhone: '13812345678'
+      stationCode: 'ST-001', name: '1号水泵', code: 'DEV-001', type: 'PUMP', model: 'A-100', manufacturer: '某某设备厂', installDate: '2023-01-01', lifespan: 10, power: '15.5', managerName: '李四', managerPhone: '13812345678'
     });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -149,7 +187,23 @@ export class DeviceService {
     const validData = dataList.filter(item => !!item.name && !!item.code);
     if (!validData || validData.length === 0) return ResultData.ok();
 
-    const insertData = validData.map((item, index) => ({
+    const errors: any[] = [];
+    const normalized: any[] = [];
+    for (let i = 0; i < validData.length; i++) {
+      const item = validData[i];
+      const normType = await this.normalizeDeviceType(item.type);
+      if (!normType.ok) {
+        errors.push({ row: i + 2, field: 'type', value: item.type, allowed: normType.allowed });
+        continue;
+      }
+      normalized.push({ ...item, type: normType.value });
+    }
+
+    if (errors.length > 0) {
+      return ResultData.fail(500, `导入失败：设备类型不匹配（示例：PUMP/水泵类）`, { errors });
+    }
+
+    const insertData = normalized.map((item, index) => ({
       ...item,
       createBy: user.userName,
       deptId: user.deptId,

@@ -19,7 +19,7 @@ export class WaterStationEntity extends BaseEntity {
   public code: string;
 
   @ApiProperty({ type: String, description: '站点类型(水厂/泵站/水库等)' })
-  @Column({ type: 'varchar', name: 'type', length: 20, comment: '站点类型', default: '1' })
+  @Column({ type: 'varchar', name: 'type', length: 20, comment: '站点类型', default: 'OTHER' })
   public type: string;
 
   @ApiProperty({ type: String, description: '所属分区编码' })

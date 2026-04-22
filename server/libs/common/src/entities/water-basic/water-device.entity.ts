@@ -27,7 +27,7 @@ export class WaterDeviceEntity extends BaseEntity {
   public zoneCode: string;
 
   @ApiProperty({ type: String, description: '设备类型(水泵/阀门/流量计等)' })
-  @Column({ type: 'varchar', name: 'type', length: 20, comment: '设备类型', default: '1' })
+  @Column({ type: 'varchar', name: 'type', length: 20, comment: '设备类型', default: 'OTHER' })
   public type: string;
 
   @ApiProperty({ type: Number, description: '预期数据周期(分钟)', required: false })
