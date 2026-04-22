@@ -451,7 +451,6 @@ onMounted(() => {
 .el-scrollbar {
   height: 100%;
 }
-</style>
 
 .title-accent.accent-purple {
   background-color: #8a2be2;
