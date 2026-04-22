@@ -29,7 +29,8 @@
               :props="treeProps"
               :height="treeHeight"
               :expand-on-click-node="false"
-              @node-expand="handleNodeExpand"
+              @node-click="handleNodeClick"
+              @node-expand="handleNodeClick"
               class="custom-tree custom-scrollbar"
             >
               <template #default="{ node, data }">
@@ -49,91 +50,115 @@
 
       <!-- 右侧：统计与图表 -->
       <el-col :span="16" class="right-col">
-        <el-row :gutter="20" class="stat-row">
-          <el-col :span="8">
-            <div class="stat-card stat-station">
-              <div class="stat-bg-shape"></div>
-              <div class="stat-content">
-                <div class="stat-info">
-                  <div class="stat-title">接入站点</div>
-                  <div class="stat-value">{{ stats.stationCount }}</div>
-                </div>
-                <div class="stat-icon-box">
-                  <el-icon><OfficeBuilding /></el-icon>
-                </div>
-              </div>
-            </div>
-          </el-col>
-          <el-col :span="8">
-            <div class="stat-card stat-device">
-              <div class="stat-bg-shape"></div>
-              <div class="stat-content">
-                <div class="stat-info">
-                  <div class="stat-title">监测设备</div>
-                  <div class="stat-value">{{ stats.deviceCount }}</div>
-                </div>
-                <div class="stat-icon-box">
-                  <el-icon><Cpu /></el-icon>
-                </div>
-              </div>
-            </div>
-          </el-col>
-          <el-col :span="8">
-            <div class="stat-card stat-point">
-              <div class="stat-bg-shape"></div>
-              <div class="stat-content">
-                <div class="stat-info">
-                  <div class="stat-title">感知测点</div>
-                  <div class="stat-value">{{ stats.pointCount }}</div>
-                </div>
-                <div class="stat-icon-box">
-                  <el-icon><Odometer /></el-icon>
-                </div>
-              </div>
-            </div>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20" class="chart-row">
-          <el-col :span="12">
-            <el-card class="box-card sub-chart-card" shadow="never">
-              <template #header>
-                <div class="card-header">
-                  <div class="header-title">
-                    <div class="title-accent accent-green"></div>
-                    <span>站点类型分布</span>
+        <!-- 未选中节点或选中站点时显示全局统计 -->
+        <div v-if="!selectedNode || selectedNode.nodeType === 'station'" class="global-dashboard" style="display: flex; flex-direction: column; height: 100%;">
+          <el-row :gutter="20" class="stat-row">
+            <el-col :span="8">
+              <div class="stat-card stat-station">
+                <div class="stat-bg-shape"></div>
+                <div class="stat-content">
+                  <div class="stat-info">
+                    <div class="stat-title">接入站点</div>
+                    <div class="stat-value">{{ stats.stationCount }}</div>
+                  </div>
+                  <div class="stat-icon-box">
+                    <el-icon><OfficeBuilding /></el-icon>
                   </div>
                 </div>
-              </template>
-              <div class="sub-chart-container" ref="stationTypeChartRef"></div>
-            </el-card>
-          </el-col>
-          <el-col :span="12">
-            <el-card class="box-card sub-chart-card" shadow="never">
-              <template #header>
-                <div class="card-header">
-                  <div class="header-title">
-                    <div class="title-accent accent-purple"></div>
-                    <span>设备状态监控</span>
+              </div>
+            </el-col>
+            <el-col :span="8">
+              <div class="stat-card stat-device">
+                <div class="stat-bg-shape"></div>
+                <div class="stat-content">
+                  <div class="stat-info">
+                    <div class="stat-title">监测设备</div>
+                    <div class="stat-value">{{ stats.deviceCount }}</div>
+                  </div>
+                  <div class="stat-icon-box">
+                    <el-icon><Cpu /></el-icon>
                   </div>
                 </div>
-              </template>
-              <div class="sub-chart-container" ref="deviceStatusChartRef"></div>
-            </el-card>
-          </el-col>
-        </el-row>
-
-        <el-card class="box-card chart-card" shadow="never">
-          <template #header>
-            <div class="card-header">
-              <div class="header-title">
-                <div class="title-accent accent-orange"></div>
-                <span>近七日测点数据量趋势</span>
               </div>
-            </div>
-          </template>
-          <div class="chart-container" ref="trendChartRef"></div>
-        </el-card>
+            </el-col>
+            <el-col :span="8">
+              <div class="stat-card stat-point">
+                <div class="stat-bg-shape"></div>
+                <div class="stat-content">
+                  <div class="stat-info">
+                    <div class="stat-title">感知测点</div>
+                    <div class="stat-value">{{ stats.pointCount }}</div>
+                  </div>
+                  <div class="stat-icon-box">
+                    <el-icon><Odometer /></el-icon>
+                  </div>
+                </div>
+              </div>
+            </el-col>
+          </el-row>
+
+          <el-row :gutter="20" class="chart-row">
+            <el-col :span="12">
+              <el-card class="box-card sub-chart-card" shadow="never">
+                <template #header>
+                  <div class="card-header">
+                    <div class="header-title">
+                      <div class="title-accent accent-green"></div>
+                      <span>站点类型分布</span>
+                    </div>
+                  </div>
+                </template>
+                <div class="sub-chart-container" ref="stationTypeChartRef"></div>
+              </el-card>
+            </el-col>
+            <el-col :span="12">
+              <el-card class="box-card sub-chart-card" shadow="never">
+                <template #header>
+                  <div class="card-header">
+                    <div class="header-title">
+                      <div class="title-accent accent-purple"></div>
+                      <span>设备状态监控</span>
+                    </div>
+                  </div>
+                </template>
+                <div class="sub-chart-container" ref="deviceStatusChartRef"></div>
+              </el-card>
+            </el-col>
+          </el-row>
+
+          <el-card class="box-card chart-card" shadow="never">
+            <template #header>
+              <div class="card-header">
+                <div class="header-title">
+                  <div class="title-accent accent-orange"></div>
+                  <span>近七日测点数据量趋势</span>
+                </div>
+              </div>
+            </template>
+            <div class="chart-container" ref="trendChartRef"></div>
+          </el-card>
+        </div>
+
+        <!-- 选中设备或测点时显示具体数据视图 -->
+        <div v-else class="detail-dashboard" style="height: 100%;">
+           <el-card class="box-card chart-card" shadow="never" style="height: 100%; border: none;">
+             <template #header>
+               <div class="card-header" style="justify-content: space-between; display: flex;">
+                 <div class="header-title" style="display: flex; align-items: center;">
+                   <div class="title-accent"></div>
+                   <span style="font-weight: bold; font-size: 15px;">{{ selectedNode.name || selectedNode.label }} - 数据视图</span>
+                 </div>
+                 <el-button link type="primary" @click="selectedNode = null">返回总览</el-button>
+               </div>
+             </template>
+             <DataViewer 
+               :viewType="selectedNode.nodeType" 
+               :code="selectedNode.code" 
+               :parentCode="selectedNode.parentCode"
+               :name="selectedNode.name || selectedNode.label" 
+             />
+           </el-card>
+        </div>
       </el-col>
     </el-row>
   </div>
@@ -143,9 +168,11 @@
 import { ref, onMounted, onBeforeUnmount, nextTick, getCurrentInstance } from 'vue'
 import { listStation, listDevice, listPoint } from '@/api/water-basic/equipment'
 import * as echarts from 'echarts'
+import DataViewer from '@/components/DataViewer/index.vue'
 
 const stats = ref({ stationCount: 0, deviceCount: 0, pointCount: 0 })
 const searchName = ref('')
+const selectedNode = ref(null)
 const treeKey = ref(1)
 const treeData = ref([])
 const treeHeight = ref(500)
@@ -227,8 +254,15 @@ function handleSearch() {
   loadStations()
 }
 
-async function handleNodeExpand(data) {
+async function handleNodeClick(data) {
   if (!data || data.disabled || data.nodeType === 'placeholder') return
+  
+  selectedNode.value = {
+    nodeType: data.nodeType,
+    code: data.code,
+    name: data.name || data.label,
+    parentCode: data.nodeType === 'point' ? data.deviceCode : ''
+  }
 
   if (data.nodeType === 'station' && !data._loaded) {
     data.children = createPlaceholder(data.id)
@@ -258,13 +292,14 @@ async function handleNodeExpand(data) {
     try {
       const res = await listPoint({ deviceCode: data.code, pageNum: 1, pageSize: 2000 })
       const list = res.rows || (res.data && res.data.list) || []
-      data.children = list.map(p => ({
-        ...p,
-        id: `p_${p.id}`,
-        label: p.name,
-        nodeType: 'point',
-        children: []
-      }))
+              data.children = list.map(p => ({
+                ...p,
+                id: `p_${p.id}`,
+                label: p.name,
+                nodeType: 'point',
+                deviceCode: data.code,
+                children: []
+              }))
       data._loaded = true
       treeData.value = [...treeData.value]
     } catch (e) {
