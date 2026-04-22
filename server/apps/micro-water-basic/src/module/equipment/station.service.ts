@@ -134,7 +134,7 @@ export class StationService {
       { header: '所属分区编码', key: 'zoneCode', width: 15 },
       { header: '站点名称(必填)', key: 'name', width: 20 },
       { header: '站点编码(必填)', key: 'code', width: 20 },
-      { header: '站点类型(填写字典值或中文名称)', key: 'type', width: 28 },
+      { header: '站点类型(必填)', key: 'type', width: 25 },
       { header: '经度(X)', key: 'longitude', width: 15 },
       { header: '纬度(Y)', key: 'latitude', width: 15 },
       { header: '设计能力', key: 'designCapacity', width: 15 },
@@ -147,6 +147,42 @@ export class StationService {
     worksheet.addRow({
       zoneCode: 'ZONE-01', name: '示例站点', code: 'ST-001', type: 'WATER_PLANT', longitude: '118.58', latitude: '24.93', designCapacity: 50000, constructionUnit: '市水务集团', commissioningDate: '2023-01-01', managerName: '张三', managerPhone: '13812345678', address: '某某路100号'
     });
+
+    const sheet2 = workbook.addWorksheet('字段说明');
+    sheet2.columns = [
+      { header: '列名', key: 'field', width: 20 },
+      { header: '是否必填', key: 'required', width: 10 },
+      { header: '数据类型', key: 'type', width: 15 },
+      { header: '示例值', key: 'example', width: 20 },
+      { header: '说明', key: 'desc', width: 40 },
+    ];
+    sheet2.addRows([
+      { field: '所属分区编码', required: '否', type: '字符串', example: 'ZONE-01', desc: '如果不填则该站点不挂载任何分区，填入必须在分区表存在' },
+      { field: '站点名称', required: '是', type: '字符串', example: '示例站点', desc: '站点的中文名称' },
+      { field: '站点编码', required: '是', type: '字符串', example: 'ST-001', desc: '站点的唯一编码标识' },
+      { field: '站点类型', required: '是', type: '字符串', example: 'WATER_PLANT', desc: '关联字典：water_station_type' },
+      { field: '经度(X)', required: '否', type: '小数', example: '118.58', desc: '地理经度' },
+      { field: '纬度(Y)', required: '否', type: '小数', example: '24.93', desc: '地理纬度' },
+      { field: '设计能力', required: '否', type: '整数', example: '50000', desc: '设计供水/处理能力' },
+      { field: '建设单位', required: '否', type: '字符串', example: '市水务集团', desc: '建设方名称' },
+      { field: '投运日期', required: '否', type: '日期', example: '2023-01-01', desc: '格式为 YYYY-MM-DD' },
+      { field: '负责人', required: '否', type: '字符串', example: '张三', desc: '负责人姓名' },
+      { field: '联系电话', required: '否', type: '字符串', example: '13812345678', desc: '负责人电话' },
+      { field: '详细地址', required: '否', type: '字符串', example: '某某路100号', desc: '站点的具体地址' },
+    ]);
+
+    const sheet3 = workbook.addWorksheet('字典值参考');
+    sheet3.columns = [
+      { header: '字典类型', key: 'dictType', width: 25 },
+      { header: '字典标签(展示值)', key: 'label', width: 20 },
+      { header: '字典键值(填入值)', key: 'value', width: 20 },
+    ];
+    sheet3.addRows([
+      { dictType: 'water_station_type', label: '水厂', value: 'WATER_PLANT' },
+      { dictType: 'water_station_type', label: '泵站', value: 'PUMP_STATION' },
+      { dictType: 'water_station_type', label: '二次供水站', value: 'SECONDARY_SUPPLY' },
+      { dictType: 'water_station_type', label: '调压站', value: 'REGULATOR_STATION' },
+    ]);
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=StationImportTemplate.xlsx');

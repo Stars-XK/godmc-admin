@@ -297,30 +297,49 @@ export class ZoneService {
   async importTemplate(res: Response) {
     const workbook = new exceljs.Workbook();
     const worksheet = workbook.addWorksheet('分区导入模板');
-    
-    // 设置列
     worksheet.columns = [
+      { header: '父级分区编码', key: 'parentCode', width: 20 },
       { header: '分区名称(必填)', key: 'name', width: 20 },
-      { header: '分区编码', key: 'code', width: 20 },
-      { header: '分区维度(1:行政营业,2:DMA,3:控压,4:供水)', key: 'type', width: 30 },
-      { header: '覆盖面积(平方公里)', key: 'area', width: 20 },
+      { header: '分区编码(必填)', key: 'code', width: 20 },
+      { header: '分区维度(必填)', key: 'type', width: 15 },
+      { header: '覆盖面积(k㎡)', key: 'area', width: 15 },
       { header: '服务人口', key: 'population', width: 15 },
-      { header: '负责人姓名', key: 'managerName', width: 15 },
-      { header: '负责人电话', key: 'managerPhone', width: 15 },
       { header: '位置描述', key: 'address', width: 30 },
     ];
-    
-    // 添加示例数据
     worksheet.addRow({
-      name: '示例一区',
-      code: 'Z-001',
-      type: '1',
-      area: 12.5,
-      population: 50000,
-      managerName: '张三',
-      managerPhone: '13800138000',
-      address: 'XX路1号',
+      parentCode: 'ZONE-ROOT', name: '城东片区', code: 'ZONE-01', type: '1', area: 15.5, population: 50000, address: '城东大道周边'
     });
+
+    const sheet2 = workbook.addWorksheet('字段说明');
+    sheet2.columns = [
+      { header: '列名', key: 'field', width: 20 },
+      { header: '是否必填', key: 'required', width: 10 },
+      { header: '数据类型', key: 'type', width: 15 },
+      { header: '示例值', key: 'example', width: 20 },
+      { header: '说明', key: 'desc', width: 40 },
+    ];
+    sheet2.addRows([
+      { field: '父级分区编码', required: '否', type: '字符串', example: 'ZONE-ROOT', desc: '如果不填则作为顶级分区。填入的编码必须在系统中已存在。' },
+      { field: '分区名称', required: '是', type: '字符串', example: '城东片区', desc: '分区的中文名称，不超过100字符。' },
+      { field: '分区编码', required: '是', type: '字符串', example: 'ZONE-01', desc: '唯一编码标识，不能与系统已有编码重复。' },
+      { field: '分区维度', required: '是', type: '数字字符串', example: '1', desc: '关联字典：water_zone_type（如：1代表行政营业分区，2代表DMA漏损等）。' },
+      { field: '覆盖面积(k㎡)', required: '否', type: '小数', example: '15.5', desc: '分区的面积，单位为平方公里。' },
+      { field: '服务人口', required: '否', type: '整数', example: '50000', desc: '该分区服务的总人口数。' },
+      { field: '位置描述', required: '否', type: '字符串', example: '城东大道周边', desc: '详细地址或范围描述。' },
+    ]);
+
+    const sheet3 = workbook.addWorksheet('字典值参考');
+    sheet3.columns = [
+      { header: '字典类型', key: 'dictType', width: 25 },
+      { header: '字典标签(展示值)', key: 'label', width: 20 },
+      { header: '字典键值(填入值)', key: 'value', width: 20 },
+    ];
+    sheet3.addRows([
+      { dictType: 'water_zone_type (分区维度)', label: '行政营业分区', value: '1' },
+      { dictType: 'water_zone_type (分区维度)', label: 'DMA漏损分区', value: '2' },
+      { dictType: 'water_zone_type (分区维度)', label: '控压高程分区', value: '3' },
+      { dictType: 'water_zone_type (分区维度)', label: '供水调度分区', value: '4' },
+    ]);
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=ZoneImportTemplate.xlsx');

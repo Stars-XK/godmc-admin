@@ -130,18 +130,57 @@ export class PointService {
       { header: '所属设备编码(必填)', key: 'deviceCode', width: 20 },
       { header: '测点名称(必填)', key: 'name', width: 20 },
       { header: '测点编码(必填)', key: 'code', width: 20 },
-      { header: '测点类型(填写字典值或中文名称)', key: 'type', width: 28 },
+      { header: '测点类型(必填)', key: 'type', width: 20 },
+      { header: '聚合模式(必填)', key: 'aggType', width: 20 },
       { header: '量程上限', key: 'rangeMax', width: 15 },
       { header: '量程下限', key: 'rangeMin', width: 15 },
       { header: '报警上限', key: 'alarmMax', width: 15 },
       { header: '报警下限', key: 'alarmMin', width: 15 },
       { header: '单位(m³/h,MPa等)', key: 'unit', width: 15 },
-      { header: '数据类型(float/int/bool)', key: 'dataType', width: 25 },
+      { header: '数据类型', key: 'dataType', width: 15 },
       { header: '读写属性(R/W)', key: 'rwAttr', width: 15 },
     ];
     worksheet.addRow({
-      deviceCode: 'DEV-001', name: '出水压力', code: 'PT-001', type: 'PRESSURE', rangeMax: 1.0, rangeMin: 0, alarmMax: 0.8, alarmMin: 0.2, unit: 'MPa', dataType: 'float', rwAttr: 'R'
+      deviceCode: 'DEV-001', name: '出水压力', code: 'PT-001', type: 'PRESSURE', aggType: 'instantaneous', rangeMax: 1.0, rangeMin: 0, alarmMax: 0.8, alarmMin: 0.2, unit: 'MPa', dataType: 'float', rwAttr: 'R'
     });
+
+    const sheet2 = workbook.addWorksheet('字段说明');
+    sheet2.columns = [
+      { header: '列名', key: 'field', width: 20 },
+      { header: '是否必填', key: 'required', width: 10 },
+      { header: '数据类型', key: 'type', width: 15 },
+      { header: '示例值', key: 'example', width: 20 },
+      { header: '说明', key: 'desc', width: 40 },
+    ];
+    sheet2.addRows([
+      { field: '所属设备编码', required: '是', type: '字符串', example: 'DEV-001', desc: '必须在设备表中已存在该编码' },
+      { field: '测点名称', required: '是', type: '字符串', example: '出水压力', desc: '测点的中文名称' },
+      { field: '测点编码', required: '是', type: '字符串', example: 'PT-001', desc: '全局唯一，通常对应网关采集的点位标识' },
+      { field: '测点类型', required: '是', type: '字符串', example: 'PRESSURE', desc: '业务分类，关联字典：water_point_type（如FLOW/PRESSURE）' },
+      { field: '聚合模式', required: '是', type: '字符串', example: 'instantaneous', desc: '决定历史曲线图和报表的统计算法。关联字典：water_point_agg_type' },
+      { field: '量程上下限', required: '否', type: '小数', example: '1.0', desc: '量程配置，用于前端仪表盘或量程校验' },
+      { field: '报警上下限', required: '否', type: '小数', example: '0.8', desc: '报警配置，用于触发系统越限告警' },
+      { field: '单位', required: '否', type: '字符串', example: 'MPa', desc: '数据单位，如 MPa、m³/h、m 等' },
+      { field: '数据类型', required: '否', type: '字符串', example: 'float', desc: '数据类型：float/int/bool' },
+      { field: '读写属性', required: '否', type: '字符串', example: 'R', desc: '读写属性：R(只读) / W(只写) / RW(读写)' },
+    ]);
+
+    const sheet3 = workbook.addWorksheet('字典值参考');
+    sheet3.columns = [
+      { header: '字典类型', key: 'dictType', width: 25 },
+      { header: '字典标签(展示值)', key: 'label', width: 20 },
+      { header: '字典键值(填入值)', key: 'value', width: 20 },
+    ];
+    sheet3.addRows([
+      { dictType: 'water_point_agg_type (聚合模式)', label: '瞬时(取平均)', value: 'instantaneous' },
+      { dictType: 'water_point_agg_type (聚合模式)', label: '累计(取最新)', value: 'cumulative' },
+      { dictType: 'water_point_agg_type (聚合模式)', label: '增长量(取求和)', value: 'incremental' },
+      { dictType: 'water_point_type (测点分类)', label: '压力参数', value: 'PRESSURE' },
+      { dictType: 'water_point_type (测点分类)', label: '流量参数', value: 'FLOW' },
+      { dictType: 'water_point_type (测点分类)', label: '液位参数', value: 'LEVEL' },
+      { dictType: 'water_point_type (测点分类)', label: '水质参数', value: 'QUALITY' },
+      { dictType: 'water_point_type (测点分类)', label: '电气参数', value: 'ELECTRIC' },
+    ]);
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=PointImportTemplate.xlsx');

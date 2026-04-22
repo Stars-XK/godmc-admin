@@ -26,6 +26,10 @@ export class WaterPointEntity extends BaseEntity {
   @Column({ type: 'varchar', name: 'type', length: 20, comment: '测点类型', default: 'OTHER' })
   public type: string;
 
+  @ApiProperty({ type: String, description: '聚合模式(instantaneous:瞬时, cumulative:累计, incremental:增长量)' })
+  @Column({ type: 'varchar', name: 'aggType', length: 32, comment: '聚合模式', default: 'instantaneous' })
+  public aggType: string;
+
   @ApiProperty({ type: Number, description: '预期数据周期(分钟)', required: false })
   @Column({ type: 'int', name: 'expected_cycle', comment: '预期数据周期(分钟)', nullable: true })
   public expectedCycle: number;

@@ -126,10 +126,11 @@ export class DeviceService {
     const workbook = new exceljs.Workbook();
     const worksheet = workbook.addWorksheet('设备导入模板');
     worksheet.columns = [
-      { header: '所属站点编码(必填)', key: 'stationCode', width: 20 },
+      { header: '所属站点编码', key: 'stationCode', width: 20 },
+      { header: '所属分区编码', key: 'zoneCode', width: 20 },
       { header: '设备名称(必填)', key: 'name', width: 20 },
       { header: '设备编码(必填)', key: 'code', width: 20 },
-      { header: '设备类型(填写字典值或中文名称)', key: 'type', width: 28 },
+      { header: '设备类型(必填)', key: 'type', width: 15 },
       { header: '型号', key: 'model', width: 20 },
       { header: '厂家', key: 'manufacturer', width: 20 },
       { header: '安装日期(YYYY-MM-DD)', key: 'installDate', width: 20 },
@@ -139,8 +140,49 @@ export class DeviceService {
       { header: '电话', key: 'managerPhone', width: 15 },
     ];
     worksheet.addRow({
-      stationCode: 'ST-001', name: '1号水泵', code: 'DEV-001', type: 'PUMP', model: 'A-100', manufacturer: '某某设备厂', installDate: '2023-01-01', lifespan: 10, power: '15.5', managerName: '李四', managerPhone: '13812345678'
+      stationCode: 'ST-001', zoneCode: 'ZONE-01', name: '1号水泵', code: 'DEV-001', type: 'PUMP', model: 'A-100', manufacturer: '某某设备厂', installDate: '2023-01-01', lifespan: 10, power: '15.5', managerName: '李四', managerPhone: '13812345678'
     });
+
+    const sheet2 = workbook.addWorksheet('字段说明');
+    sheet2.columns = [
+      { header: '列名', key: 'field', width: 20 },
+      { header: '是否必填', key: 'required', width: 10 },
+      { header: '数据类型', key: 'type', width: 15 },
+      { header: '示例值', key: 'example', width: 20 },
+      { header: '说明', key: 'desc', width: 40 },
+    ];
+    sheet2.addRows([
+      { field: '所属站点编码', required: '否', type: '字符串', example: 'ST-001', desc: '如果不填则设备不挂载到站点，填入必须在站点表存在' },
+      { field: '所属分区编码', required: '否', type: '字符串', example: 'ZONE-01', desc: '如果不填则设备不挂载到分区，填入必须在分区表存在' },
+      { field: '设备名称', required: '是', type: '字符串', example: '1号水泵', desc: '设备的中文名称' },
+      { field: '设备编码', required: '是', type: '字符串', example: 'DEV-001', desc: '设备的唯一编码标识' },
+      { field: '设备类型', required: '是', type: '字符串', example: 'PUMP', desc: '关联字典：water_device_type' },
+      { field: '型号', required: '否', type: '字符串', example: 'A-100', desc: '设备型号' },
+      { field: '厂家', required: '否', type: '字符串', example: '某某设备厂', desc: '设备生产厂家' },
+      { field: '安装日期', required: '否', type: '日期', example: '2023-01-01', desc: '格式为 YYYY-MM-DD' },
+      { field: '设计寿命(年)', required: '否', type: '整数', example: '10', desc: '设备设计寿命' },
+      { field: '额定功率(kW)', required: '否', type: '字符串', example: '15.5', desc: '设备额定功率' },
+      { field: '负责人', required: '否', type: '字符串', example: '李四', desc: '负责人姓名' },
+      { field: '电话', required: '否', type: '字符串', example: '13812345678', desc: '负责人电话' },
+    ]);
+
+    const sheet3 = workbook.addWorksheet('字典值参考');
+    sheet3.columns = [
+      { header: '字典类型', key: 'dictType', width: 25 },
+      { header: '字典标签(展示值)', key: 'label', width: 20 },
+      { header: '字典键值(填入值)', key: 'value', width: 20 },
+    ];
+    sheet3.addRows([
+      { dictType: 'water_device_type', label: '水泵', value: 'PUMP' },
+      { dictType: 'water_device_type', label: '阀门', value: 'VALVE' },
+      { dictType: 'water_device_type', label: '流量计', value: 'FLOWMETER' },
+      { dictType: 'water_device_type', label: '压力表', value: 'PRESSURE_METER' },
+      { dictType: 'water_device_type', label: '水质仪', value: 'QUALITY_METER' },
+      { dictType: 'water_device_type', label: '网关/DTU', value: 'GATEWAY' },
+      { dictType: 'water_device_type', label: 'PLC/RTU', value: 'PLC' },
+      { dictType: 'water_device_type', label: '变频器', value: 'VFD' },
+      { dictType: 'water_device_type', label: '其他设备', value: 'OTHER' },
+    ]);
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename=DeviceImportTemplate.xlsx');

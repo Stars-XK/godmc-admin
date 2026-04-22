@@ -3,58 +3,23 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WaterPointEntity } from '@app/common';
 import { TdengineService } from './tdengine.service';
-import { RedisService } from '@app/shared';
-import { CacheEnum } from '@app/common/enum';
 
 export type AggInterval = '5m' | '1h' | '1d';
-export type PointKind = 'instant' | 'cumulative' | 'incremental';
+export type PointKind = 'instantaneous' | 'cumulative' | 'incremental';
 
 @Injectable()
 export class TdengineAggService {
   private readonly logger = new Logger(TdengineAggService.name);
-  private cumulativeTypesCache: string[] = ['FLOW', 'ELECTRIC']; // fallback defaults
-  private incrementalTypesCache: string[] = []; // fallback defaults
 
   constructor(
     private readonly tdengineService: TdengineService,
     @InjectRepository(WaterPointEntity)
     private readonly pointRep: Repository<WaterPointEntity>,
-    private readonly redisService: RedisService,
   ) {}
 
-  async loadPointTypeConfigs() {
-    try {
-      const cumData = await this.redisService.get(`${CacheEnum.SYS_DICT_KEY}water_cumulative_point_type`);
-      if (cumData && Array.isArray(cumData)) {
-        this.cumulativeTypesCache = cumData.map((item: any) => item.dictValue);
-      }
-
-      const incData = await this.redisService.get(`${CacheEnum.SYS_DICT_KEY}water_incremental_point_type`);
-      if (incData && Array.isArray(incData)) {
-        this.incrementalTypesCache = incData.map((item: any) => item.dictValue);
-      }
-    } catch (e) {
-      this.logger.warn(`Failed to load point type configs from Redis: ${e.message}`);
-    }
-  }
-
   async getPointKind(point: WaterPointEntity | null | undefined): Promise<PointKind> {
-    const pointType = String(point?.type || '').toUpperCase();
-    if (!pointType) return 'instant';
-
-    await this.loadPointTypeConfigs();
-
-    if (this.cumulativeTypesCache.includes(pointType)) {
-      return 'cumulative';
-    }
-
-    if (this.incrementalTypesCache.includes(pointType)) {
-      return 'incremental';
-    }
-
-    if (pointType === 'FLOW_TOTAL') return 'cumulative';
-    if (pointType.endsWith('_TOTAL')) return 'cumulative';
-    return 'instant';
+    if (!point || !point.aggType) return 'instantaneous';
+    return point.aggType as PointKind;
   }
 
   private safeCode(code: string) {
