@@ -16,23 +16,25 @@ VALUES
 (2, '累计', 'cumulative', 'water_point_agg_type', '', 'default', 'N', '0', 'admin', NOW(), '累计值，聚合取最新(LAST)，插值继承上一条(PREV)'),
 (3, '增长量', 'incremental', 'water_point_agg_type', '', 'default', 'N', '0', 'admin', NOW(), '增长量，聚合取总和(SUM)，插值补0(VALUE,0)');
 
--- 3. 给 water_point 表新增 aggType 字段 (采用存储过程容错判断列是否存在)
-DROP PROCEDURE IF EXISTS AddColumnIfNotExists;
-DELIMITER $$
-CREATE PROCEDURE AddColumnIfNotExists()
-BEGIN
-    IF NOT EXISTS (
-        SELECT * FROM information_schema.COLUMNS 
-        WHERE TABLE_SCHEMA = DATABASE() 
-        AND TABLE_NAME = 'water_point' 
-        AND COLUMN_NAME = 'aggType'
-    ) THEN
-        ALTER TABLE water_point ADD COLUMN aggType VARCHAR(32) DEFAULT 'instantaneous' COMMENT '聚合模式: instantaneous/cumulative/incremental';
-    END IF;
-END $$
-DELIMITER ;
-CALL AddColumnIfNotExists();
-DROP PROCEDURE AddColumnIfNotExists;
+-- 3. 给 water_point 表新增 aggType 字段
+-- 注意：因为 TypeORM multipleStatements 在跑多个 SQL 语句时不支持 DELIMITER，这里我们通过动态 SQL（PREPARE 语句）来判断并添加字段，避免报错。
+SET @dbname = DATABASE();
+SET @tablename = 'water_point';
+SET @columnname = 'aggType';
+SET @preparedStatement = (SELECT IF(
+  (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE
+      (table_name = @tablename)
+      AND (table_schema = @dbname)
+      AND (column_name = @columnname)
+  ) > 0,
+  'SELECT 1',
+  'ALTER TABLE water_point ADD COLUMN aggType VARCHAR(32) DEFAULT ''instantaneous'' COMMENT ''聚合模式: instantaneous/cumulative/incremental'';'
+));
+PREPARE addColumnStmt FROM @preparedStatement;
+EXECUTE addColumnStmt;
+DEALLOCATE PREPARE addColumnStmt;
 
 -- 4. 根据已有业务分类(type)回填聚合模式(aggType)
 UPDATE water_point SET aggType = 'instantaneous';
