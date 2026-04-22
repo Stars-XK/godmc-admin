@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TdengineService } from '../tdengine/tdengine.service';
+import { TdengineAggService } from '../tdengine/tdengine-agg.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataIntegrationMappingEntity } from '@app/common';
 import { Repository } from 'typeorm';
@@ -12,6 +13,7 @@ export class ReceiverService {
 
   constructor(
     private readonly tdengineService: TdengineService,
+    private readonly tdengineAggService: TdengineAggService,
     @InjectRepository(DataIntegrationMappingEntity)
     private readonly mappingRep: Repository<DataIntegrationMappingEntity>,
     private readonly redisService: RedisService,
@@ -124,10 +126,8 @@ export class ReceiverService {
     // 这是因为 TDengine 的 Stream 对太旧的历史数据（超过 watermark）默认不会再处理。
     if (timeRange !== 'realtime' && affectedDevices.size > 0) {
       for (const [dCode, record] of affectedDevices.entries()) {
-        const startTsStr = new Date(record.startTs).toISOString();
-        const endTsStr = new Date(record.endTs).toISOString();
         for (const pCode of record.pointCodes) {
-          await this.backfillHistoricalData(dCode, pCode, startTsStr, endTsStr);
+          await this.tdengineAggService.rebuildAggTables(dCode, pCode, record.startTs, record.endTs);
         }
       }
     }
@@ -209,10 +209,8 @@ export class ReceiverService {
     // 执行自动历史补录
     if (autoBackfill && affectedDevices.size > 0) {
       for (const [deviceCode, record] of affectedDevices.entries()) {
-        const startTsStr = new Date(record.startTs).toISOString();
-        const endTsStr = new Date(record.endTs).toISOString();
         for (const pointCode of record.pointCodes) {
-          await this.backfillHistoricalData(deviceCode, pointCode, startTsStr, endTsStr, interpolation);
+          await this.tdengineAggService.rebuildAggTables(deviceCode, pointCode, record.startTs, record.endTs);
         }
       }
     }
@@ -221,59 +219,4 @@ export class ReceiverService {
     return { success: successCount, failed: failedCount };
   }
 
-  /**
-   * 将历史数据回填写入到 5m, 1h, 1d 的聚合表中
-   */
-  private async backfillHistoricalData(deviceCode: string, pointCode: string, startTs: string, endTs: string, useInterpolation: boolean = false) {
-    try {
-      const safeDeviceCode = deviceCode.replace(/-/g, '_').toLowerCase();
-      const safePointCode = pointCode.replace(/-/g, '_').toLowerCase();
-      const tName = `water_iot.d_${safeDeviceCode}_${safePointCode}`;
-
-      const start = startTs.replace('T', ' ').replace('Z', '');
-      const end = endTs.replace('T', ' ').replace('Z', '');
-
-      const t5m = `water_iot.a5m_${safeDeviceCode}_${safePointCode}`;
-      const t1h = `water_iot.a1h_${safeDeviceCode}_${safePointCode}`;
-      const t1d = `water_iot.a1d_${safeDeviceCode}_${safePointCode}`;
-
-      const fillClause = useInterpolation ? ' FILL(PREV)' : '';
-
-      await this.tdengineService.querySql(`CREATE TABLE IF NOT EXISTS ${t5m} USING water_iot.meters_5m TAGS ('${deviceCode}', '${pointCode}')`);
-      await this.tdengineService.querySql(`CREATE TABLE IF NOT EXISTS ${t1h} USING water_iot.meters_1h TAGS ('${deviceCode}', '${pointCode}')`);
-      await this.tdengineService.querySql(`CREATE TABLE IF NOT EXISTS ${t1d} USING water_iot.meters_1d TAGS ('${deviceCode}', '${pointCode}')`);
-
-      await this.tdengineService.querySql(`DELETE FROM ${t5m} WHERE ts >= '${start}' AND ts <= '${end}'`);
-      await this.tdengineService.querySql(`DELETE FROM ${t1h} WHERE ts >= '${start}' AND ts <= '${end}'`);
-      await this.tdengineService.querySql(`DELETE FROM ${t1d} WHERE ts >= '${start}' AND ts <= '${end}'`);
-      
-      await this.tdengineService.querySql(`
-        INSERT INTO ${t5m}
-        SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val)
-        FROM ${tName}
-        WHERE ts >= '${start}' AND ts <= '${end}'
-        INTERVAL(5m)${fillClause}
-      `);
-
-      await this.tdengineService.querySql(`
-        INSERT INTO ${t1h}
-        SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val)
-        FROM ${tName}
-        WHERE ts >= '${start}' AND ts <= '${end}'
-        INTERVAL(1h)${fillClause}
-      `);
-
-      await this.tdengineService.querySql(`
-        INSERT INTO ${t1d}
-        SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val)
-        FROM ${tName}
-        WHERE ts >= '${start}' AND ts <= '${end}'
-        INTERVAL(1d)${fillClause}
-      `);
-      
-      this.logger.log(`历史数据回填聚合表完成 (插值: ${useInterpolation}): ${deviceCode}-${pointCode}`);
-    } catch (err) {
-      this.logger.error(`手动回填历史聚合数据失败: ${err.message}`);
-    }
-  }
 }

@@ -4,11 +4,13 @@ import { ReceiverService } from './receiver.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataIntegrationMappingEntity } from '@app/common';
 import { TdengineModule } from '../tdengine/tdengine.module';
+import { TdengineAggModule } from '../tdengine/tdengine-agg.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([DataIntegrationMappingEntity]),
     TdengineModule,
+    TdengineAggModule,
   ],
   controllers: [ReceiverController],
   providers: [ReceiverService],
