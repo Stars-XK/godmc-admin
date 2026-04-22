@@ -175,31 +175,43 @@ export class ReceiverService {
       const safeDeviceCode = deviceCode.replace(/-/g, '_').toLowerCase();
       const safePointCode = pointCode.replace(/-/g, '_').toLowerCase();
       const tName = `water_iot.d_${safeDeviceCode}_${safePointCode}`;
+
+      const start = startTs.replace('T', ' ').replace('Z', '');
+      const end = endTs.replace('T', ' ').replace('Z', '');
+
+      const t5m = `water_iot.a5m_${safeDeviceCode}_${safePointCode}`;
+      const t1h = `water_iot.a1h_${safeDeviceCode}_${safePointCode}`;
+      const t1d = `water_iot.a1d_${safeDeviceCode}_${safePointCode}`;
+
+      await this.tdengineService.querySql(`CREATE TABLE IF NOT EXISTS ${t5m} USING water_iot.meters_5m TAGS ('${deviceCode}', '${pointCode}')`);
+      await this.tdengineService.querySql(`CREATE TABLE IF NOT EXISTS ${t1h} USING water_iot.meters_1h TAGS ('${deviceCode}', '${pointCode}')`);
+      await this.tdengineService.querySql(`CREATE TABLE IF NOT EXISTS ${t1d} USING water_iot.meters_1d TAGS ('${deviceCode}', '${pointCode}')`);
+
+      await this.tdengineService.querySql(`DELETE FROM ${t5m} WHERE ts >= '${start}' AND ts <= '${end}'`);
+      await this.tdengineService.querySql(`DELETE FROM ${t1h} WHERE ts >= '${start}' AND ts <= '${end}'`);
+      await this.tdengineService.querySql(`DELETE FROM ${t1d} WHERE ts >= '${start}' AND ts <= '${end}'`);
       
-      // 1. 手动回填 5m 表
       await this.tdengineService.querySql(`
-        INSERT INTO water_iot.meters_5m 
-        SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, device_code, point_code
-        FROM ${tName} 
-        WHERE ts >= '${startTs}' AND ts <= '${endTs}' 
+        INSERT INTO ${t5m}
+        SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val)
+        FROM ${tName}
+        WHERE ts >= '${start}' AND ts <= '${end}'
         INTERVAL(5m)
       `);
 
-      // 2. 手动回填 1h 表
       await this.tdengineService.querySql(`
-        INSERT INTO water_iot.meters_1h 
-        SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, device_code, point_code
-        FROM ${tName} 
-        WHERE ts >= '${startTs}' AND ts <= '${endTs}' 
+        INSERT INTO ${t1h}
+        SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val)
+        FROM ${tName}
+        WHERE ts >= '${start}' AND ts <= '${end}'
         INTERVAL(1h)
       `);
 
-      // 3. 手动回填 1d 表
       await this.tdengineService.querySql(`
-        INSERT INTO water_iot.meters_1d 
-        SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, device_code, point_code
-        FROM ${tName} 
-        WHERE ts >= '${startTs}' AND ts <= '${endTs}' 
+        INSERT INTO ${t1d}
+        SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val)
+        FROM ${tName}
+        WHERE ts >= '${start}' AND ts <= '${end}'
         INTERVAL(1d)
       `);
       
