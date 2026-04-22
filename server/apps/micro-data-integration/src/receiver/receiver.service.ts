@@ -109,6 +109,12 @@ export class ReceiverService {
 
         results.push({ timestamp: ts.toLocaleString(), deviceCode, pointCode, value: val, status: 'success' });
       } catch (err) {
+        await this.redisService.getClient().lpush('iot:td:retry:list', JSON.stringify({
+          deviceCode,
+          pointCode,
+          val,
+          ts: ts.toISOString(),
+        }));
         results.push({ timestamp: ts.toLocaleString(), deviceCode, pointCode, value: val, status: 'error', error: err.message });
       }
     }
@@ -189,6 +195,13 @@ export class ReceiverService {
         }
       } catch (err) {
         failedCount++;
+        await this.redisService.getClient().lpush('iot:td:retry:list', JSON.stringify({
+          taskId,
+          deviceCode,
+          pointCode,
+          val,
+          ts: ts.toISOString(),
+        }));
         this.logger.error(`TDengine 插入失败 (Task: ${taskId})`, err);
       }
     }
