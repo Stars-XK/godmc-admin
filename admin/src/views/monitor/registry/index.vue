@@ -118,7 +118,7 @@ onUnmounted(() => {
 <style scoped>
 .registry-container {
   padding: 24px;
-  background-color: #f5f7fa;
+  background-color: transparent;
   min-height: calc(100vh - 84px);
 }
 
