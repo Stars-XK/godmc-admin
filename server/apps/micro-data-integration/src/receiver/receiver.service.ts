@@ -44,6 +44,9 @@ export class ReceiverService {
       }
     }
 
+    // 用于记录这批数据影响到的设备和起止时间（用于回填）
+    const affectedDevices = new Map<string, { startTs: number, endTs: number, pointCodes: Set<string> }>();
+
     for (let i = 0; i < count; i++) {
       let ts: Date;
       if (timeRange === 'realtime') {
@@ -66,14 +69,18 @@ export class ReceiverService {
       }
 
       try {
-        // 先插入数据
         await this.tdengineService.insertData(deviceCode, pointCode, val, ts);
         
-        // 【重要】在批量导入历史数据时，由于可能跨越了历史的整点边界，我们需要手动触发计算
-        // 但为了性能，只在时间跨度大批量插入时（且非最后一秒）异步触发，这里我们采用简单的方案：
-        // 让数据写入后自然被下一次查询或流引擎处理，或者在批量插入完成后统一触发
-        // (注：TDengine 3.x 流计算在收到乱序/历史数据时，如果超过 watermark，可能会被丢弃。
-        // 对于真正的历史数据补录，通常建议直接通过 INSERT INTO ... SELECT 写入聚合表)
+        // 记录受影响的设备时间范围
+        const tsTime = ts.getTime();
+        if (!affectedDevices.has(deviceCode)) {
+          affectedDevices.set(deviceCode, { startTs: tsTime, endTs: tsTime, pointCodes: new Set([pointCode]) });
+        } else {
+          const record = affectedDevices.get(deviceCode);
+          record.startTs = Math.min(record.startTs, tsTime);
+          record.endTs = Math.max(record.endTs, tsTime);
+          record.pointCodes.add(pointCode);
+        }
 
         results.push({ timestamp: ts.toLocaleString(), deviceCode, pointCode, value: val, status: 'success' });
       } catch (err) {
@@ -84,11 +91,14 @@ export class ReceiverService {
     // 批量导入历史数据后，为了保证聚合表（5m, 1h, 1d）能查到数据，
     // 我们强制手动把这批刚写入的明细数据“重算”一次，直接塞进聚合表里。
     // 这是因为 TDengine 的 Stream 对太旧的历史数据（超过 watermark）默认不会再处理。
-    if (timeRange !== 'realtime' && results.length > 0) {
-      // 获取本次生成的起止时间
-      const startTs = new Date(now.getTime() - durationMs).toISOString();
-      const endTs = now.toISOString();
-      await this.backfillHistoricalData(deviceCode, pointCode, startTs, endTs);
+    if (timeRange !== 'realtime' && affectedDevices.size > 0) {
+      for (const [dCode, record] of affectedDevices.entries()) {
+        const startTsStr = new Date(record.startTs).toISOString();
+        const endTsStr = new Date(record.endTs).toISOString();
+        for (const pCode of record.pointCodes) {
+          await this.backfillHistoricalData(dCode, pCode, startTsStr, endTsStr);
+        }
+      }
     }
 
     this.logger.log(`成功模拟生成了 ${count} 条 ${deviceCode}-${pointCode} 的数据 (模式: ${mockType})`);
