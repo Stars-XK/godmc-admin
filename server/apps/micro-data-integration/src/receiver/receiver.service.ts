@@ -3,6 +3,7 @@ import { TdengineService } from '../tdengine/tdengine.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataIntegrationMappingEntity } from '@app/common';
 import { Repository } from 'typeorm';
+import { RedisService } from '@app/shared/redis/redis.service';
 
 @Injectable()
 export class ReceiverService {
@@ -12,6 +13,7 @@ export class ReceiverService {
     private readonly tdengineService: TdengineService,
     @InjectRepository(DataIntegrationMappingEntity)
     private readonly mappingRep: Repository<DataIntegrationMappingEntity>,
+    private readonly redisService: RedisService,
   ) {}
 
   /**
@@ -71,6 +73,10 @@ export class ReceiverService {
       try {
         await this.tdengineService.insertData(deviceCode, pointCode, val, ts);
         
+        if (timeRange === 'realtime') {
+           await this.redisService.getClient().hset('iot:point:active', pointCode, Date.now().toString());
+        }
+
         // 记录受影响的设备时间范围
         const tsTime = ts.getTime();
         if (!affectedDevices.has(deviceCode)) {
@@ -143,6 +149,11 @@ export class ReceiverService {
       try {
         await this.tdengineService.insertData(deviceCode, pointCode, val, ts);
         successCount++;
+
+        // 记录最新活跃时间到 Redis (只更新实时模式的数据，自动回填的历史数据不更新在线状态)
+        if (!autoBackfill) {
+           await this.redisService.getClient().hset('iot:point:active', pointCode, Date.now().toString());
+        }
 
         // 记录受影响的设备时间范围
         if (autoBackfill) {
