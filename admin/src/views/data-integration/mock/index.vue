@@ -33,8 +33,18 @@
               <div class="el-upload__tip">若TDengine中已有该测点数据，将自动从最新值开始累加，此基数仅作为首次生成的起点。</div>
             </el-form-item>
             <el-form-item label="单次生成条数" prop="count">
-              <el-input-number v-model="form.count" :min="1" :max="1000" style="width: 100%" :disabled="isAuto" />
+              <el-input-number v-model="form.count" :min="1" :max="10000" style="width: 100%" :disabled="isAuto" />
               <div class="el-upload__tip">生成数据会直接写入TDengine时序数据库的超级表中。</div>
+            </el-form-item>
+            <el-form-item label="历史时间跨度" prop="timeRange">
+              <el-select v-model="form.timeRange" style="width: 100%" :disabled="isAuto">
+                <el-option label="实时生成 (仅当前时间)" value="realtime" />
+                <el-option label="过去 1 小时内分布" value="1h" />
+                <el-option label="过去 1 天内分布" value="1d" />
+                <el-option label="过去 7 天内分布" value="7d" />
+                <el-option label="过去 30 天内分布" value="30d" />
+              </el-select>
+              <div class="el-upload__tip">将生成的条数均匀/随机分布在选定的历史时间跨度内（从当前时间往前推）。开启自动定时生成时无效。</div>
             </el-form-item>
             <el-form-item label="自动定时生成">
               <el-switch v-model="isAuto" active-text="开启" inactive-text="关闭" />
@@ -53,8 +63,8 @@
         </el-col>
         
         <el-col :span="12" :xs="24">
-          <el-card shadow="hover" header="生成结果控制台">
-            <el-scrollbar height="350px">
+          <el-card shadow="hover" header="生成结果控制台" class="console-card">
+            <el-scrollbar height="600px">
               <div v-if="results.length > 0">
                 <div v-for="(item, index) in results" :key="index" class="mock-result-item">
                   [ {{ item.timestamp }} ] Device: <strong>{{ item.deviceCode }}</strong>, Point: <strong>{{ item.pointCode }}</strong>, Value: <span style="color: #409EFF">{{ item.value.toFixed(2) }}</span>
@@ -90,7 +100,8 @@ const data = reactive({
     baseValue: 0,
     min: 0,
     max: 100,
-    count: 10
+    count: 10,
+    timeRange: 'realtime'
   },
   rules: {
     deviceCode: [{ required: true, message: '设备编码不能为空', trigger: 'blur' }],
@@ -180,5 +191,8 @@ function resetForm() {
 }
 .mock-result-item:last-child {
   border-bottom: none;
+}
+.console-card :deep(.el-card__body) {
+  padding: 0;
 }
 </style>

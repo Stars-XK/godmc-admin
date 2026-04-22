@@ -17,9 +17,16 @@ export class ReceiverService {
   /**
    * 模拟数据生成器
    */
-  async generateMockData(deviceCode: string, pointCode: string, min: number, max: number, count: number, mockType: string = 'random', baseValue: number = 0) {
+  async generateMockData(deviceCode: string, pointCode: string, min: number, max: number, count: number, mockType: string = 'random', baseValue: number = 0, timeRange: string = 'realtime') {
     const results = [];
     const now = new Date();
+    
+    // 计算时间跨度（毫秒）
+    let durationMs = 0;
+    if (timeRange === '1h') durationMs = 60 * 60 * 1000;
+    else if (timeRange === '1d') durationMs = 24 * 60 * 60 * 1000;
+    else if (timeRange === '7d') durationMs = 7 * 24 * 60 * 60 * 1000;
+    else if (timeRange === '30d') durationMs = 30 * 24 * 60 * 60 * 1000;
 
     let currentVal = baseValue;
 
@@ -38,8 +45,16 @@ export class ReceiverService {
     }
 
     for (let i = 0; i < count; i++) {
-      // 模拟生成过去 count 秒的数据，每秒一条
-      const ts = new Date(now.getTime() - (count - i - 1) * 1000);
+      let ts: Date;
+      if (timeRange === 'realtime') {
+        // 实时模式：从当前往前倒推，每秒一条
+        ts = new Date(now.getTime() - (count - i - 1) * 1000);
+      } else {
+        // 历史跨度模式：将生成条数均匀分布在指定的时间段内
+        const stepMs = durationMs / count;
+        // i=0 对应最老的时间，i=count-1 对应现在
+        ts = new Date(now.getTime() - durationMs + i * stepMs);
+      }
       
       let val: number;
       if (mockType === 'cumulative') {
