@@ -21,6 +21,8 @@ import {
   DataIntegrationTaskEntity, 
   DataIntegrationMappingEntity 
 } from '@app/common';
+import { WaterPointEntity } from '@app/common';
+import { TdengineAggModule } from './tdengine/tdengine-agg.module';
 
 @Module({
   imports: [
@@ -35,7 +37,7 @@ import {
       useFactory: (config: ConfigService) => {
         return {
           type: 'mysql',
-          entities: [`${__dirname}/**/*.entity{.ts,.js}`, DataIntegrationSourceEntity, DataIntegrationTaskEntity, DataIntegrationMappingEntity],
+          entities: [`${__dirname}/**/*.entity{.ts,.js}`, DataIntegrationSourceEntity, DataIntegrationTaskEntity, DataIntegrationMappingEntity, WaterPointEntity],
           autoLoadEntities: true,
           keepConnectionAlive: true,
           timezone: '+08:00',
@@ -43,7 +45,7 @@ import {
         } as TypeOrmModuleOptions;
       },
     }),
-    TypeOrmModule.forFeature([DataIntegrationSourceEntity, DataIntegrationTaskEntity, DataIntegrationMappingEntity]),
+    TypeOrmModule.forFeature([DataIntegrationSourceEntity, DataIntegrationTaskEntity, DataIntegrationMappingEntity, WaterPointEntity]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -58,6 +60,7 @@ import {
     SharedModule,
     RegistryModule,
     TdengineModule,
+    TdengineAggModule,
     ReceiverModule,
     EngineModule,
     ConfigMgrModule,

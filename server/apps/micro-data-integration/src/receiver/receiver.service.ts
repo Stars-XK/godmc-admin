@@ -8,6 +8,7 @@ import { RedisService } from '@app/shared/redis/redis.service';
 @Injectable()
 export class ReceiverService {
   private readonly logger = new Logger(ReceiverService.name);
+  private readonly dirtySetKey = 'iot:agg:dirty:set';
 
   constructor(
     private readonly tdengineService: TdengineService,
@@ -15,6 +16,23 @@ export class ReceiverService {
     private readonly mappingRep: Repository<DataIntegrationMappingEntity>,
     private readonly redisService: RedisService,
   ) {}
+
+  private async markAggDirty(deviceCode: string, pointCode: string, tsMs: number) {
+    const redis = this.redisService.getClient();
+    const member = `${deviceCode}|${pointCode}`;
+    const rangeKey = `iot:agg:dirty:range:${member}`;
+
+    await redis.sadd(this.dirtySetKey, member);
+
+    const range = await redis.hgetall(rangeKey);
+    const minTs = range?.minTs ? parseInt(range.minTs, 10) : tsMs;
+    const maxTs = range?.maxTs ? parseInt(range.maxTs, 10) : tsMs;
+
+    await redis.hset(rangeKey, {
+      minTs: String(Math.min(minTs, tsMs)),
+      maxTs: String(Math.max(maxTs, tsMs)),
+    });
+  }
 
   /**
    * 模拟数据生成器
@@ -72,6 +90,7 @@ export class ReceiverService {
 
       try {
         await this.tdengineService.insertData(deviceCode, pointCode, val, ts);
+        await this.markAggDirty(deviceCode, pointCode, ts.getTime());
         
         if (timeRange === 'realtime') {
            await this.redisService.getClient().hset('iot:point:active', pointCode, Date.now().toString());
@@ -149,6 +168,7 @@ export class ReceiverService {
       try {
         await this.tdengineService.insertData(deviceCode, pointCode, val, ts);
         successCount++;
+        await this.markAggDirty(deviceCode, pointCode, ts.getTime());
 
         // 记录最新活跃时间到 Redis (只更新实时模式的数据，自动回填的历史数据不更新在线状态)
         if (!autoBackfill) {
