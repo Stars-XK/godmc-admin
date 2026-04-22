@@ -185,24 +185,35 @@ function renderChart(dataList) {
   if (!chartInstance) {
     chartInstance = echarts.init(chartRef.value)
   }
-  
-  const times = dataList.map(item => {
-    const d = new Date(item.ts)
-    return `${d.getMonth()+1}-${d.getDate()} ${d.getHours()}:${d.getMinutes() < 10 ? '0'+d.getMinutes() : d.getMinutes()}`
+
+  // 转换数据为时间轴格式 [timestamp, value]
+  const seriesData = dataList.map(item => {
+    return [new Date(item.ts).getTime(), item.val]
   })
-  const values = dataList.map(item => item.val)
+
+  // 固定 X 轴范围为用户选择的时间范围
+  const startTime = new Date(dateRange.value[0]).getTime()
+  const endTime = new Date(dateRange.value[1]).getTime()
 
   const option = {
-    tooltip: { trigger: 'axis' },
+    tooltip: { 
+      trigger: 'axis',
+      formatter: function (params) {
+        const date = new Date(params[0].value[0])
+        const timeStr = `${date.getMonth()+1}-${date.getDate()} ${date.getHours()}:${date.getMinutes() < 10 ? '0'+date.getMinutes() : date.getMinutes()}`
+        return `${timeStr}<br/>${params[0].marker} ${params[0].seriesName} <b>${params[0].value[1]}</b>`
+      }
+    },
     grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
-    xAxis: { 
-      type: 'category', 
-      boundaryGap: false, 
-      data: times,
+    xAxis: {
+      type: 'time',
+      min: startTime,
+      max: endTime,
+      boundaryGap: false,
       axisLine: { lineStyle: { color: '#e4e7ed' } },
       axisLabel: { color: '#606266' }
     },
-    yAxis: { 
+    yAxis: {
       type: 'value',
       splitLine: { lineStyle: { type: 'dashed', color: '#ebeef5' } },
       axisLabel: { color: '#909399' }
@@ -215,9 +226,10 @@ function renderChart(dataList) {
       {
         name: '监测数值',
         type: 'line',
-        smooth: true,
+        smooth: false, // 改为 false，避免插值平滑导致断点显示不明显
+        connectNulls: false, // 确保断点不相连
         symbolSize: 6,
-        data: values,
+        data: seriesData,
         itemStyle: { color: '#409EFF' },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -228,7 +240,9 @@ function renderChart(dataList) {
       }
     ]
   }
-  chartInstance.setOption(option)
+  
+  // 使用 notMerge 模式更新图表，防止旧数据残留
+  chartInstance.setOption(option, true)
 }
 
 function handleResize() {
