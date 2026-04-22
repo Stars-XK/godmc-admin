@@ -11,10 +11,10 @@ export class ReceiverController {
   @ApiOperation({ summary: '模拟产生设备数据' })
   @Post('mock/generate')
   async generateMockData(
-    @Body() body: { deviceCode: string; pointCode: string; min: number; max: number; count: number },
+    @Body() body: { deviceCode: string; pointCode: string; min: number; max: number; count: number; mockType?: string; baseValue?: number },
   ) {
-    const { deviceCode, pointCode, min = 0, max = 100, count = 10 } = body;
-    const results = await this.receiverService.generateMockData(deviceCode, pointCode, min, max, count);
+    const { deviceCode, pointCode, min = 0, max = 100, count = 10, mockType = 'random', baseValue = 0 } = body;
+    const results = await this.receiverService.generateMockData(deviceCode, pointCode, min, max, count, mockType, baseValue);
     return ResultData.ok(results);
   }
 

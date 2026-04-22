@@ -17,14 +17,38 @@ export class ReceiverService {
   /**
    * 模拟数据生成器
    */
-  async generateMockData(deviceCode: string, pointCode: string, min: number, max: number, count: number) {
+  async generateMockData(deviceCode: string, pointCode: string, min: number, max: number, count: number, mockType: string = 'random', baseValue: number = 0) {
     const results = [];
     const now = new Date();
+
+    let currentVal = baseValue;
+
+    if (mockType === 'cumulative') {
+      try {
+        const safeDeviceCode = deviceCode.replace(/-/g, '_').toLowerCase();
+        const safePointCode = pointCode.replace(/-/g, '_').toLowerCase();
+        const tableName = `water_iot.d_${safeDeviceCode}_${safePointCode}`;
+        const res = await this.tdengineService.querySql(`SELECT LAST_ROW(ts, val) FROM ${tableName}`);
+        if (res && res.data && res.data.length > 0) {
+          currentVal = res.data[0][1]; 
+        }
+      } catch (err) {
+        // 表不存在或没有数据时，使用传入的 baseValue
+      }
+    }
 
     for (let i = 0; i < count; i++) {
       // 模拟生成过去 count 秒的数据，每秒一条
       const ts = new Date(now.getTime() - (count - i - 1) * 1000);
-      const val = Number((Math.random() * (max - min) + min).toFixed(2));
+      
+      let val: number;
+      if (mockType === 'cumulative') {
+        const step = Number((Math.random() * (max - min) + min).toFixed(2));
+        currentVal += step;
+        val = Number(currentVal.toFixed(2));
+      } else {
+        val = Number((Math.random() * (max - min) + min).toFixed(2));
+      }
 
       try {
         await this.tdengineService.insertData(deviceCode, pointCode, val, ts);
@@ -34,7 +58,7 @@ export class ReceiverService {
       }
     }
 
-    this.logger.log(`成功模拟生成了 ${count} 条 ${deviceCode}-${pointCode} 的数据`);
+    this.logger.log(`成功模拟生成了 ${count} 条 ${deviceCode}-${pointCode} 的数据 (模式: ${mockType})`);
     return results;
   }
 

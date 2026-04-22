@@ -16,11 +16,21 @@
             <el-form-item label="指标(测点)编码" prop="pointCode">
               <el-input v-model="form.pointCode" placeholder="请输入要模拟的指标编码" />
             </el-form-item>
-            <el-form-item label="数值范围 (Min)" prop="min">
+            <el-form-item label="数据类型" prop="mockType">
+              <el-radio-group v-model="form.mockType">
+                <el-radio label="random">瞬时随机 (波动数据)</el-radio>
+                <el-radio label="cumulative">累计递增 (表盘码值)</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item :label="form.mockType === 'random' ? '数值范围 (Min)' : '递增步长 (Min)'" prop="min">
               <el-input-number v-model="form.min" :min="0" :max="10000" style="width: 100%" />
             </el-form-item>
-            <el-form-item label="数值范围 (Max)" prop="max">
+            <el-form-item :label="form.mockType === 'random' ? '数值范围 (Max)' : '递增步长 (Max)'" prop="max">
               <el-input-number v-model="form.max" :min="0" :max="10000" style="width: 100%" />
+            </el-form-item>
+            <el-form-item label="初始基数" prop="baseValue" v-if="form.mockType === 'cumulative'">
+              <el-input-number v-model="form.baseValue" :min="0" style="width: 100%" />
+              <div class="el-upload__tip">若TDengine中已有该测点数据，将自动从最新值开始累加，此基数仅作为首次生成的起点。</div>
             </el-form-item>
             <el-form-item label="单次生成条数" prop="count">
               <el-input-number v-model="form.count" :min="1" :max="1000" style="width: 100%" :disabled="isAuto" />
@@ -76,6 +86,8 @@ const data = reactive({
   form: {
     deviceCode: '',
     pointCode: '',
+    mockType: 'random',
+    baseValue: 0,
     min: 0,
     max: 100,
     count: 10
@@ -83,8 +95,8 @@ const data = reactive({
   rules: {
     deviceCode: [{ required: true, message: '设备编码不能为空', trigger: 'blur' }],
     pointCode: [{ required: true, message: '指标编码不能为空', trigger: 'blur' }],
-    min: [{ required: true, message: '最小值不能为空', trigger: 'blur' }],
-    max: [{ required: true, message: '最大值不能为空', trigger: 'blur' }],
+    min: [{ required: true, message: '最小值/步长不能为空', trigger: 'blur' }],
+    max: [{ required: true, message: '最大值/步长不能为空', trigger: 'blur' }],
     count: [{ required: true, message: '生成条数不能为空', trigger: 'blur' }]
   }
 });
