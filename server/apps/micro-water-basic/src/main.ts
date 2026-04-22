@@ -45,12 +45,12 @@ async function bootstrap() {
 
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.TCP,
-    options: { host: '0.0.0.0', port: 3016 },
+    options: { host: '0.0.0.0', port: 5006 },
   });
 
   await app.startAllMicroservices();
   await app.listen(3006);
   console.log(`micro-water-basic HTTP is running on http://localhost:3006${prefix}/`);
-  console.log(`micro-water-basic TCP is running on port 3016`);
+  console.log(`micro-water-basic TCP is running on port 5006`);
 }
 bootstrap();
