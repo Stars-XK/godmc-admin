@@ -78,6 +78,10 @@ perm:
         { path: '/logout', method: 'POST' },
         { path: '/perm/{id}', method: 'GET' },
         { path: '/upload', method: 'POST' },
+        { path: '/data-integration/query/latest', method: 'GET' },
+        { path: '/data-integration/query/latest-batch', method: 'GET' },
+        { path: '/data-integration/query/history', method: 'GET' },
+        { path: '/data-integration/query/aggregated', method: 'GET' },
       ]
 
 # 用户相关
