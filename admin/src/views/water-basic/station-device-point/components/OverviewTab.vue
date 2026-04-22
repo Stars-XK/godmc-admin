@@ -140,7 +140,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick, getCurrentInstance } from 'vue'
 import { listStation, listDevice, listPoint } from '@/api/water-basic/equipment'
 import * as echarts from 'echarts'
 
@@ -279,10 +279,39 @@ function initCharts() {
   // 1. 站点类型分布 (Pie Chart)
   if (stationTypeChartRef.value) {
     stationChartInstance = echarts.init(stationTypeChartRef.value)
+    
+    // 从后端真实获取站点类型统计
+    let typeCounts = {}
+    try {
+      const res = await listStation({ pageNum: 1, pageSize: 100000 })
+      const list = res.rows || (res.data && res.data.list) || []
+      list.forEach(station => {
+        const t = String(station.type) || 'UNKNOWN'
+        typeCounts[t] = (typeCounts[t] || 0) + 1
+      })
+    } catch (e) {
+      console.error('获取站点类型统计失败', e)
+    }
+
+    // 映射字典
+    const { proxy } = getCurrentInstance() || { proxy: { useDict: () => ({ water_station_type: { value: [] } }) } }
+    const { water_station_type } = proxy.useDict('water_station_type')
+    
+    const typeData = []
+    Object.keys(typeCounts).forEach(key => {
+      const dictItem = water_station_type.value.find(d => String(d.value) === key)
+      const label = dictItem ? dictItem.label : (key === 'UNKNOWN' ? '其他' : key)
+      typeData.push({ name: label, value: typeCounts[key] })
+    })
+
+    if (typeData.length === 0) {
+      typeData.push({ name: '暂无数据', value: 0 })
+    }
+
     const option = {
       tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
       legend: { bottom: '0%', left: 'center', icon: 'circle', itemWidth: 10, itemHeight: 10 },
-      color: ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399'],
+      color: ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399', '#8e44ad', '#f1c40f'],
       series: [
         {
           name: '站点类型',
@@ -300,13 +329,7 @@ function initCharts() {
             label: { show: true, fontSize: 16, fontWeight: 'bold' }
           },
           labelLine: { show: false },
-          data: [
-            { value: Math.floor(stats.value.stationCount * 0.45) || 45, name: '水厂' },
-            { value: Math.floor(stats.value.stationCount * 0.25) || 25, name: '泵站' },
-            { value: Math.floor(stats.value.stationCount * 0.15) || 15, name: '调压站' },
-            { value: Math.floor(stats.value.stationCount * 0.10) || 10, name: '管网监测' },
-            { value: Math.floor(stats.value.stationCount * 0.05) || 5, name: '其他' }
-          ]
+          data: typeData
         }
       ]
     }
@@ -316,12 +339,31 @@ function initCharts() {
   // 2. 设备状态监控 (Bar Chart)
   if (deviceStatusChartRef.value) {
     deviceChartInstance = echarts.init(deviceStatusChartRef.value)
+    
+    // 从后端真实获取设备状态统计
+    let statusCounts = { '0': 0, '1': 0, '2': 0 }
+    try {
+      // 获取所有设备的列表来统计状态，如果设备太多也可以后续让后端加个聚合接口
+      const res = await listDevice({ pageNum: 1, pageSize: 100000 })
+      const list = res.rows || (res.data && res.data.list) || []
+      list.forEach(device => {
+        const s = String(device.status)
+        if (statusCounts[s] !== undefined) {
+          statusCounts[s]++
+        } else {
+          statusCounts['0']++ // 默认当正常
+        }
+      })
+    } catch (e) {
+      console.error('获取设备状态统计失败', e)
+    }
+
     const option = {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       grid: { left: '5%', right: '5%', bottom: '5%', top: '15%', containLabel: true },
       xAxis: {
         type: 'category',
-        data: ['在线运行', '待机休眠', '离线断网', '故障报警', '维保中'],
+        data: ['在线运行(全)', '数据异常(分)', '完全离线'],
         axisLine: { lineStyle: { color: '#e4e7ed' } },
         axisLabel: { color: '#606266' },
         axisTick: { show: false }
@@ -337,18 +379,23 @@ function initCharts() {
           type: 'bar',
           barWidth: '40%',
           itemStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: '#a18cd1' },
-              { offset: 1, color: '#fbc2eb' }
-            ]),
+            color: function(params) {
+              const colorList = [
+                ['#a18cd1', '#fbc2eb'], // 在线 (紫粉)
+                ['#f6d365', '#fda085'], // 异常 (黄橙)
+                ['#cfd9df', '#e2ebf0']  // 离线 (灰)
+              ]
+              return new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: colorList[params.dataIndex][0] },
+                { offset: 1, color: colorList[params.dataIndex][1] }
+              ])
+            },
             borderRadius: [6, 6, 0, 0]
           },
           data: [
-            Math.floor(stats.value.deviceCount * 0.70) || 700,
-            Math.floor(stats.value.deviceCount * 0.15) || 150,
-            Math.floor(stats.value.deviceCount * 0.08) || 80,
-            Math.floor(stats.value.deviceCount * 0.05) || 50,
-            Math.floor(stats.value.deviceCount * 0.02) || 20
+            statusCounts['0'],
+            statusCounts['1'],
+            statusCounts['2']
           ]
         }
       ]
