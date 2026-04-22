@@ -64,6 +64,7 @@ export class StatusEngineService implements OnModuleInit {
     
     // 1. 获取所有测点最新活跃时间
     const activeTimes = await redisClient.hgetall('iot:point:active');
+    const activeCount = Object.keys(activeTimes || {}).length;
     
     // 获取上次的状态树用于比对增量
     const lastTreeStr = await redisClient.get('iot:status:tree');
@@ -162,13 +163,14 @@ export class StatusEngineService implements OnModuleInit {
     // 6. 如果有变更，发起增量更新请求
     const totalChanges = changedPoints.length + changedDevices.length + changedStations.length;
     if (totalChanges > 0) {
-      this.logger.log(`检测到状态变更，触发回写: 测点${changedPoints.length} 设备${changedDevices.length} 站点${changedStations.length}`);
+      this.logger.log(`检测到状态变更，触发回写: 活跃测点${activeCount} 变更测点${changedPoints.length} 设备${changedDevices.length} 站点${changedStations.length}`);
       try {
         this.waterBasicClient.emit('water.status.batchUpdate', {
           points: changedPoints,
           devices: changedDevices,
           stations: changedStations
         });
+        this.logger.log(`状态回写事件已发送: water.status.batchUpdate (payload=${totalChanges})`);
       } catch (e) {
         this.logger.error('回写状态通知失败', e);
       }
