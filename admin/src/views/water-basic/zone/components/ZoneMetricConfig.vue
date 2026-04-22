@@ -69,7 +69,8 @@
         <div class="right-panel">
           <div class="panel-title">
             <span>计算公式画板</span>
-            <span class="formula-preview">当前公式: ∑(进水) - ∑(出水)</span>
+            <span class="formula-preview" v-if="currentMetric === 'water_supply'">当前公式: ∑(进水累计增量) - ∑(出水累计增量)</span>
+            <span class="formula-preview" v-else>当前公式: ∑(进水瞬时值) - ∑(出水瞬时值)</span>
           </div>
           
           <div class="calc-board">
