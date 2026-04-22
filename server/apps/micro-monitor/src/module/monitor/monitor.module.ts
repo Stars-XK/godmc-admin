@@ -6,9 +6,19 @@ import { LoginlogModule } from './loginlog/loginlog.module';
 import { OnlineModule } from './online/online.module';
 import { OperlogModule } from './operlog/operlog.module';
 import { RegistryMonitorModule } from './registry/registry.module';
+import { StatusEngineModule } from './status-engine/status-engine.module';
 
 @Module({
-  imports: [JobModule, ServerModule, CacheModule, LoginlogModule, OnlineModule, OperlogModule, RegistryMonitorModule],
+  imports: [
+    JobModule, 
+    ServerModule, 
+    CacheModule, 
+    LoginlogModule, 
+    OnlineModule, 
+    OperlogModule, 
+    RegistryMonitorModule,
+    StatusEngineModule
+  ],
   exports: [JobModule],
 })
 export class MonitorModule {}

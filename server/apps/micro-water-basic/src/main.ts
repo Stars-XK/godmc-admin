@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { MicroWaterBasicModule } from './micro-water-basic.module';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpExceptionsFilter } from '@app/common/filters/http-exceptions-filter';
@@ -42,7 +43,14 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerOptions);
   SwaggerModule.setup(`${prefix}/water-basic/swagger-ui`, app, document);
 
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.TCP,
+    options: { host: '0.0.0.0', port: 3006 },
+  });
+
+  await app.startAllMicroservices();
   await app.listen(3006);
-  console.log(`Micro-Water-Basic is running on http://localhost:3006${prefix}/`);
+  console.log(`micro-water-basic HTTP is running on http://localhost:3006${prefix}/`);
+  console.log(`micro-water-basic TCP is running on port 3006`);
 }
 bootstrap();
