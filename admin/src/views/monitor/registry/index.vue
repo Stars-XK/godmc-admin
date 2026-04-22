@@ -26,9 +26,16 @@
           
           <div class="service-name">
             <el-icon class="service-icon" :color="service.status === 'online' ? '#409EFF' : '#909399'"><Monitor /></el-icon>
-            <h3>{{ service.name }}</h3>
+            <div class="service-titles">
+              <h3>{{ serviceNameMap[service.name] || service.name }}</h3>
+              <span class="service-subname">{{ service.name }}</span>
+            </div>
           </div>
           
+          <div class="service-desc">
+            {{ serviceDescMap[service.name] || '提供基础业务接口支撑' }}
+          </div>
+
           <div class="service-info">
             <div class="info-item">
               <span class="info-label">主机地址</span>
@@ -59,6 +66,28 @@ import { parseTime } from '@/utils/ruoyi';
 const loading = ref(true);
 const serviceList = ref([]);
 let timer = null;
+
+const serviceNameMap = {
+  'api-gateway': '网关服务 (Gateway)',
+  'micro-auth': '认证服务 (Auth)',
+  'micro-system': '系统管理 (System)',
+  'micro-monitor': '系统监控 (Monitor)',
+  'micro-upload': '文件服务 (Upload)',
+  'micro-tools': '工具服务 (Tools)',
+  'micro-water-basic': '水务基础 (Water Basic)',
+  'micro-data-integration': '数据接入 (Data Integration)',
+};
+
+const serviceDescMap = {
+  'api-gateway': '全局路由分发、请求拦截、安全控制',
+  'micro-auth': '用户登录、Token签发、身份认证中心',
+  'micro-system': '用户、角色、菜单、字典等基础配置',
+  'micro-monitor': '微服务心跳注册、操作日志、系统监控',
+  'micro-upload': '本地与云端对象存储的文件上传服务',
+  'micro-tools': '代码生成、代码编辑器、实用工具集',
+  'micro-water-basic': '分区、站点、设备、测点等资产管理',
+  'micro-data-integration': '多协议数据接入、TDengine流计算与写入',
+};
 
 function getList() {
   loading.value = true;
@@ -216,7 +245,13 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 12px;
+}
+
+.service-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .service-icon {
@@ -228,10 +263,23 @@ onUnmounted(() => {
 
 .service-name h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   color: #303133;
   font-weight: 600;
   word-break: break-all;
+}
+
+.service-subname {
+  font-size: 12px;
+  color: #909399;
+  font-family: monospace;
+}
+
+.service-desc {
+  font-size: 13px;
+  color: #606266;
+  margin-bottom: 16px;
+  min-height: 20px;
 }
 
 .service-info {
