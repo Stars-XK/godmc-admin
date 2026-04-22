@@ -85,46 +85,10 @@ export class ReceiverService {
     // 我们强制手动把这批刚写入的明细数据“重算”一次，直接塞进聚合表里。
     // 这是因为 TDengine 的 Stream 对太旧的历史数据（超过 watermark）默认不会再处理。
     if (timeRange !== 'realtime' && results.length > 0) {
-      try {
-        const safeDeviceCode = deviceCode.replace(/-/g, '_').toLowerCase();
-        const safePointCode = pointCode.replace(/-/g, '_').toLowerCase();
-        const tName = `water_iot.d_${safeDeviceCode}_${safePointCode}`;
-        
-        // 获取本次生成的起止时间
-        const startTs = new Date(now.getTime() - durationMs).toISOString();
-        const endTs = now.toISOString();
-
-        // 1. 手动回填 5m 表
-        await this.tdengineService.querySql(`
-          INSERT INTO water_iot.meters_5m 
-          SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, device_code, point_code
-          FROM ${tName} 
-          WHERE ts >= '${startTs}' AND ts <= '${endTs}' 
-          INTERVAL(5m)
-        `);
-
-        // 2. 手动回填 1h 表
-        await this.tdengineService.querySql(`
-          INSERT INTO water_iot.meters_1h 
-          SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, device_code, point_code
-          FROM ${tName} 
-          WHERE ts >= '${startTs}' AND ts <= '${endTs}' 
-          INTERVAL(1h)
-        `);
-
-        // 3. 手动回填 1d 表
-        await this.tdengineService.querySql(`
-          INSERT INTO water_iot.meters_1d 
-          SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, device_code, point_code
-          FROM ${tName} 
-          WHERE ts >= '${startTs}' AND ts <= '${endTs}' 
-          INTERVAL(1d)
-        `);
-        
-        this.logger.log(`历史数据回填聚合表 (5m, 1h, 1d) 完成: ${deviceCode}-${pointCode}`);
-      } catch (err) {
-        this.logger.error(`手动回填历史聚合数据失败: ${err.message}`);
-      }
+      // 获取本次生成的起止时间
+      const startTs = new Date(now.getTime() - durationMs).toISOString();
+      const endTs = now.toISOString();
+      await this.backfillHistoricalData(deviceCode, pointCode, startTs, endTs);
     }
 
     this.logger.log(`成功模拟生成了 ${count} 条 ${deviceCode}-${pointCode} 的数据 (模式: ${mockType})`);
@@ -134,58 +98,114 @@ export class ReceiverService {
   /**
    * 通用 HTTP 数据推送接收器
    */
-  async receiveData(taskId: number, payload: any | any[]) {
-    // 获取该任务的字段映射配置
+  async receiveData(taskId: number, payload: any | any[], autoBackfill: boolean = false) {
+    const dataList = Array.isArray(payload) ? payload : [payload];
+    if (dataList.length === 0) return { success: 0, failed: 0 };
+
     const mappings = await this.mappingRep.find({ where: { taskId } });
     if (!mappings || mappings.length === 0) {
-      throw new Error(`任务 ${taskId} 未配置字段映射规则`);
+      this.logger.warn(`任务 ${taskId} 没有配置字段映射，忽略数据接入`);
+      return { success: 0, failed: 0 };
     }
 
-    const dataArray = Array.isArray(payload) ? payload : [payload];
     let successCount = 0;
-    let errorCount = 0;
+    let failedCount = 0;
 
-    for (const data of dataArray) {
+    // 用于记录这批数据影响到的设备和起止时间（用于回填）
+    const affectedDevices = new Map<string, { startTs: number, endTs: number, pointCodes: Set<string> }>();
+
+    for (const item of dataList) {
+      const extracted: any = {};
+      for (const map of mappings) {
+        extracted[map.targetField] = item[map.sourceField];
+      }
+
+      if (!extracted.deviceCode || !extracted.pointCode || extracted.value === undefined) {
+        failedCount++;
+        continue;
+      }
+
+      const deviceCode = String(extracted.deviceCode);
+      const pointCode = String(extracted.pointCode);
+      const val = Number(extracted.value);
+      const ts = extracted.timestamp ? new Date(extracted.timestamp) : new Date();
+
       try {
-        let deviceCode = '';
-        let pointCode = '';
-        let value: number = null;
-        let ts: Date = new Date();
+        await this.tdengineService.insertData(deviceCode, pointCode, val, ts);
+        successCount++;
 
-        // 根据映射规则提取字段
-        for (const mapping of mappings) {
-          const val = data[mapping.sourceField];
-          if (val === undefined || val === null) continue;
-
-          switch (mapping.targetField) {
-            case 'deviceCode':
-              deviceCode = String(val);
-              break;
-            case 'pointCode':
-              pointCode = String(val);
-              break;
-            case 'value':
-              value = Number(val);
-              break;
-            case 'timestamp':
-              ts = new Date(val);
-              break;
+        // 记录受影响的设备时间范围
+        if (autoBackfill) {
+          const tsTime = ts.getTime();
+          if (!affectedDevices.has(deviceCode)) {
+            affectedDevices.set(deviceCode, { startTs: tsTime, endTs: tsTime, pointCodes: new Set([pointCode]) });
+          } else {
+            const record = affectedDevices.get(deviceCode);
+            record.startTs = Math.min(record.startTs, tsTime);
+            record.endTs = Math.max(record.endTs, tsTime);
+            record.pointCodes.add(pointCode);
           }
         }
-
-        if (deviceCode && pointCode && value !== null && !isNaN(value)) {
-          await this.tdengineService.insertData(deviceCode, pointCode, value, ts);
-          successCount++;
-        } else {
-          errorCount++;
-          this.logger.warn(`数据缺少必要字段: ${JSON.stringify(data)}`);
-        }
       } catch (err) {
-        errorCount++;
-        this.logger.error(`处理数据失败: ${err.message}`, err.stack);
+        failedCount++;
+        this.logger.error(`TDengine 插入失败 (Task: ${taskId})`, err);
       }
     }
 
-    return { successCount, errorCount, total: dataArray.length };
+    // 执行自动历史补录
+    if (autoBackfill && affectedDevices.size > 0) {
+      for (const [deviceCode, record] of affectedDevices.entries()) {
+        const startTsStr = new Date(record.startTs).toISOString();
+        const endTsStr = new Date(record.endTs).toISOString();
+        for (const pointCode of record.pointCodes) {
+          await this.backfillHistoricalData(deviceCode, pointCode, startTsStr, endTsStr);
+        }
+      }
+    }
+
+    this.logger.log(`任务 ${taskId} 接入完成：成功 ${successCount} 条，失败 ${failedCount} 条`);
+    return { success: successCount, failed: failedCount };
+  }
+
+  /**
+   * 将历史数据回填写入到 5m, 1h, 1d 的聚合表中
+   */
+  private async backfillHistoricalData(deviceCode: string, pointCode: string, startTs: string, endTs: string) {
+    try {
+      const safeDeviceCode = deviceCode.replace(/-/g, '_').toLowerCase();
+      const safePointCode = pointCode.replace(/-/g, '_').toLowerCase();
+      const tName = `water_iot.d_${safeDeviceCode}_${safePointCode}`;
+      
+      // 1. 手动回填 5m 表
+      await this.tdengineService.querySql(`
+        INSERT INTO water_iot.meters_5m 
+        SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, device_code, point_code
+        FROM ${tName} 
+        WHERE ts >= '${startTs}' AND ts <= '${endTs}' 
+        INTERVAL(5m)
+      `);
+
+      // 2. 手动回填 1h 表
+      await this.tdengineService.querySql(`
+        INSERT INTO water_iot.meters_1h 
+        SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, device_code, point_code
+        FROM ${tName} 
+        WHERE ts >= '${startTs}' AND ts <= '${endTs}' 
+        INTERVAL(1h)
+      `);
+
+      // 3. 手动回填 1d 表
+      await this.tdengineService.querySql(`
+        INSERT INTO water_iot.meters_1d 
+        SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, device_code, point_code
+        FROM ${tName} 
+        WHERE ts >= '${startTs}' AND ts <= '${endTs}' 
+        INTERVAL(1d)
+      `);
+      
+      this.logger.log(`历史数据回填聚合表完成: ${deviceCode}-${pointCode}`);
+    } catch (err) {
+      this.logger.error(`手动回填历史聚合数据失败: ${err.message}`);
+    }
   }
 }

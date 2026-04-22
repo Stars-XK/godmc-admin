@@ -113,7 +113,7 @@ export class TaskSchedulerService implements OnModuleInit {
     await connection.end();
 
     if (Array.isArray(rows) && rows.length > 0) {
-      await this.receiverService.receiveData(task.id, rows);
+      await this.receiverService.receiveData(task.id, rows, task.autoBackfill === 1);
     }
   }
 
@@ -128,7 +128,7 @@ export class TaskSchedulerService implements OnModuleInit {
         .pipe(csv())
         .on('data', (data) => results.push(data))
         .on('end', async () => {
-          await this.receiverService.receiveData(task.id, results);
+          await this.receiverService.receiveData(task.id, results, task.autoBackfill === 1);
           // 处理完后可以选择重命名或删除文件，这里暂不处理
         });
     }

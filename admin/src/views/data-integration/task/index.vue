@@ -61,6 +61,10 @@
         <el-form-item :label="getQueryLabel(form.sourceId)" prop="querySqlOrTopic">
           <el-input v-model="form.querySqlOrTopic" type="textarea" :placeholder="getQueryPlaceholder(form.sourceId)" />
         </el-form-item>
+        <el-form-item label="自动补录历史">
+          <el-switch v-model="form.autoBackfill" active-text="开启" inactive-text="关闭" />
+          <div class="el-upload__tip">开启后，若单次抓取了跨越整点的大量历史数据，引擎将自动触发时序聚合重算。</div>
+        </el-form-item>
         <el-form-item label="任务状态" prop="status">
           <el-radio-group v-model="form.status">
             <el-radio label="0">正常</el-radio>
@@ -132,7 +136,8 @@ const quickCron = ref(null);
 
 const data = reactive({
   form: {
-    status: '0'
+    status: '0',
+    autoBackfill: false
   },
   rules: {
     name: [{ required: true, message: '任务名称不能为空', trigger: 'blur' }],
@@ -222,6 +227,7 @@ function reset() {
   form.cronExpression = undefined;
   form.querySqlOrTopic = undefined;
   form.status = '0';
+  form.autoBackfill = false;
   quickCron.value = null;
   if (taskRef.value) taskRef.value.resetFields();
 }
@@ -240,6 +246,7 @@ function handleUpdate(row) {
   form.cronExpression = row.cronExpression;
   form.querySqlOrTopic = row.querySqlOrTopic;
   form.status = row.status;
+  form.autoBackfill = row.autoBackfill === 1 || row.autoBackfill === true;
   open.value = true;
   title.value = '修改接入任务';
 }
@@ -247,14 +254,15 @@ function handleUpdate(row) {
 function submitForm() {
   taskRef.value.validate(valid => {
     if (valid) {
+      const submitData = { ...form, autoBackfill: form.autoBackfill ? 1 : 0 };
       if (form.id != null) {
-        updateTask(form).then(response => {
+        updateTask(submitData).then(response => {
           ElMessage.success('修改成功');
           open.value = false;
           getList();
         });
       } else {
-        addTask(form).then(response => {
+        addTask(submitData).then(response => {
           ElMessage.success('新增成功');
           open.value = false;
           getList();

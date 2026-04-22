@@ -26,6 +26,10 @@ export class DataIntegrationTaskEntity extends BaseEntity {
   @Column({ type: 'text', name: 'query_sql_or_topic', comment: '提取指令 (SQL/Topic/FilePath)', nullable: true })
   public querySqlOrTopic: string;
 
+  @ApiProperty({ description: '是否自动触发历史补录 (0-否 1-是)' })
+  @Column({ name: 'auto_backfill', type: 'tinyint', default: 0, comment: '是否自动触发历史补录 (0-否 1-是)' })
+  public autoBackfill: number;
+
   @ApiProperty({ type: String, description: '任务状态 (0正常 1停用)' })
   @Column({ type: 'char', name: 'status', length: 1, default: '0', comment: '任务状态 (0正常 1停用)' })
   public status: string;
