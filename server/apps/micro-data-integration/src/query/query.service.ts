@@ -30,16 +30,9 @@ export class QueryService {
     // 直接查询对应的流计算聚合超级表
     const tableName = `water_iot.meters_${interval}`;
 
-    let selectFields = '';
-
-    // 根据测点分类决定聚合方式
-    if (pointType === 'cumulative') {
-      // 累计增量（如累计流量）：流计算已经计算了 spread_val
-      selectFields = 'spread_val AS val';
-    } else {
-      // 瞬时数据（如瞬时流量、压力、液位）：查询流计算预聚合的 avg, max, min
-      selectFields = 'avg_val AS val, max_val, min_val';
-    }
+    // 因为 TdengineAggService 中，对于 cumulative 类型，我们将 LAST(val) 存入了 avg_val，
+    // 对于 instantaneous 类型，存入了 AVG(val)。所以统一取 avg_val 作为代表值。
+    let selectFields = 'avg_val AS val, max_val, min_val';
 
     // 利用 device_code 和 point_code 作为 TAGS 进行快速查询
     const sql = `

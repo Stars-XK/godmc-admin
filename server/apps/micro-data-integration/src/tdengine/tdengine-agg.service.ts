@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WaterPointEntity } from '@app/common';
 import { TdengineService } from './tdengine.service';
+import { RedisService } from '@app/shared';
+import { CacheEnum } from '@app/common/enum';
 
 export type AggInterval = '5m' | '1h' | '1d';
 export type PointKind = 'instant' | 'cumulative';
@@ -10,16 +12,36 @@ export type PointKind = 'instant' | 'cumulative';
 @Injectable()
 export class TdengineAggService {
   private readonly logger = new Logger(TdengineAggService.name);
+  private cumulativeTypesCache: string[] = ['FLOW', 'ELECTRIC']; // fallback defaults
 
   constructor(
     private readonly tdengineService: TdengineService,
     @InjectRepository(WaterPointEntity)
     private readonly pointRep: Repository<WaterPointEntity>,
+    private readonly redisService: RedisService,
   ) {}
 
-  getPointKind(point: WaterPointEntity | null | undefined): PointKind {
+  async loadCumulativeTypes() {
+    try {
+      const data = await this.redisService.get(`${CacheEnum.SYS_DICT_KEY}water_cumulative_point_type`);
+      if (data && Array.isArray(data)) {
+        this.cumulativeTypesCache = data.map((item: any) => item.dictValue);
+      }
+    } catch (e) {
+      this.logger.warn(`Failed to load cumulative types from Redis: ${e.message}`);
+    }
+  }
+
+  async getPointKind(point: WaterPointEntity | null | undefined): Promise<PointKind> {
     const pointType = String(point?.type || '').toUpperCase();
     if (!pointType) return 'instant';
+
+    await this.loadCumulativeTypes();
+
+    if (this.cumulativeTypesCache.includes(pointType)) {
+      return 'cumulative';
+    }
+
     if (pointType === 'FLOW_TOTAL') return 'cumulative';
     if (pointType.endsWith('_TOTAL')) return 'cumulative';
     return 'instant';
@@ -71,7 +93,7 @@ export class TdengineAggService {
 
   async rebuildAggTables(deviceCode: string, pointCode: string, dirtyStartMs: number, dirtyEndMs: number) {
     const point = await this.pointRep.findOne({ where: { code: pointCode, delFlag: '0' as any } });
-    const kind = this.getPointKind(point);
+    const kind = await this.getPointKind(point);
 
     const { firstTs, lastTs } = await this.getFirstLastTsMs(deviceCode, pointCode, dirtyStartMs, dirtyEndMs);
     if (!firstTs || !lastTs) return;
