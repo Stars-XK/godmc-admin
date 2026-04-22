@@ -35,45 +35,42 @@
 
         <el-table v-loading="loading" :data="pointList" height="100%" class="flex-table">
           <el-table-column type="index" width="50" align="center" />
-          <el-table-column label="测点名称" align="left" prop="name" min-width="180">
+          <el-table-column label="测点名称" align="left" prop="name" min-width="150">
             <template #default="scope">
-              <el-icon class="mr-1" color="#409EFC"><Odometer /></el-icon>
+              <el-icon class="mr-1" color="#E6A23C"><Odometer /></el-icon>
               <span>{{ scope.row.name }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="测点编码" align="center" prop="code" width="150" />
-          <el-table-column label="所属设备" align="center" prop="deviceCode" width="120" />
-          <el-table-column label="测点类型" align="center" prop="type" width="120">
+          <el-table-column label="测点编码" align="center" prop="code" width="200" />
+          <el-table-column label="所属设备" align="center" prop="deviceCode" width="150" />
+          <el-table-column label="测点类型" align="center" prop="type" width="100">
             <template #default="scope">
               <dict-tag :options="water_point_type" :value="String(scope.row.type)" />
             </template>
           </el-table-column>
-          <el-table-column label="量程(Min~Max)" align="center" width="150">
+          <el-table-column label="量程范围" align="center" width="120">
             <template #default="scope">
-              {{ scope.row.rangeMin !== null ? scope.row.rangeMin : '-' }} ~ {{ scope.row.rangeMax !== null ? scope.row.rangeMax : '-' }}
+              <span v-if="scope.row.rangeMin !== null && scope.row.rangeMax !== null">{{ scope.row.rangeMin }} ~ {{ scope.row.rangeMax }}</span>
+              <span v-else>-</span>
             </template>
           </el-table-column>
-          <el-table-column label="报警(Min~Max)" align="center" width="150">
+          <el-table-column label="报警范围" align="center" width="120">
             <template #default="scope">
-              <span style="color: #F56C6C">{{ scope.row.alarmMin !== null ? scope.row.alarmMin : '-' }} ~ {{ scope.row.alarmMax !== null ? scope.row.alarmMax : '-' }}</span>
+              <span v-if="scope.row.alarmMin !== null && scope.row.alarmMax !== null" style="color: #F56C6C;">{{ scope.row.alarmMin }} ~ {{ scope.row.alarmMax }}</span>
+              <span v-else>-</span>
             </template>
           </el-table-column>
           <el-table-column label="单位" align="center" prop="unit" width="80" />
           <el-table-column label="数据类型" align="center" prop="dataType" width="100" />
-          <el-table-column label="读写" align="center" prop="rwAttr" width="80" />
-          <el-table-column label="状态" align="center" prop="status" width="100">
+          <el-table-column label="读写属性" align="center" prop="rwAttr" width="80" />
+          <el-table-column label="操作" align="center" width="240" class-name="small-padding fixed-width">
             <template #default="scope">
-              <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
+              <el-button link type="primary" icon="TrendCharts" @click="handleDataView(scope.row)">历史曲线</el-button>
+              <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['water-basic:point:edit']">修改</el-button>
+              <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['water-basic:point:remove']">删除</el-button>
             </template>
           </el-table-column>
-          <el-table-column label="操作" align="center" width="200" class-name="small-padding fixed-width">
-            <template #default="scope">
-              <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['water-basic:point:edit']">修改</el-button>
-          <el-button link type="success" icon="DataLine" @click="handleDataView(scope.row)">历史曲线</el-button>
-          <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['water-basic:point:remove']">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+        </el-table>
 
     <pagination v-show="total>0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
 

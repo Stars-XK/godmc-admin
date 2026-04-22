@@ -41,7 +41,7 @@
               <span>{{ scope.row.name }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="站点编码" align="center" prop="code" width="150" />
+          <el-table-column label="站点编码" align="center" prop="code" width="200" />
           <el-table-column label="所属分区" align="center" prop="zoneCode" width="120" />
           <el-table-column label="站点类型" align="center" prop="type" width="120">
             <template #default="scope">
@@ -62,7 +62,7 @@
               <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
             </template>
           </el-table-column>
-          <el-table-column label="操作" align="center" width="200" class-name="small-padding fixed-width">
+          <el-table-column label="操作" align="center" width="240" class-name="small-padding fixed-width">
             <template #default="scope">
               <el-button link type="primary" icon="DataLine" @click="handleDataView(scope.row)">实时数据</el-button>
               <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['water-basic:station:edit']">修改</el-button>

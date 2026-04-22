@@ -37,26 +37,19 @@
           <el-table-column type="index" width="50" align="center" />
           <el-table-column label="设备名称" align="left" prop="name" min-width="180">
             <template #default="scope">
-              <el-icon class="mr-1" color="#409EFC"><Cpu /></el-icon>
+              <el-icon class="mr-1" color="#67C23A"><Cpu /></el-icon>
               <span>{{ scope.row.name }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="设备编码" align="center" prop="code" width="150" />
+          <el-table-column label="设备编码" align="center" prop="code" width="200" />
           <el-table-column label="所属站点" align="center" prop="stationCode" width="120" />
           <el-table-column label="设备类型" align="center" prop="type" width="120">
             <template #default="scope">
               <dict-tag :options="water_device_type" :value="String(scope.row.type)" />
             </template>
           </el-table-column>
-          <el-table-column label="型号" align="center" prop="model" width="120" show-overflow-tooltip />
-          <el-table-column label="厂家" align="center" prop="manufacturer" width="150" show-overflow-tooltip />
-          <el-table-column label="额定功率" align="center" prop="power" width="100" />
-          <el-table-column label="安装日期" align="center" prop="installDate" width="110">
-            <template #default="scope">
-              <span>{{ parseTime(scope.row.installDate, '{y}-{m}-{d}') }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="寿命" align="center" prop="lifespan" width="80" />
+          <el-table-column label="型号" align="center" prop="model" width="120" />
+          <el-table-column label="生产厂家" align="center" prop="manufacturer" min-width="150" />
           <el-table-column label="负责人" align="center" prop="managerName" width="100" />
           <el-table-column label="联系电话" align="center" prop="managerPhone" width="120" />
           <el-table-column label="状态" align="center" prop="status" width="100">
@@ -64,10 +57,10 @@
               <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
             </template>
           </el-table-column>
-          <el-table-column label="操作" align="center" width="200" class-name="small-padding fixed-width">
+          <el-table-column label="操作" align="center" width="240" class-name="small-padding fixed-width">
             <template #default="scope">
+              <el-button link type="primary" icon="DataLine" @click="handleDataView(scope.row)">实时数据</el-button>
               <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['water-basic:device:edit']">修改</el-button>
-              <el-button link type="success" icon="DataLine" @click="handleDataView(scope.row)">实时数据</el-button>
               <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['water-basic:device:remove']">删除</el-button>
             </template>
           </el-table-column>
