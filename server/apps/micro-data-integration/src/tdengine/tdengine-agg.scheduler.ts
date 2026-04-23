@@ -11,6 +11,7 @@ export class TdengineAggScheduler {
   private readonly logger = new Logger(TdengineAggScheduler.name);
   private readonly dirtySetKey = 'iot:agg:dirty:set';
   private readonly zoneDirtySetKey = 'iot:zone_agg:dirty:set';
+  private readonly pointMetricCachePrefix = 'iot:zone_agg:cache:point_metrics:';
 
   constructor(
     private readonly redisService: RedisService,
@@ -62,10 +63,26 @@ export class TdengineAggScheduler {
    */
   private async triggerZoneAgg(pointCode: string, minTs: number, maxTs: number) {
     try {
-      const configs = await this.zoneMetricRep.find({ where: { pointCode, delFlag: '0' } });
-      if (!configs || configs.length === 0) return;
-
       const redis = this.redisService.getClient();
+      const cacheKey = `${this.pointMetricCachePrefix}${pointCode}`;
+
+      let configs: Array<{ zoneCode: string; metricType: string }> | null = null;
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        try {
+          configs = JSON.parse(cached);
+        } catch {
+          configs = null;
+        }
+      }
+
+      if (!configs) {
+        const rows = await this.zoneMetricRep.find({ where: { pointCode, delFlag: '0' } });
+        configs = rows.map(r => ({ zoneCode: r.zoneCode, metricType: r.metricType }));
+        await redis.set(cacheKey, JSON.stringify(configs), 'EX', 300);
+      }
+
+      if (!configs || configs.length === 0) return;
       for (const config of configs) {
         const itemKey = `${config.zoneCode}|${config.metricType}`;
         const rangeKey = `iot:zone_agg:dirty:range:${itemKey}`;
@@ -86,4 +103,3 @@ export class TdengineAggScheduler {
     }
   }
 }
-

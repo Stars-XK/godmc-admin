@@ -4,13 +4,17 @@ import { In, Repository } from 'typeorm';
 import { WaterPointEntity, WaterZoneMetricCalcEntity } from '@app/common';
 import { TdengineService } from './tdengine.service';
 import dayjs from 'dayjs';
+import { RedisService } from '@app/shared';
 
 @Injectable()
 export class TdengineZoneAggService {
   private readonly logger = new Logger(TdengineZoneAggService.name);
+  private readonly zoneMetricCachePrefix = 'iot:zone_agg:cache:zone_metric:';
+  private readonly pointDeviceHashKey = 'iot:zone_agg:cache:point_device';
 
   constructor(
     private readonly tdengineService: TdengineService,
+    private readonly redisService: RedisService,
     @InjectRepository(WaterZoneMetricCalcEntity)
     private readonly zoneMetricRep: Repository<WaterZoneMetricCalcEntity>,
     @InjectRepository(WaterPointEntity)
@@ -44,9 +48,24 @@ export class TdengineZoneAggService {
    * 重建分区聚合表数据
    */
   async rebuildZoneAggTables(zoneCode: string, metricType: string, dirtyStartMs: number, dirtyEndMs: number) {
-    const configs = await this.zoneMetricRep.find({
-      where: { zoneCode, metricType, delFlag: '0' },
-    });
+    const redis = this.redisService.getClient();
+    const metricCacheKey = `${this.zoneMetricCachePrefix}${zoneCode}|${metricType}`;
+
+    let configs: Array<{ pointCode: string; calcSign: number }> | null = null;
+    const cached = await redis.get(metricCacheKey);
+    if (cached) {
+      try {
+        configs = JSON.parse(cached);
+      } catch {
+        configs = null;
+      }
+    }
+
+    if (!configs) {
+      const rows = await this.zoneMetricRep.find({ where: { zoneCode, metricType, delFlag: '0' } });
+      configs = rows.map(r => ({ pointCode: r.pointCode, calcSign: r.calcSign }));
+      await redis.set(metricCacheKey, JSON.stringify(configs), 'EX', 300);
+    }
 
     if (!configs || configs.length === 0) {
       this.logger.debug(`分区 [${zoneCode}] 的指标 [${metricType}] 无任何测点配置，跳过计算`);
@@ -54,13 +73,31 @@ export class TdengineZoneAggService {
     }
 
     const pointCodes = Array.from(new Set(configs.map(c => c.pointCode).filter(Boolean)));
-    const points = pointCodes.length > 0
-      ? await this.pointRep.find({
-        where: { code: In(pointCodes), delFlag: '0' },
-        select: ['code', 'deviceCode'],
-      })
-      : [];
-    const pointDeviceMap = new Map(points.map(p => [p.code, p.deviceCode]));
+    const pointDeviceMap = new Map<string, string>();
+    if (pointCodes.length > 0) {
+      const cachedDevices = await redis.hmget(this.pointDeviceHashKey, ...pointCodes);
+      const missing: string[] = [];
+      for (let i = 0; i < pointCodes.length; i++) {
+        const pc = pointCodes[i];
+        const dc = cachedDevices[i];
+        if (dc) {
+          pointDeviceMap.set(pc, dc);
+        } else {
+          missing.push(pc);
+        }
+      }
+
+      if (missing.length > 0) {
+        const points = await this.pointRep.find({
+          where: { code: In(missing), delFlag: '0' },
+          select: ['code', 'deviceCode'],
+        });
+        for (const p of points) {
+          pointDeviceMap.set(p.code, p.deviceCode);
+          await redis.hset(this.pointDeviceHashKey, p.code, p.deviceCode);
+        }
+      }
+    }
 
     const intervals: ('5m' | '1h' | '1d')[] = ['5m', '1h', '1d'];
 
