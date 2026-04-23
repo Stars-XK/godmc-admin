@@ -199,11 +199,12 @@ function renderChart(dataList) {
   const seriesData = []
   
   // 根据不同的时间粒度设置断开连线的阈值（毫秒）
-  // 原始数据假定如果超过 30 分钟没有数据则认为断线，其他聚合按其粒度的 1.5 - 2 倍计算
-  let gapThreshold = 30 * 60 * 1000 
-  if (historyParams.value.interval === '5m') gapThreshold = 10 * 60 * 1000
-  if (historyParams.value.interval === '1h') gapThreshold = 2 * 60 * 60 * 1000
-  if (historyParams.value.interval === '1d') gapThreshold = 2 * 24 * 60 * 60 * 1000
+  // 用户要求：原始数据>1小时断开，5分钟数据>5分钟断开，1小时数据>1小时断开，1天数据>1天断开。
+  // 为了容忍微小的毫秒误差（例如插入时有几十毫秒延迟），加一点点容差缓冲。
+  let gapThreshold = 60 * 60 * 1000 + 10000 // 默认 raw: 1小时 + 10秒容差
+  if (historyParams.value.interval === '5m') gapThreshold = 5 * 60 * 1000 + 10000 // 5分钟 + 10秒容差
+  if (historyParams.value.interval === '1h') gapThreshold = 60 * 60 * 1000 + 10000 // 1小时 + 10秒容差
+  if (historyParams.value.interval === '1d') gapThreshold = 24 * 60 * 60 * 1000 + 10000 // 1天 + 10秒容差
 
   for (let i = 0; i < dataList.length; i++) {
     const currentTs = new Date(dataList[i].ts).getTime()
@@ -212,8 +213,9 @@ function renderChart(dataList) {
     if (i > 0) {
       const prevTs = new Date(dataList[i - 1].ts).getTime()
       if (currentTs - prevTs > gapThreshold) {
-        // 在前一个点之后 1 秒插入一个空点来强行断开
-        seriesData.push([prevTs + 1000, null])
+        // 在前一个点之后插入一个空点来强行断开
+        // 插入的时间点不重要，只要在两者之间即可，echarts 会自动断开连线
+        seriesData.push([prevTs + 1, null])
       }
     }
     seriesData.push([currentTs, dataList[i].val])
