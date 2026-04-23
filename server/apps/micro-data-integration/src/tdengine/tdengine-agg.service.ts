@@ -120,10 +120,12 @@ export class TdengineAggService {
       await this.tdengineService.querySql(`DELETE FROM ${child} WHERE ts >= ${startMs} AND ts <= ${endMs}`);
 
       if (kind === 'cumulative') {
-        // 累计流量：直接使用 SPREAD(val) 即 MAX - MIN 作为这算时间的增量，完美规避跨行 DIFF 导致空值的问题
+        // 累计流量：使用 MAX(val) - MIN(val) 作为这段时间的增量。
+        // 在某些 TDengine 版本中，SELECT 列表里不能两次使用同一个聚合函数(如 SPREAD(val))作为不同的列。
+        // 为了安全起见，分别使用 MAX(val) - MIN(val)
         await this.tdengineService.querySql(`
           INSERT INTO ${child}
-          SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val), SPREAD(val)
+          SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val), (MAX(val) - MIN(val))
           FROM ${rawTable}
           WHERE ts >= ${startMs} AND ts <= ${endMs}
           INTERVAL(${interval}) FILL(VALUE, 0)
