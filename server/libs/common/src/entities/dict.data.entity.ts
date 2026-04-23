@@ -1,11 +1,11 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-import { FullBaseEntity } from './base';
+import { BaseEntity } from './base';
 
 @Entity('sys_dict_data', {
   comment: '【系统基础】字典数据表',
 })
-export class SysDictDataEntity extends FullBaseEntity {
+export class SysDictDataEntity extends BaseEntity {
   @ApiProperty({ type: String, description: '字典主键' })
   @PrimaryGeneratedColumn({ type: 'int', name: 'dict_code', comment: '字典主键' })
   public dictCode: number;

@@ -1,10 +1,10 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
-import { FullBaseEntity } from './base';
+import { BaseEntity } from './base';
 
 @Entity('sys_notice', {
   comment: '【系统基础】通知公告表',
 })
-export class SysNoticeEntity extends FullBaseEntity {
+export class SysNoticeEntity extends BaseEntity {
   @PrimaryGeneratedColumn({ type: 'int', name: 'notice_id', comment: '公告ID' })
   public noticeId: number;
 

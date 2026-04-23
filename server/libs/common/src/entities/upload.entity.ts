@@ -1,10 +1,10 @@
 import { Entity, Column, PrimaryColumn } from 'typeorm';
-import { FullBaseEntity } from './base';
+import { BaseEntity } from './base';
 
 @Entity('sys_upload', {
   comment: '【系统基础】文件上传记录表',
 })
-export class SysUploadEntity extends FullBaseEntity {
+export class SysUploadEntity extends BaseEntity {
   @PrimaryColumn({ type: 'varchar', name: 'upload_id', comment: '任务Id' })
   uploadId: string;
 

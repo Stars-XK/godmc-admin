@@ -1,11 +1,11 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
-import { FullBaseEntity } from '../base';
+import { BaseEntity } from '../base';
 import { ApiProperty } from '@nestjs/swagger';
 
 @Entity('water_zone', {
   comment: '【水务基础】分区信息表',
 })
-export class WaterZoneEntity extends FullBaseEntity {
+export class WaterZoneEntity extends BaseEntity {
   @ApiProperty({ type: String, description: '分区ID' })
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'id', comment: '主键' })
   public id: number;

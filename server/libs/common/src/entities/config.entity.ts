@@ -1,10 +1,10 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
-import { FullBaseEntity } from './base';
+import { BaseEntity } from './base';
 
 @Entity('sys_config', {
   comment: '【系统基础】参数配置表',
 })
-export class SysConfigEntity extends FullBaseEntity {
+export class SysConfigEntity extends BaseEntity {
   @PrimaryGeneratedColumn({ type: 'int', name: 'config_id', comment: '参数主键' })
   public configId: number;
 
