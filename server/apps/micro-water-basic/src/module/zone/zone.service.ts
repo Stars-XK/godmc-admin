@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, In } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
-import { WaterZoneEntity, WaterDeviceEntity, WaterPointEntity, WaterZoneMetricCalcEntity } from '@app/common';
+import { WaterZoneEntity, WaterDeviceEntity, WaterPointEntity, WaterZoneMetricCalcEntity, WaterStationEntity } from '@app/common';
 import { WaterRevenueUserEntity } from '@app/common/entities/water-basic/water-revenue-user.entity';
 import { ListToTree } from '@app/common/utils/index';
 import { Response } from 'express';
@@ -16,6 +16,8 @@ export class ZoneService {
     private readonly zoneRep: Repository<WaterZoneEntity>,
     @InjectRepository(WaterDeviceEntity)
     private readonly deviceRep: Repository<WaterDeviceEntity>,
+    @InjectRepository(WaterStationEntity)
+    private readonly stationRep: Repository<WaterStationEntity>,
     @InjectRepository(WaterPointEntity)
     private readonly pointRep: Repository<WaterPointEntity>,
     @InjectRepository(WaterZoneMetricCalcEntity)
@@ -710,13 +712,17 @@ export class ZoneService {
 
     // 用于记录已经被处理过的物理绑定，避免重复绑定（多行合并的情况）
     const processedDeviceBindings = new Set<string>();
+    const processedStationBindings = new Set<string>();
 
     for (const item of dataList) {
-      const zoneCode = item.zoneCode || item['分区编码(必填)'];
-      const deviceCode = item.deviceCode || item['设备编码(必填)'];
-      const pointCode = item.pointCode || item['测点编码(选填)'];
-      const metricType = item.metricType || item['指标类型(选填: water_supply/min_flow)'];
-      const calcSignStr = item.calcSign !== undefined ? item.calcSign : item['计算符号(选填: 1进水/-1出水)'];
+      const zoneCode = String(item.zoneCode ?? item['分区编码(必填)'] ?? item['分区编码'] ?? '').trim();
+      const deviceCode = String(item.deviceCode ?? item['设备编码(必填)'] ?? item['设备编码'] ?? '').trim();
+      const pointCode = String(item.pointCode ?? item['测点编码(选填)'] ?? item['测点编码'] ?? '').trim();
+      const metricType = String(item.metricType ?? item['指标类型(选填: water_supply/min_flow)'] ?? item['指标类型(water_supply/min_flow)'] ?? item['指标类型'] ?? '').trim();
+      const calcSignRaw = item.calcSign !== undefined
+        ? item.calcSign
+        : (item['计算符号(选填: 1进水/-1出水)'] ?? item['计算符号(选填: -1进水/--1出水)'] ?? item['计算符号(1为进水/-1为出水)'] ?? item['计算符号']);
+      const calcSignStr = calcSignRaw === undefined || calcSignRaw === null ? '' : String(calcSignRaw).trim();
 
       if (!zoneCode || !deviceCode) {
         failCount++;
@@ -743,11 +749,20 @@ export class ZoneService {
       if (!processedDeviceBindings.has(bindKey)) {
         await this.deviceRep.update(device.id, { zoneCode });
         processedDeviceBindings.add(bindKey);
+
+        const stationCode = String((device as any).stationCode ?? '').trim();
+        if (stationCode) {
+          const stationBindKey = `${zoneCode}_${stationCode}`;
+          if (!processedStationBindings.has(stationBindKey)) {
+            await this.stationRep.update({ code: stationCode, delFlag: '0' } as any, { zoneCode } as any);
+            processedStationBindings.add(stationBindKey);
+          }
+        }
       }
 
       // 步骤2：逻辑指标计算绑定 (选填)
       let metricReason = '';
-      if (pointCode && metricType && calcSignStr !== undefined && calcSignStr !== null && calcSignStr !== '') {
+      if (pointCode && metricType && calcSignStr) {
         const calcSign = Number(calcSignStr);
         if (calcSign !== 1 && calcSign !== -1) {
           failCount++;
@@ -761,9 +776,14 @@ export class ZoneService {
           results.push({ code: pointCode, success: false, reason: `测点编码(${pointCode})不存在` });
           continue;
         }
+        if (point.deviceCode !== deviceCode) {
+          failCount++;
+          results.push({ code: pointCode, success: false, reason: `测点(${pointCode})不属于设备(${deviceCode})` });
+          continue;
+        }
 
         // Upsert 逻辑
-        const exist = await this.metricCalcRep.findOne({ where: { zoneCode, metricType, pointCode } });
+        const exist = await this.metricCalcRep.findOne({ where: { zoneCode, metricType, pointCode, delFlag: '0' as any } as any });
         if (exist) {
           await this.metricCalcRep.update(exist.id, { calcSign });
         } else {
@@ -940,7 +960,7 @@ export class ZoneService {
     // 1. 找到该分区下的所有设备
     const devices = await this.deviceRep.find({
       where: { zoneCode, delFlag: '0' },
-      select: ['code', 'name', 'type', 'id']
+      select: ['code', 'name', 'type', 'id', 'stationCode']
     });
 
     if (devices.length === 0) {
@@ -948,6 +968,12 @@ export class ZoneService {
     }
 
     const deviceCodes = devices.map(d => d.code);
+    const stationCodes = Array.from(new Set(devices.map(d => (d as any).stationCode).filter(Boolean)));
+
+    const stations = stationCodes.length > 0
+      ? await this.stationRep.find({ where: { code: In(stationCodes), delFlag: '0' }, select: ['code', 'name', 'type', 'id'] })
+      : [];
+    const stationMap = new Map(stations.map(s => [s.code, s]));
 
     // 2. 找到这些设备下的所有测点
     const points = await this.pointRep.find({
@@ -955,17 +981,21 @@ export class ZoneService {
       select: ['code', 'name', 'deviceCode', 'type', 'dataType', 'id']
     });
 
-    // 3. 组装为树形结构 (设备 -> 测点)
-    const tree = devices.map(device => {
-      const children = points
-        .filter(p => p.deviceCode === device.code)
-        .map(p => ({
-          id: `point_${p.code}`,
-          label: p.name,
-          code: p.code,
-          type: p.type, // 测点类型，可用于前端显示图标/过滤
-          isPoint: true
-        }));
+    const pointByDevice = new Map<string, any[]>();
+    for (const p of points) {
+      const list = pointByDevice.get(p.deviceCode) || [];
+      list.push(p);
+      pointByDevice.set(p.deviceCode, list);
+    }
+
+    const deviceNodes = devices.map(device => {
+      const children = (pointByDevice.get(device.code) || []).map(p => ({
+        id: `point_${p.code}`,
+        label: p.name,
+        code: p.code,
+        type: p.type,
+        isPoint: true
+      }));
 
       return {
         id: `device_${device.code}`,
@@ -973,11 +1003,45 @@ export class ZoneService {
         code: device.code,
         type: device.type,
         isPoint: false,
+        stationCode: (device as any).stationCode,
         children
       };
     });
 
-    return ResultData.ok(tree);
+    const deviceByStation = new Map<string, any[]>();
+    const noStationDevices: any[] = [];
+    for (const d of deviceNodes) {
+      const stationCode = String(d.stationCode || '').trim();
+      if (!stationCode) {
+        noStationDevices.push(d);
+        continue;
+      }
+      const list = deviceByStation.get(stationCode) || [];
+      list.push(d);
+      deviceByStation.set(stationCode, list);
+    }
+
+    const stationNodes = stations.map(station => ({
+      id: `station_${station.code}`,
+      label: station.name,
+      code: station.code,
+      type: station.type,
+      isPoint: false,
+      children: deviceByStation.get(station.code) || []
+    }));
+
+    if (noStationDevices.length > 0) {
+      stationNodes.push({
+        id: `station__unbound`,
+        label: '未关联站点',
+        code: '__unbound',
+        type: 'UNBOUND',
+        isPoint: false,
+        children: noStationDevices
+      } as any);
+    }
+
+    return ResultData.ok(stationNodes);
   }
 
   async getZoneMetricCalcConfig(zoneCode: string, metricType: string) {
