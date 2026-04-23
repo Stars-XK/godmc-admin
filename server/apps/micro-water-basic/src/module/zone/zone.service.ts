@@ -227,14 +227,15 @@ export class ZoneService {
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber > 1) { // 跳过表头
         dataList.push({
-          name: row.getCell(1).value?.toString() || '',
-          code: row.getCell(2).value?.toString() || '',
-          type: row.getCell(3).value?.toString() || '1',
-          area: parseFloat(row.getCell(4).value?.toString() || '0'),
-          population: parseInt(row.getCell(5).value?.toString() || '0', 10),
-          managerName: row.getCell(6).value?.toString() || '',
-          managerPhone: row.getCell(7).value?.toString() || '',
-          address: row.getCell(8).value?.toString() || '',
+          parentCode: row.getCell(1).value?.toString() || '',
+          name: row.getCell(2).value?.toString() || '',
+          code: row.getCell(3).value?.toString() || '',
+          type: (row.getCell(4).value?.toString() || '1').substring(0, 1),
+          area: parseFloat(row.getCell(5).value?.toString() || '0'),
+          population: parseInt(row.getCell(6).value?.toString() || '0', 10),
+          address: row.getCell(7).value?.toString() || '',
+          managerName: '',
+          managerPhone: '',
         });
       }
     });
@@ -242,33 +243,121 @@ export class ZoneService {
     const validData = dataList.filter(item => !!item.name);
     if (!validData || validData.length === 0) return ResultData.ok();
 
-    let parentLevel = 0;
-    let parentAncestors = '0';
-
+    const insertData = [];
+    
     if (parentId && parentId !== 0) {
-      const parentCode = String(parentId);
+      // 场景1：带有parentId，所有导入的分区都作为该分区的子级
       const parent = await this.zoneRep.findOne({
-        where: { code: parentCode, delFlag: '0' },
-        select: ['ancestors', 'level', 'code'],
+        where: { code: String(parentId), delFlag: '0' },
+        select: ['id', 'ancestors', 'level', 'code'],
       });
       if (!parent) return ResultData.fail(500, '指定的父级分区不存在');
-      parentLevel = parent.level;
-      parentAncestors = parent.ancestors ? `${parent.ancestors},${parent.code}` : `${parent.code}`;
+      
+      for (let i = 0; i < validData.length; i++) {
+        const item = validData[i];
+        insertData.push({
+          name: item.name,
+          code: item.code,
+          type: item.type,
+          area: item.area,
+          population: item.population,
+          address: item.address,
+          managerName: item.managerName,
+          managerPhone: item.managerPhone,
+          parentId: parent.id,
+          ancestors: parent.ancestors ? `${parent.ancestors},${parent.code}` : `${parent.code}`,
+          level: parent.level + 1,
+          createBy: user.userName,
+          deptId: user.deptId,
+          sort: item.sort || i,
+        });
+      }
+    } else {
+      // 场景2：没有parentId，根据Excel中的parentCode构建树结构
+      // 1. 先收集所有分区的code和基本信息
+      const zoneMap = new Map();
+      validData.forEach(item => {
+        zoneMap.set(item.code, {
+          ...item,
+          id: null, // 临时存储ID
+        });
+      });
+      
+      // 2. 批量插入根分区（parentCode为0或空）
+      const rootZones = validData.filter(item => !item.parentCode || item.parentCode === '0');
+      for (let i = 0; i < rootZones.length; i++) {
+        const item = rootZones[i];
+        const zoneData = {
+          name: item.name,
+          code: item.code,
+          type: item.type,
+          area: item.area,
+          population: item.population,
+          address: item.address,
+          managerName: item.managerName,
+          managerPhone: item.managerPhone,
+          parentId: 0,
+          ancestors: '0',
+          level: 1,
+          createBy: user.userName,
+          deptId: user.deptId,
+          sort: item.sort || i,
+        };
+        
+        const savedZone = await this.zoneRep.save(zoneData);
+        zoneMap.get(item.code).id = savedZone.id;
+        insertData.push(savedZone);
+      }
+      
+      // 3. 批量插入子分区（递归处理层级）
+      const processedCodes = new Set();
+      rootZones.forEach(item => processedCodes.add(item.code));
+      
+      // 循环处理直到所有分区都被处理
+      let hasUnprocessed = true;
+      while (hasUnprocessed) {
+        hasUnprocessed = false;
+        
+        for (const item of validData) {
+          if (!processedCodes.has(item.code) && item.parentCode && item.parentCode !== '0') {
+            const parentInfo = zoneMap.get(item.parentCode);
+            if (parentInfo && parentInfo.id) {
+              // 父级已处理，现在处理子级
+              const parent = await this.zoneRep.findOne({
+                where: { id: parentInfo.id, delFlag: '0' },
+                select: ['id', 'ancestors', 'level', 'code'],
+              });
+              
+              if (parent) {
+                const zoneData = {
+                  name: item.name,
+                  code: item.code,
+                  type: item.type,
+                  area: item.area,
+                  population: item.population,
+                  address: item.address,
+                  managerName: item.managerName,
+                  managerPhone: item.managerPhone,
+                  parentId: item.parentCode,
+                  ancestors: parent.ancestors ? `${parent.ancestors},${parent.code}` : `${parent.code}`,
+                  level: parent.level + 1,
+                  createBy: user.userName,
+                  deptId: user.deptId,
+                  sort: item.sort || 0,
+                };
+                
+                const savedZone = await this.zoneRep.save(zoneData);
+                zoneMap.get(item.code).id = savedZone.id;
+                insertData.push(savedZone);
+                processedCodes.add(item.code);
+                hasUnprocessed = true;
+              }
+            }
+          }
+        }
+      }
     }
 
-    const insertData = validData.map((item, index) => {
-      return {
-        ...item,
-        parentId: parentId || 0,
-        ancestors: parentAncestors,
-        level: parentLevel + 1,
-        createBy: user.userName,
-        deptId: user.deptId,
-        sort: item.sort || index,
-      };
-    });
-
-    await this.zoneRep.save(insertData);
     return ResultData.ok();
   }
 

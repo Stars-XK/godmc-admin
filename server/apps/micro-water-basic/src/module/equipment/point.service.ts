@@ -31,20 +31,18 @@ export class PointService {
     const input = String(raw ?? '').trim();
     if (!input) return { ok: true, value: 'OTHER' };
 
-    const legacyMap: Record<string, string> = {
-      '1': 'FLOW',
-      '2': 'PRESSURE',
-      '3': 'LEVEL',
-      '4': 'QUALITY_CHLORINE',
-      '5': 'QUALITY_TURBIDITY',
-      '6': 'QUALITY_PH',
-    };
-
-    if (legacyMap[input]) return { ok: true, value: legacyMap[input] };
-
     const { rows, byLabel, byValue } = await this.getDictMaps('water_point_type');
     if (byValue.has(input)) return { ok: true, value: input };
     if (byLabel.has(input)) return { ok: true, value: byLabel.get(input) };
+    
+    // 处理数字类型的输入
+    const numericInput = parseInt(input, 10);
+    if (!isNaN(numericInput)) {
+      const dictItem = rows.find(item => String(item.dictValue) === String(numericInput));
+      if (dictItem) {
+        return { ok: true, value: dictItem.dictValue };
+      }
+    }
 
     return {
       ok: false,
@@ -202,13 +200,14 @@ export class PointService {
           name: row.getCell(2).value?.toString() || '',
           code: row.getCell(3).value?.toString() || '',
           type: row.getCell(4).value?.toString() || '1',
-          rangeMax: parseFloat(row.getCell(5).value?.toString()) || null,
-          rangeMin: parseFloat(row.getCell(6).value?.toString()) || null,
-          alarmMax: parseFloat(row.getCell(7).value?.toString()) || null,
-          alarmMin: parseFloat(row.getCell(8).value?.toString()) || null,
-          unit: row.getCell(9).value?.toString() || '',
-          dataType: row.getCell(10).value?.toString() || 'float',
-          rwAttr: row.getCell(11).value?.toString() || 'R',
+          aggType: row.getCell(5).value?.toString() || 'instantaneous',
+          rangeMax: parseFloat(row.getCell(6).value?.toString()) || null,
+          rangeMin: parseFloat(row.getCell(7).value?.toString()) || null,
+          alarmMax: parseFloat(row.getCell(8).value?.toString()) || null,
+          alarmMin: parseFloat(row.getCell(9).value?.toString()) || null,
+          unit: row.getCell(10).value?.toString() || '',
+          dataType: row.getCell(11).value?.toString() || 'float',
+          rwAttr: row.getCell(12).value?.toString() || 'R',
         });
       }
     });

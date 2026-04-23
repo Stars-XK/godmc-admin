@@ -31,19 +31,18 @@ export class DeviceService {
     const input = String(raw ?? '').trim();
     if (!input) return { ok: true, value: 'OTHER' };
 
-    const legacyMap: Record<string, string> = {
-      '1': 'PUMP',
-      '2': 'VALVE',
-      '3': 'INSTRUMENT_FLOW',
-      '4': 'INSTRUMENT_PRESSURE',
-      '5': 'INSTRUMENT_QUALITY',
-    };
-
-    if (legacyMap[input]) return { ok: true, value: legacyMap[input] };
-
     const { rows, byLabel, byValue } = await this.getDictMaps('water_device_type');
     if (byValue.has(input)) return { ok: true, value: input };
     if (byLabel.has(input)) return { ok: true, value: byLabel.get(input) };
+    
+    // 直接查询字典数据，处理数字类型的输入
+    const numericInput = parseInt(input, 10);
+    if (!isNaN(numericInput)) {
+      const dictItem = rows.find(item => parseInt(item.dictValue, 10) === numericInput);
+      if (dictItem) {
+        return { ok: true, value: dictItem.dictValue };
+      }
+    }
 
     return {
       ok: false,

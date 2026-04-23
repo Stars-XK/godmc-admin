@@ -409,7 +409,7 @@ function processFile(file) {
           stationCode: row['所属站点编码(必填)'] || row['所属站点编码'] || '',
           name: row['设备名称(必填)'] || row['设备名称'] || '',
           code: row['设备编码(必填)'] || row['设备编码'] || '',
-          type: row['设备类型(填写字典值如 PUMP)'] || row['设备类型'] || 'PUMP',
+          type: row['设备类型(必填)'] || row['设备类型'] || '',
           model: row['型号'] || '',
           manufacturer: row['厂家'] || '',
           installDate: row['安装日期(YYYY-MM-DD)'] || row['安装日期'] || null,

@@ -18,6 +18,7 @@ export class StationService {
 
   private async getDictMaps(dictType: string) {
     const rows = await this.dictRep.find({ where: { dictType, delFlag: '0' as any } });
+    
     const byLabel = new Map<string, string>();
     const byValue = new Map<string, string>();
     for (const r of rows) {
@@ -31,19 +32,18 @@ export class StationService {
     const input = String(raw ?? '').trim();
     if (!input) return { ok: true, value: 'OTHER' };
 
-    const legacyMap: Record<string, string> = {
-      '1': 'WATER_PLANT',
-      '2': 'PUMP_STATION',
-      '3': 'OTHER',
-      '4': 'OTHER',
-      '5': 'MONITOR',
-    };
-
-    if (legacyMap[input]) return { ok: true, value: legacyMap[input] };
-
     const { rows, byLabel, byValue } = await this.getDictMaps('water_station_type');
     if (byValue.has(input)) return { ok: true, value: input };
     if (byLabel.has(input)) return { ok: true, value: byLabel.get(input) };
+    
+    // 处理数字类型的输入
+    const numericInput = parseInt(input, 10);
+    if (!isNaN(numericInput)) {
+      const dictItem = rows.find(item => String(item.dictValue) === String(numericInput));
+      if (dictItem) {
+        return { ok: true, value: dictItem.dictValue };
+      }
+    }
 
     return {
       ok: false,
@@ -178,10 +178,11 @@ export class StationService {
       { header: '字典键值(填入值)', key: 'value', width: 20 },
     ];
     sheet3.addRows([
-      { dictType: 'water_station_type', label: '水厂', value: 'WATER_PLANT' },
-      { dictType: 'water_station_type', label: '泵站', value: 'PUMP_STATION' },
-      { dictType: 'water_station_type', label: '二次供水站', value: 'SECONDARY_SUPPLY' },
-      { dictType: 'water_station_type', label: '调压站', value: 'REGULATOR_STATION' },
+      { dictType: 'water_station_type', label: '水厂', value: '1' },
+      { dictType: 'water_station_type', label: '泵站', value: '2' },
+      { dictType: 'water_station_type', label: '二次供水站', value: '3' },
+      { dictType: 'water_station_type', label: '管网监测点', value: '4' },
+      { dictType: 'water_station_type', label: '污水处理厂', value: '5' },
     ]);
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -222,7 +223,6 @@ export class StationService {
         });
       }
     });
-    
     return this.importBatch(dataList, user);
   }
 

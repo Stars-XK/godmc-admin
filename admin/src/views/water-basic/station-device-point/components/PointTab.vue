@@ -419,7 +419,7 @@ function processFile(file) {
           deviceCode: row['所属设备编码(必填)'] || row['所属设备编码'] || '',
           name: row['测点名称(必填)'] || row['测点名称'] || '',
           code: row['测点编码(必填)'] || row['测点编码'] || '',
-          type: row['测点类型(填写字典值如 PRESSURE)'] || row['测点类型'] || 'PRESSURE',
+          type: row['测点类型(必填)'] || row['测点类型'] || '',
           rangeMax: parseFloat(row['量程上限']) || null,
           rangeMin: parseFloat(row['量程下限']) || null,
           alarmMax: parseFloat(row['报警上限']) || null,

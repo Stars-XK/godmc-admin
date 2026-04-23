@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS sys_db_updates (
   status VARCHAR(20) NOT NULL COMMENT '执行状态: SUCCESS/FAILED',
   error_msg TEXT COMMENT '失败时的错误信息',
   executed_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '执行时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='数据库自动更新记录表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='【系统管理模块 - 数据库自动更新记录表】数据库自动更新记录表';
 -- ----------------------------
 -- Table structure for gen_table
 -- ----------------------------
@@ -53,7 +53,7 @@ CREATE TABLE `gen_table` (
   `update_time` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`table_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='代码生成业务表';
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 代码生成业务表】代码生成业务表';
 
 -- ----------------------------
 -- Records of gen_table
@@ -93,7 +93,7 @@ CREATE TABLE `gen_table_column` (
   `update_time` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`column_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='代码生成业务表字段';
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 代码生成业务表字段】代码生成业务表字段';
 
 -- ----------------------------
 -- Records of gen_table_column
@@ -119,7 +119,7 @@ CREATE TABLE `sys_config` (
   `status` char(1) NOT NULL DEFAULT '0' COMMENT '状态',
   `del_flag` char(1) NOT NULL DEFAULT '0' COMMENT '删除标志',
   PRIMARY KEY (`config_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='参数配置表';
+) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 参数配置表】参数配置表';
 
 -- ----------------------------
 -- Records of sys_config
@@ -171,7 +171,7 @@ CREATE TABLE `sys_dept` (
   `update_time` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`dept_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=200 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='部门表';
+) ENGINE=InnoDB AUTO_INCREMENT=200 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 部门表】部门表';
 
 -- ----------------------------
 -- Records of sys_dept
@@ -210,7 +210,7 @@ CREATE TABLE `sys_dict_data` (
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   `del_flag` char(1) NOT NULL DEFAULT '0' COMMENT '删除标志',
   PRIMARY KEY (`dict_code`)
-) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='字典数据表';
+) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 字典数据表】字典数据表';
 
 -- ----------------------------
 -- Records of sys_dict_data
@@ -248,9 +248,9 @@ INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value
 -- 站点类型字典数据
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (30, 1, '水厂', '1', 'water_station_type', '', 'primary', 'Y', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '水厂站点', '0');
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (31, 2, '泵站', '2', 'water_station_type', '', 'success', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '泵站站点', '0');
-INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (32, 3, '水库', '3', 'water_station_type', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '水库站点', '0');
-INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (33, 4, '污水处理厂', '4', 'water_station_type', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '污水处理厂', '0');
-INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (34, 5, '管网监测点', '5', 'water_station_type', '', 'danger', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '管网监测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (32, 3, '二次供水', '3', 'water_station_type', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '水库站点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (33, 4, '管网监测点', '4', 'water_station_type', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '污水处理厂', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (34, 5, '污水处理厂', '5', 'water_station_type', '', 'danger', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '管网监测点', '0');
 -- 设备类型字典数据
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (35, 1, '水泵', '1', 'water_device_type', '', 'primary', 'Y', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '水泵设备', '0');
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (36, 2, '阀门', '2', 'water_device_type', '', 'success', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '阀门设备', '0');
@@ -258,12 +258,54 @@ INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (38, 4, '压力计', '4', 'water_device_type', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '压力计', '0');
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (39, 5, '水质分析仪', '5', 'water_device_type', '', 'danger', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '水质分析仪', '0');
 -- 测点类型字典数据
-INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (40, 1, '流量', '1', 'water_point_type', '', 'primary', 'Y', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '流量测点', '0');
-INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (41, 2, '压力', '2', 'water_point_type', '', 'success', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '压力测点', '0');
-INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (42, 3, '液位', '3', 'water_point_type', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '液位测点', '0');
-INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (43, 4, '余氯', '4', 'water_point_type', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '余氯测点', '0');
-INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (44, 5, '浊度', '5', 'water_point_type', '', 'danger', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '浊度测点', '0');
-INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (45, 6, 'PH值', '6', 'water_point_type', '', 'default', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, 'PH值测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (40, 1, '流量', 'FLOW', 'water_point_type', '', 'primary', 'Y', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '流量测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (41, 2, '累计流量', 'FLOW_TOTAL', 'water_point_type', '', 'primary', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '累计流量测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (42, 3, '瞬时流量', 'FLOW_INSTANT', 'water_point_type', '', 'primary', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '瞬时流量测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (43, 4, '进水流量', 'FLOW_INLET', 'water_point_type', '', 'primary', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '进水流量测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (44, 5, '出水流量', 'FLOW_OUTLET', 'water_point_type', '', 'primary', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '出水流量测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (45, 6, '原水流量', 'FLOW_RAW', 'water_point_type', '', 'primary', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '原水流量测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (107, 7, '清水流量', 'FLOW_CLEAR', 'water_point_type', '', 'primary', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '清水流量测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (108, 8, '压力', 'PRESSURE', 'water_point_type', '', 'success', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '压力测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (109, 9, '进水压力', 'PRESSURE_INLET', 'water_point_type', '', 'success', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '进水压力测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (110, 10, '出水压力', 'PRESSURE_OUTLET', 'water_point_type', '', 'success', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '出水压力测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (111, 11, '管网压力', 'PRESSURE_NETWORK', 'water_point_type', '', 'success', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '管网压力测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (112, 12, '泵站压力', 'PRESSURE_PUMP', 'water_point_type', '', 'success', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '泵站压力测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (113, 13, '液位', 'LEVEL', 'water_point_type', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '液位测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (114, 14, '水库液位', 'LEVEL_RESERVOIR', 'water_point_type', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '水库液位测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (115, 15, '水池液位', 'LEVEL_POOL', 'water_point_type', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '水池液位测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (116, 16, '水井液位', 'LEVEL_WELL', 'water_point_type', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '水井液位测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (117, 17, '余氯', 'CHLORINE', 'water_point_type', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '余氯测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (118, 18, '浊度', 'TURBIDITY', 'water_point_type', '', 'danger', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '浊度测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (119, 19, 'PH值', 'PH', 'water_point_type', '', 'default', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, 'PH值测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (120, 20, '高锰酸盐指数', 'PERMANGANATE', 'water_point_type', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '高锰酸盐指数测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (121, 21, '氨氮', 'AMMONIA_NITROGEN', 'water_point_type', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '氨氮测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (122, 22, '溶解氧', 'DISSOLVED_OXYGEN', 'water_point_type', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '溶解氧测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (123, 23, '温度', 'TEMPERATURE', 'water_point_type', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '温度测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (124, 24, '设备状态', 'DEVICE_STATUS', 'water_point_type', '', 'default', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '设备状态测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (125, 25, '阀门状态', 'VALVE_STATUS', 'water_point_type', '', 'default', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '阀门状态测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (126, 26, '水泵状态', 'PUMP_STATUS', 'water_point_type', '', 'default', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '水泵状态测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (127, 27, '风机状态', 'FAN_STATUS', 'water_point_type', '', 'default', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '风机状态测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (128, 28, '电量', 'ELECTRICITY', 'water_point_type', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '电量测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (129, 29, '功率', 'POWER', 'water_point_type', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '功率测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (130, 30, '电流', 'CURRENT', 'water_point_type', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '电流测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (131, 31, '电压', 'VOLTAGE', 'water_point_type', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '电压测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (132, 32, '频率', 'FREQUENCY', 'water_point_type', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '频率测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (133, 33, '时间', 'TIME', 'water_point_type', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '时间测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (134, 34, '进水余氯', 'CHLORINE_INLET', 'water_point_type', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '进水余氯测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (135, 35, '出水余氯', 'CHLORINE_OUTLET', 'water_point_type', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '出水余氯测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (136, 36, '进水浊度', 'TURBIDITY_INLET', 'water_point_type', '', 'danger', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '进水浊度测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (137, 37, '出水浊度', 'TURBIDITY_OUTLET', 'water_point_type', '', 'danger', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '出水浊度测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (138, 38, '进水PH值', 'PH_INLET', 'water_point_type', '', 'default', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '进水PH值测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (139, 39, '出水PH值', 'PH_OUTLET', 'water_point_type', '', 'default', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '出水PH值测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (140, 40, '转速', 'ROTATION_SPEED', 'water_point_type', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '转速测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (141, 41, '进水高锰酸盐指数', 'PERMANGANATE_INLET', 'water_point_type', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '进水高锰酸盐指数测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (142, 42, '出水高锰酸盐指数', 'PERMANGANATE_OUTLET', 'water_point_type', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '出水高锰酸盐指数测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (143, 43, '进水氨氮', 'AMMONIA_NITROGEN_INLET', 'water_point_type', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '进水氨氮测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (144, 44, '出水氨氮', 'AMMONIA_NITROGEN_OUTLET', 'water_point_type', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '出水氨氮测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (145, 45, '进水溶解氧', 'DISSOLVED_OXYGEN_INLET', 'water_point_type', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '进水溶解氧测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (146, 46, '出水溶解氧', 'DISSOLVED_OXYGEN_OUTLET', 'water_point_type', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '出水溶解氧测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (147, 47, '进水温度', 'TEMPERATURE_INLET', 'water_point_type', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '进水温度测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (148, 48, '出水温度', 'TEMPERATURE_OUTLET', 'water_point_type', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '出水温度测点', '0');
 -- 用户水卡分类字典数据
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (46, 1, '居民', 'A', 'water_card_category', '', 'primary', 'Y', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '居民', '0');
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (47, 2, '特种', 'B', 'water_card_category', '', 'danger', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '特种', '0');
@@ -346,7 +388,7 @@ CREATE TABLE `sys_dict_type` (
   `del_flag` char(1) NOT NULL DEFAULT '0' COMMENT '删除标志',
   PRIMARY KEY (`dict_id`),
   UNIQUE KEY `IDX_f4e4273658733a3bbe6a2479bf` (`dict_type`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='字典类型表';
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 字典类型表】字典类型表';
 
 -- ----------------------------
 -- Records of sys_dict_type
@@ -389,7 +431,7 @@ CREATE TABLE `sys_job` (
   `update_time` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`job_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='定时任务表';
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 定时任务表】定时任务表';
 
 -- ----------------------------
 -- Records of sys_job
@@ -414,7 +456,7 @@ CREATE TABLE `sys_job_log` (
   `exception_info` varchar(2000) DEFAULT NULL COMMENT '异常信息',
   `create_time` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   PRIMARY KEY (`job_log_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='任务调度日志表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 任务日志表】任务调度日志表';
 
 -- ----------------------------
 -- Records of sys_job_log
@@ -438,7 +480,7 @@ CREATE TABLE `sys_logininfor` (
   `del_flag` char(1) NOT NULL DEFAULT '0' COMMENT '删除标志',
   `login_time` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '访问时间',
   PRIMARY KEY (`info_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统访问记录';
+) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统监控模块 - 登录信息表】系统访问记录';
 
 -- ----------------------------
 -- Records of sys_logininfor
@@ -472,7 +514,7 @@ CREATE TABLE `sys_menu` (
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   `del_flag` char(1) NOT NULL DEFAULT '0' COMMENT '删除标志',
   PRIMARY KEY (`menu_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2000 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='菜单权限表';
+) ENGINE=InnoDB AUTO_INCREMENT=2000 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 菜单菜单表】菜单权限表';
 
 -- ----------------------------
 -- Records of sys_menu
@@ -644,7 +686,7 @@ CREATE TABLE `sys_notice` (
   `del_flag` char(1) NOT NULL DEFAULT '0' COMMENT '删除标志',
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`notice_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='通知公告表';
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 通知表】通知公告表';
 
 -- ----------------------------
 -- Records of sys_notice
@@ -677,7 +719,7 @@ CREATE TABLE `sys_oper_log` (
   `status` char(1) NOT NULL DEFAULT '0' COMMENT '登录状态',
   `cost_time` int NOT NULL DEFAULT '0' COMMENT '消耗时间',
   PRIMARY KEY (`oper_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='操作日志记录';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统监控模块 - 操作日志表】操作日志记录';
 
 -- ----------------------------
 -- Records of sys_oper_log
@@ -702,7 +744,7 @@ CREATE TABLE `sys_post` (
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   `del_flag` char(1) NOT NULL DEFAULT '0' COMMENT '删除标志',
   PRIMARY KEY (`post_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='岗位信息表';
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 岗位表】岗位表';
 
 -- ----------------------------
 -- Records of sys_post
@@ -734,7 +776,7 @@ CREATE TABLE `sys_role` (
   `update_time` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`role_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='角色信息表';
+) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 角色表】角色表';
 
 -- ----------------------------
 -- Records of sys_role
@@ -752,7 +794,7 @@ CREATE TABLE `sys_role_dept` (
   `role_id` int NOT NULL DEFAULT '0' COMMENT '角色ID',
   `dept_id` int NOT NULL DEFAULT '0' COMMENT '部门ID',
   PRIMARY KEY (`role_id`,`dept_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='角色和部门关联表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 角色部门表】角色和部门关联表';
 
 -- ----------------------------
 -- Records of sys_role_dept
@@ -771,7 +813,7 @@ CREATE TABLE `sys_role_menu` (
   `role_id` int NOT NULL DEFAULT '0' COMMENT '角色ID',
   `menu_id` int NOT NULL DEFAULT '0' COMMENT '菜单ID',
   PRIMARY KEY (`role_id`,`menu_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='角色和菜单关联表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 角色菜单表】角色和菜单关联表';
 
 -- ----------------------------
 -- Records of sys_role_menu
@@ -918,7 +960,7 @@ CREATE TABLE `sys_upload` (
   `url` varchar(255) NOT NULL COMMENT '文件地址',
   `ext` varchar(255) DEFAULT NULL COMMENT '拓展名',
   PRIMARY KEY (`upload_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='文件上传记录';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统工具模块 - 上传表】文件上传记录';
 
 -- ----------------------------
 -- Records of sys_upload
@@ -951,7 +993,7 @@ CREATE TABLE `sys_user` (
   `avatar` varchar(255) NOT NULL DEFAULT '' COMMENT '头像地址',
   `login_date` timestamp NULL DEFAULT NULL COMMENT '最后登录时间',
   PRIMARY KEY (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户信息表';
+) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 用户表】用户表';
 
 -- ----------------------------
 -- Records of sys_user
@@ -969,7 +1011,7 @@ CREATE TABLE `sys_user_post` (
   `user_id` int NOT NULL COMMENT '用户ID',
   `post_id` int NOT NULL COMMENT '岗位ID',
   PRIMARY KEY (`user_id`,`post_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户与岗位关联表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 用户岗位关联表】用户与岗位关联表';
 
 -- ----------------------------
 -- Records of sys_user_post
@@ -987,7 +1029,7 @@ CREATE TABLE `sys_user_role` (
   `user_id` int NOT NULL COMMENT '用户ID',
   `role_id` int NOT NULL COMMENT '角色ID',
   PRIMARY KEY (`user_id`,`role_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户和角色关联表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 用户角色关联表】用户和角色关联表';
 
 -- ----------------------------
 -- Records of sys_user_role
@@ -1027,52 +1069,123 @@ CREATE TABLE IF NOT EXISTS `water_zone` (
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='综合水务分区表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='【综合水务分区表】综合综合水务分区表综合水务分区表';
 COMMIT; -- 【水务基础模块 - 水务分区表】
 
 -- ----------------------------
--- Table structure for water_device
+-- Table structure for water_zone_metric_calc
 -- ----------------------------
-CREATE TABLE IF NOT EXISTS `water_device` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
-  `station_id` bigint(20) DEFAULT NULL COMMENT '站点ID',
-  `code` varchar(50) DEFAULT NULL COMMENT '设备编码',
-  `name` varchar(100) NOT NULL COMMENT '设备名称',
-  `type` varchar(32) DEFAULT NULL COMMENT '设备类型',
-  `status` char(1) DEFAULT '0' COMMENT '状态（0正常 1停用）',
-  `expected_cycle` int NULL COMMENT '预期数据周期(分钟)',
+CREATE TABLE IF NOT EXISTS `water_zone_metric_calc` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '规则ID',
+  `zone_code` varchar(50) NOT NULL COMMENT '分区编码',
+  `metric_type` varchar(50) NOT NULL COMMENT '指标类型(如 supply:供水量, min_flow:夜间最小流量)',
+  `point_code` varchar(50) NOT NULL COMMENT '测点编码',
+  `calc_sign` int(11) NOT NULL DEFAULT 1 COMMENT '计算符号(1加法 -1减法)',
   `del_flag` char(1) DEFAULT '0' COMMENT '删除标志（0代表存在 1代表删除）',
+  `create_by` varchar(64) DEFAULT '' COMMENT '创建者',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `update_by` varchar(64) DEFAULT '' COMMENT '更新者',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_zone_code` (`zone_code`),
+  KEY `idx_metric_type` (`metric_type`),
+  KEY `idx_point_code` (`point_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='【水务基础模块 - 分区指标计算规则表】';
+COMMIT; -- 【水务基础模块 - 分区指标计算规则表】
+
+-- ----------------------------
+-- Table structure for water_station
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS `water_station` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '站点ID',
+  `name` varchar(100) NOT NULL COMMENT '站点名称',
+  `code` varchar(50) NOT NULL COMMENT '站点编码',
+  `type` varchar(20) DEFAULT 'OTHER' COMMENT '站点类型',
+  `zone_code` varchar(50) DEFAULT NULL COMMENT '所属分区编码',
+  `manager_name` varchar(50) DEFAULT NULL COMMENT '负责人',
+  `manager_phone` varchar(20) DEFAULT NULL COMMENT '负责人电话',
+  `longitude` varchar(30) DEFAULT NULL COMMENT '经度',
+  `latitude` varchar(30) DEFAULT NULL COMMENT '纬度',
+  `address` varchar(255) DEFAULT NULL COMMENT '详细地址',
+  `construction_unit` varchar(100) DEFAULT NULL COMMENT '建设单位',
+  `commissioning_date` datetime DEFAULT NULL COMMENT '投运日期',
+  `design_capacity` decimal(10,2) DEFAULT NULL COMMENT '设计能力',
+  `sort` int DEFAULT 0 COMMENT '排序',
+  `status` char(1) DEFAULT '0' COMMENT '状态（0正常 1停用）',
+  `del_flag` char(1) DEFAULT '0' COMMENT '删除标志（0代表存在 1代表删除）',
+  `dept_id` bigint(20) DEFAULT NULL COMMENT '部门ID',
+  `user_id` bigint(20) DEFAULT NULL COMMENT '用户ID',
   `create_by` varchar(64) DEFAULT '' COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
   `update_by` varchar(64) DEFAULT '' COMMENT '更新者',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='设备信息表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='【水务基础模块 - 站点表】站点信息表';
+COMMIT; -- 【水务基础模块 - 站点信息表】
+
+-- ----------------------------
+-- Table structure for water_device
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS `water_device` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '设备ID',
+  `name` varchar(100) NOT NULL COMMENT '设备名称',
+  `code` varchar(50) NOT NULL COMMENT '设备编码',
+  `station_code` varchar(50) DEFAULT NULL COMMENT '所属站点编码',
+  `zone_code` varchar(50) DEFAULT NULL COMMENT '所属分区编码',
+  `type` varchar(20) DEFAULT 'OTHER' COMMENT '设备类型',
+  `expected_cycle` int NULL COMMENT '预期数据周期(分钟)',
+  `model` varchar(100) DEFAULT NULL COMMENT '设备型号',
+  `manufacturer` varchar(100) DEFAULT NULL COMMENT '生产厂家',
+  `install_date` datetime DEFAULT NULL COMMENT '安装日期',
+  `lifespan` int DEFAULT NULL COMMENT '设计寿命(年)',
+  `power` varchar(50) DEFAULT NULL COMMENT '额定功率(kW)',
+  `manager_name` varchar(50) DEFAULT NULL COMMENT '负责人',
+  `manager_phone` varchar(20) DEFAULT NULL COMMENT '负责人电话',
+  `sort` int DEFAULT 0 COMMENT '排序',
+  `status` char(1) DEFAULT '0' COMMENT '状态',
+  `del_flag` char(1) DEFAULT '0' COMMENT '删除标志',
+  `dept_id` bigint(20) DEFAULT NULL COMMENT '部门ID',
+  `user_id` bigint(20) DEFAULT NULL COMMENT '用户ID',
+  `create_by` varchar(64) DEFAULT '' COMMENT '创建者',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `update_by` varchar(64) DEFAULT '' COMMENT '更新者',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='【水务基础模块 - 设备表】设备信息表';
 COMMIT; -- 【水务基础模块 - 设备信息表】
 
 -- ----------------------------
 -- Table structure for water_point
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS `water_point` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
-  `station_id` bigint(20) DEFAULT NULL COMMENT '站点ID',
-  `device_id` bigint(20) DEFAULT NULL COMMENT '设备ID',
-  `code` varchar(50) DEFAULT NULL COMMENT '测点编码',
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '测点ID',
   `name` varchar(100) NOT NULL COMMENT '测点名称',
-  `type` varchar(32) DEFAULT NULL COMMENT '测点类型',
-  `unit` varchar(20) DEFAULT NULL COMMENT '单位',
-  `aggType` varchar(32) DEFAULT 'instantaneous' COMMENT '聚合模式: instantaneous/cumulative/incremental',
-  `status` char(1) DEFAULT '0' COMMENT '状态（0正常 1停用）',
+  `code` varchar(50) NOT NULL COMMENT '测点编码(设备通信唯一标识)',
+  `device_code` varchar(50) DEFAULT NULL COMMENT '所属设备编码',
+  `type` varchar(20) DEFAULT 'OTHER' COMMENT '测点类型',
+  `aggType` varchar(32) DEFAULT 'instantaneous' COMMENT '聚合模式',
   `expected_cycle` int NULL COMMENT '预期数据周期(分钟)',
-  `del_flag` char(1) DEFAULT '0' COMMENT '删除标志（0代表存在 1代表删除）',
+  `range_max` decimal(10,2) DEFAULT NULL COMMENT '量程上限',
+  `range_min` decimal(10,2) DEFAULT NULL COMMENT '量程下限',
+  `alarm_max` decimal(10,2) DEFAULT NULL COMMENT '报警上限',
+  `alarm_min` decimal(10,2) DEFAULT NULL COMMENT '报警下限',
+  `unit` varchar(20) DEFAULT NULL COMMENT '计量单位(m³/h, MPa, m, mg/L等)',
+  `data_type` varchar(20) DEFAULT 'float' COMMENT '数据类型',
+  `rw_attr` varchar(10) DEFAULT 'R' COMMENT '读写属性',
+  `sort` int DEFAULT 0 COMMENT '排序',
+  `status` char(1) DEFAULT '0' COMMENT '状态',
+  `del_flag` char(1) DEFAULT '0' COMMENT '删除标志',
+  `dept_id` bigint(20) DEFAULT NULL COMMENT '部门ID',
+  `user_id` bigint(20) DEFAULT NULL COMMENT '用户ID',
   `create_by` varchar(64) DEFAULT '' COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
   `update_by` varchar(64) DEFAULT '' COMMENT '更新者',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='测点信息表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='【水务基础模块 - 测点表】测点信息表';
 COMMIT; -- 【水务基础模块 - 测点信息表】
 
 -- ----------------------------
@@ -1107,7 +1220,7 @@ CREATE TABLE IF NOT EXISTS `scada_revenue_user` (
   `del_flag` char(1) DEFAULT '0' COMMENT '删除标志(0代表存在 2代表删除)',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_user_no` (`user_no`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='营收基础用户信息表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='【营收基础模块 - 营收用户表】营收用户信息表';
 COMMIT; -- 【营收模块 - 营收用户表】
 
 -- ----------------------------
@@ -1128,7 +1241,7 @@ CREATE TABLE IF NOT EXISTS `water_data_source` (
   `update_time` DATETIME NULL COMMENT '更新时间',
   `remark` VARCHAR(500) NULL COMMENT '备注',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='【数据接入】数据源配置表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='【数据接入模块 - 数据源表】数据源配置表';
 COMMIT; -- 【数据接入模块 - 数据源配置表】
 
 -- ----------------------------
@@ -1141,6 +1254,7 @@ CREATE TABLE IF NOT EXISTS `water_data_task` (
   `cron_expression` VARCHAR(100) NULL COMMENT '执行频率 (Cron表达式)',
   `query_sql_or_topic` TEXT NULL COMMENT '提取指令 (SQL/Topic/FilePath)',
   `auto_backfill` TINYINT NOT NULL DEFAULT 0 COMMENT '是否自动触发历史补录 (0-否 1-是)',
+  `interpolation` VARCHAR(32) NULL COMMENT '插值策略',
   `status` CHAR(1) NOT NULL DEFAULT '0' COMMENT '任务状态 (0正常 1停用)',
   `del_flag` CHAR(1) NOT NULL DEFAULT '0' COMMENT '删除标志',
   `create_by` VARCHAR(64) NOT NULL DEFAULT '' COMMENT '创建者',
@@ -1150,7 +1264,7 @@ CREATE TABLE IF NOT EXISTS `water_data_task` (
   `remark` VARCHAR(500) NULL COMMENT '备注',
   PRIMARY KEY (`id`),
   KEY `idx_water_data_task_source_id` (`source_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='【数据接入】数据接入任务配置表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='【数据接入模块 - 数据接入任务表】数据接入任务配置表';
 COMMIT; -- 【数据接入模块 - 数据接入任务配置表】
 
 -- ----------------------------
@@ -1170,7 +1284,7 @@ CREATE TABLE IF NOT EXISTS `water_data_mapping` (
   `remark` VARCHAR(500) NULL COMMENT '备注',
   PRIMARY KEY (`id`),
   KEY `idx_water_data_mapping_task_id` (`task_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='【数据接入】字段映射规则表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='【数据接入模块 - 字段映射规则表】字段映射规则表';
 COMMIT; -- 【数据接入模块 - 字段映射规则表】
 
 SET FOREIGN_KEY_CHECKS = 1;

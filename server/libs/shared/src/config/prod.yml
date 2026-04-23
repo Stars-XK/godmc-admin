@@ -38,7 +38,7 @@ db:
     logging: true
     multipleStatements: true
     dropSchema: false
-    synchronize: true
+    synchronize: false  
     supportBigNumbers: true
     bigNumberStrings: true
     extra:

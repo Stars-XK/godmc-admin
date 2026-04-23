@@ -423,7 +423,7 @@ function processFile(file) {
           zoneCode: row['所属分区编码'] || row['所属分区'] || '',
           name: row['站点名称(必填)'] || row['站点名称'] || '',
           code: row['站点编码(必填)'] || row['站点编码'] || '',
-          type: row['站点类型(填写字典值如 WATER_PLANT)'] || row['站点类型'] || 'WATER_PLANT',
+          type: row['站点类型(必填)'] || row['站点类型'] || '',
           longitude: row['经度(X)'] || '',
           latitude: row['纬度(Y)'] || '',
           designCapacity: parseFloat(row['设计能力']) || null,
