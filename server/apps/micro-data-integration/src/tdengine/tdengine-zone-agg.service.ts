@@ -119,7 +119,7 @@ export class TdengineZoneAggService {
 
       await this.tdengineService.querySql(`DELETE FROM ${child} WHERE ts >= ${startMs} AND ts <= ${endMs}`);
 
-      const unionParts: string[] = [];
+      const pointSigns: { pc: string; sign: number }[] = [];
 
       for (const config of configs) {
         const deviceCode = pointDeviceMap.get(config.pointCode);
@@ -129,23 +129,35 @@ export class TdengineZoneAggService {
           continue;
         }
 
-        const sourceTable = this.rawDeviceChildTable(interval, deviceCode, config.pointCode);
         const sign = config.calcSign === -1 ? -1 : 1;
-        // 注意：由于 unionParts 将会被拼接到 FROM ( ... ) 子查询中，这里需要起别名，否则嵌套查询可能找不到列
-        unionParts.push(`SELECT ts, diff_val * ${sign} as val FROM ${sourceTable} WHERE ts >= ${startMs} AND ts <= ${endMs}`);
+        pointSigns.push({ pc: config.pointCode, sign });
       }
 
-      if (unionParts.length > 0) {
-        const unionSql = unionParts.join(' UNION ALL ');
-        // 关键修复点：TDengine 中子查询的结果作为派生表必须给定表别名（比如 t1），否则会报 syntax error 或者不执行
+      if (pointSigns.length > 0) {
+        const sourceTable = `water_iot.meters_${interval}`;
+        const pcList = pointSigns.map(p => `'${p.pc}'`).join(', ');
+        
+        let caseWhenStr = `CASE point_code`;
+        for (const p of pointSigns) {
+          caseWhenStr += ` WHEN '${p.pc}' THEN ${p.sign}`;
+        }
+        caseWhenStr += ` ELSE 0 END`;
+
+        // 使用 CASE WHEN 结合超级表进行聚合，彻底规避 TDengine 中复杂的 UNION ALL 子查询报错以及表不存在等问题。
         const finalSql = `
           INSERT INTO ${child}
-          SELECT ts, SUM(val) as total_val FROM (
-            ${unionSql}
-          ) t1 GROUP BY ts
+          SELECT ts, SUM(diff_val * (${caseWhenStr})) as total_val 
+          FROM ${sourceTable} 
+          WHERE point_code IN (${pcList}) AND ts >= ${startMs} AND ts <= ${endMs} 
+          GROUP BY ts
         `;
         
-        await this.tdengineService.querySql(finalSql);
+        try {
+          await this.tdengineService.querySql(finalSql);
+        } catch (e) {
+          this.logger.error(`分区聚合执行 SQL 失败，SQL: ${finalSql}`);
+          throw e;
+        }
       }
     }
 

@@ -41,12 +41,18 @@ export class TdengineService implements OnModuleInit {
           },
         }),
       );
+      
+      if (response.data && response.data.status === 'error') {
+        this.logger.error(`TDengine SQL执行失败 (REST Error): ${sql}`, response.data);
+        throw new Error(response.data.desc || 'TDengine SQL execution failed');
+      }
+      
       return response.data;
     } catch (error) {
       if (error.code === 'ECONNREFUSED') {
         this.logger.warn(`TDengine 服务未启动或无法连接 (${this.tdUrl})，请检查TDengine状态。SQL: ${sql}`);
-      } else {
-        this.logger.error(`TDengine SQL执行失败: ${sql}`, error.response?.data || error.message);
+      } else if (!error.message?.includes('TDengine SQL execution failed')) {
+        this.logger.error(`TDengine SQL请求异常: ${sql}`, error.response?.data || error.message);
       }
       throw error;
     }
