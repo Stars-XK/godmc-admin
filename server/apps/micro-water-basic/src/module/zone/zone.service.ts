@@ -708,79 +708,96 @@ export class ZoneService {
     let failCount = 0;
     const results = [];
 
-    // 用于记录已经被处理过的物理绑定，避免重复绑定（多行合并的情况）
+    const queryRunner = this.zoneRep.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    
+    // 采用每条记录独立事务，避免一条失败导致所有成功数据回滚
     const processedDeviceBindings = new Set<string>();
 
     for (const item of dataList) {
-      const zoneCode = item.zoneCode || item['分区编码(必填)'];
-      const deviceCode = item.deviceCode || item['设备编码(必填)'];
-      const pointCode = item.pointCode || item['测点编码(选填)'];
-      const metricType = item.metricType || item['指标类型(选填: water_supply/min_flow)'];
-      const calcSignStr = item.calcSign !== undefined ? item.calcSign : item['计算符号(选填: 1进水/-1出水)'];
+      await queryRunner.startTransaction();
+      try {
+        const zoneCode = item.zoneCode || item['分区编码(必填)'];
+        const deviceCode = item.deviceCode || item['设备编码(必填)'];
+        const pointCode = item.pointCode || item['测点编码(选填)'];
+        const metricType = item.metricType || item['指标类型(选填: water_supply/min_flow)'];
+        const calcSignStr = item.calcSign !== undefined ? item.calcSign : item['计算符号(选填: 1进水/-1出水)'];
 
-      if (!zoneCode || !deviceCode) {
-        failCount++;
-        results.push({ code: deviceCode || '未知', success: false, reason: '缺少分区编码或设备编码' });
-        continue;
-      }
-
-      const zone = await this.zoneRep.findOne({ where: { code: zoneCode, delFlag: '0' } });
-      if (!zone) {
-        failCount++;
-        results.push({ code: deviceCode, success: false, reason: `分区编码(${zoneCode})不存在` });
-        continue;
-      }
-
-      const device = await this.deviceRep.findOne({ where: { code: deviceCode, delFlag: '0' } });
-      if (!device) {
-        failCount++;
-        results.push({ code: deviceCode, success: false, reason: '设备编码不存在' });
-        continue;
-      }
-
-      // 步骤1：物理绑定 (如果同一设备在多行出现，只执行一次 Update)
-      const bindKey = `${zoneCode}_${deviceCode}`;
-      if (!processedDeviceBindings.has(bindKey)) {
-        await this.deviceRep.update(device.id, { zoneCode });
-        processedDeviceBindings.add(bindKey);
-      }
-
-      // 步骤2：逻辑指标计算绑定 (选填)
-      let metricReason = '';
-      if (pointCode && metricType && calcSignStr !== undefined && calcSignStr !== null && calcSignStr !== '') {
-        const calcSign = Number(calcSignStr);
-        if (calcSign !== 1 && calcSign !== -1) {
+        if (!zoneCode || !deviceCode) {
           failCount++;
-          results.push({ code: pointCode, success: false, reason: `测点(${pointCode})配置失败: 计算符号必须为 1 或 -1` });
+          results.push({ code: deviceCode || '未知', success: false, reason: '缺少分区编码或设备编码' });
+          await queryRunner.rollbackTransaction();
           continue;
         }
 
-        const point = await this.pointRep.findOne({ where: { code: pointCode, delFlag: '0' } });
-        if (!point) {
+        const zone = await queryRunner.manager.findOne(WaterZoneEntity, { where: { code: zoneCode, delFlag: '0' } });
+        if (!zone) {
           failCount++;
-          results.push({ code: pointCode, success: false, reason: `测点编码(${pointCode})不存在` });
+          results.push({ code: deviceCode, success: false, reason: `分区编码(${zoneCode})不存在` });
+          await queryRunner.rollbackTransaction();
           continue;
         }
 
-        // Upsert 逻辑
-        const exist = await this.metricCalcRep.findOne({ where: { zoneCode, metricType, pointCode } });
-        if (exist) {
-          await this.metricCalcRep.update(exist.id, { calcSign });
-        } else {
-          const entity = new WaterZoneMetricCalcEntity();
-          entity.zoneCode = zoneCode;
-          entity.metricType = metricType;
-          entity.pointCode = pointCode;
-          entity.calcSign = calcSign;
-          await this.metricCalcRep.save(entity);
+        const device = await queryRunner.manager.findOne(WaterDeviceEntity, { where: { code: deviceCode, delFlag: '0' } });
+        if (!device) {
+          failCount++;
+          results.push({ code: deviceCode, success: false, reason: '设备编码不存在' });
+          await queryRunner.rollbackTransaction();
+          continue;
         }
-        metricReason = ` + 指标测点(${pointCode})配置成功`;
-      }
 
-      successCount++;
-      results.push({ code: deviceCode, success: true, reason: `设备绑定成功${metricReason}` });
+        // 步骤1：物理绑定 (如果同一设备在多行出现，只执行一次 Update)
+        const bindKey = `${zoneCode}_${deviceCode}`;
+        if (!processedDeviceBindings.has(bindKey)) {
+          await queryRunner.manager.update(WaterDeviceEntity, device.id, { zoneCode });
+          processedDeviceBindings.add(bindKey);
+        }
+
+        // 步骤2：逻辑指标计算绑定 (选填)
+        let metricReason = '';
+        if (pointCode && metricType && calcSignStr !== undefined && calcSignStr !== null && calcSignStr !== '') {
+          const calcSign = Number(calcSignStr);
+          if (calcSign !== 1 && calcSign !== -1) {
+            failCount++;
+            results.push({ code: pointCode, success: false, reason: `测点(${pointCode})配置失败: 计算符号必须为 1 或 -1` });
+            await queryRunner.rollbackTransaction();
+            continue;
+          }
+
+          const point = await queryRunner.manager.findOne(WaterPointEntity, { where: { code: pointCode, delFlag: '0' } });
+          if (!point) {
+            failCount++;
+            results.push({ code: pointCode, success: false, reason: `测点编码(${pointCode})不存在` });
+            await queryRunner.rollbackTransaction();
+            continue;
+          }
+
+          // Upsert 逻辑
+          const exist = await queryRunner.manager.findOne(WaterZoneMetricCalcEntity, { where: { zoneCode, metricType, pointCode } });
+          if (exist) {
+            await queryRunner.manager.update(WaterZoneMetricCalcEntity, exist.id, { calcSign });
+          } else {
+            const entity = new WaterZoneMetricCalcEntity();
+            entity.zoneCode = zoneCode;
+            entity.metricType = metricType;
+            entity.pointCode = pointCode;
+            entity.calcSign = calcSign;
+            await queryRunner.manager.save(WaterZoneMetricCalcEntity, entity);
+          }
+          metricReason = ` + 指标测点(${pointCode})配置成功`;
+        }
+
+        await queryRunner.commitTransaction();
+        successCount++;
+        results.push({ code: deviceCode, success: true, reason: `设备绑定成功${metricReason}` });
+      } catch (error) {
+        await queryRunner.rollbackTransaction();
+        failCount++;
+        results.push({ code: item.deviceCode || '未知', success: false, reason: `系统错误: ${error.message}` });
+      }
     }
-
+    
+    await queryRunner.release();
     return ResultData.ok({ successCount, failCount, results });
   }
 
