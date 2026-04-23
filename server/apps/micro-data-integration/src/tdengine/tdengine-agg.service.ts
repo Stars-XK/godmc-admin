@@ -95,10 +95,6 @@ export class TdengineAggService {
       return;
     }
 
-    // 2. 根据首尾时间对齐窗口（向下对齐到5分钟/1小时/1天的起点）
-    const startMs = this.alignToWindow(firstTs, '5m');
-    const endMs = this.alignToWindow(lastTs, '5m') + 5 * 60 * 1000; // 包含当前窗口结束
-
     const point = await this.pointRep.findOne({ where: { code: pointCode, deviceCode } });
     const kind = await this.getPointKind(point);
 
@@ -106,6 +102,14 @@ export class TdengineAggService {
 
     const intervals: AggInterval[] = ['5m', '1h', '1d'];
     for (const interval of intervals) {
+      const startMs = this.alignToWindow(firstTs, interval);
+      const endMs =
+        interval === '5m'
+          ? this.alignToWindow(lastTs, interval) + 5 * 60 * 1000
+          : interval === '1h'
+            ? this.alignToWindow(lastTs, interval) + 60 * 60 * 1000
+            : this.alignToWindow(lastTs, interval) + 24 * 60 * 60 * 1000;
+
       const child = this.aggChildTable(interval, deviceCode, pointCode);
       const stable = this.aggStable(interval);
 
@@ -118,10 +122,13 @@ export class TdengineAggService {
       if (kind === 'cumulative') {
         await this.tdengineService.querySql(`
           INSERT INTO ${child}
-          SELECT _wstart, LAST(val), LAST(val), LAST(val), 0, DIFF(val)
-          FROM ${rawTable}
-          WHERE ts >= ${startMs} AND ts <= ${endMs}
-          INTERVAL(${interval}) FILL(PREV)
+          SELECT ts, last_val, last_val, last_val, 0, IFNULL(DIFF(last_val), 0)
+          FROM (
+            SELECT _wstart as ts, LAST(val) as last_val
+            FROM ${rawTable}
+            WHERE ts >= ${startMs} AND ts <= ${endMs}
+            INTERVAL(${interval}) FILL(PREV)
+          )
         `);
       } else if (kind === 'incremental') {
         await this.tdengineService.querySql(`
@@ -146,7 +153,6 @@ export class TdengineAggService {
       }
     }
 
-    this.logger.log(`聚合插值补算完成: ${deviceCode}-${pointCode} (${kind}) ${startMs} ~ ${endMs}`);
+    this.logger.log(`聚合插值补算完成: ${deviceCode}-${pointCode} (${kind}) ${dirtyStartMs} ~ ${dirtyEndMs}`);
   }
 }
-

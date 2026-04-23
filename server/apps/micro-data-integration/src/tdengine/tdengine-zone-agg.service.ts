@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { WaterZoneMetricCalcEntity } from '@app/common';
+import { In, Repository } from 'typeorm';
+import { WaterPointEntity, WaterZoneMetricCalcEntity } from '@app/common';
 import { TdengineService } from './tdengine.service';
 import dayjs from 'dayjs';
 
@@ -13,6 +13,8 @@ export class TdengineZoneAggService {
     private readonly tdengineService: TdengineService,
     @InjectRepository(WaterZoneMetricCalcEntity)
     private readonly zoneMetricRep: Repository<WaterZoneMetricCalcEntity>,
+    @InjectRepository(WaterPointEntity)
+    private readonly pointRep: Repository<WaterPointEntity>,
   ) {}
 
   private safeCode(code: string) {
@@ -42,7 +44,6 @@ export class TdengineZoneAggService {
    * 重建分区聚合表数据
    */
   async rebuildZoneAggTables(zoneCode: string, metricType: string, dirtyStartMs: number, dirtyEndMs: number) {
-    // 1. 获取该分区指标的所有计算测点
     const configs = await this.zoneMetricRep.find({
       where: { zoneCode, metricType, delFlag: '0' },
     });
@@ -52,53 +53,47 @@ export class TdengineZoneAggService {
       return;
     }
 
-    // 2. 根据首尾时间对齐窗口（向下对齐到5分钟/1小时/1天的起点）
-    const startMs = this.alignToWindow(dirtyStartMs, '5m');
-    const endMs = this.alignToWindow(dirtyEndMs, '5m') + 5 * 60 * 1000; // 包含当前窗口结束
+    const pointCodes = Array.from(new Set(configs.map(c => c.pointCode).filter(Boolean)));
+    const points = pointCodes.length > 0
+      ? await this.pointRep.find({
+        where: { code: In(pointCodes), delFlag: '0' },
+        select: ['code', 'deviceCode'],
+      })
+      : [];
+    const pointDeviceMap = new Map(points.map(p => [p.code, p.deviceCode]));
 
     const intervals: ('5m' | '1h' | '1d')[] = ['5m', '1h', '1d'];
 
     for (const interval of intervals) {
+      const startMs = this.alignToWindow(dirtyStartMs, interval);
+      const endMs =
+        interval === '5m'
+          ? this.alignToWindow(dirtyEndMs, interval) + 5 * 60 * 1000
+          : interval === '1h'
+            ? this.alignToWindow(dirtyEndMs, interval) + 60 * 60 * 1000
+            : this.alignToWindow(dirtyEndMs, interval) + 24 * 60 * 60 * 1000;
+
       const stable = `water_iot.zone_meters_${interval}`;
       const child = this.tdengineService.zoneChildTable(interval, zoneCode, metricType);
 
-      // 创建分区聚合子表
       await this.tdengineService.querySql(
         `CREATE TABLE IF NOT EXISTS ${child} USING ${stable} TAGS ('${zoneCode}', '${metricType}')`,
       );
 
-      // 清除目标时间段内旧数据
       await this.tdengineService.querySql(`DELETE FROM ${child} WHERE ts >= ${startMs} AND ts <= ${endMs}`);
 
-      // 动态拼接 UNION ALL SQL 语句进行库内聚合
       const unionParts: string[] = [];
 
       for (const config of configs) {
-        // 由于配置表中可能只存了 pointCode，我们需要找到其对应的 deviceCode。
-        // 在全局导入时，设备编码已经保存在 config 中，或者我们可以通过关系查。
-        // 注意：目前 WaterZoneMetricCalcEntity 中没有 deviceCode，如果之前没有添加，
-        // 则需要根据 pointCode 查询设备。这里假设可以通过 point_code 在 MySQL 中找到关联。
-        // 为了简化，假设全局导入时我们知道，或者我们可以从测点表反查。
-        // 我们直接从 point_code 找到所属的 deviceCode
-        const point = await this.tdengineService.querySql(`SELECT FIRST(device_code) as dc FROM water_iot.meters WHERE point_code='${config.pointCode}'`);
-        
-        let deviceCode = null;
-        const row = point?.data?.[0] || point?.data?.data?.[0] || null;
-        if (Array.isArray(row)) {
-           deviceCode = row[0];
-        } else if (row && typeof row === 'object') {
-           deviceCode = row.dc;
-        }
+        const deviceCode = pointDeviceMap.get(config.pointCode);
 
         if (!deviceCode) {
-           this.logger.warn(`找不到测点 ${config.pointCode} 的所属设备，跳过参与分区聚合`);
-           continue;
+          this.logger.warn(`找不到测点 ${config.pointCode} 的所属设备，跳过参与分区聚合`);
+          continue;
         }
 
         const sourceTable = this.rawDeviceChildTable(interval, deviceCode, config.pointCode);
-        const sign = config.calcSign === -1 ? -1 : 1; // 1 为进水(加)，-1 为出水(减)
-        
-        // 我们利用在设备聚合时就算好的 diff_val
+        const sign = config.calcSign === -1 ? -1 : 1;
         unionParts.push(`SELECT ts, diff_val * ${sign} as val FROM ${sourceTable} WHERE ts >= ${startMs} AND ts <= ${endMs}`);
       }
 
@@ -115,6 +110,6 @@ export class TdengineZoneAggService {
       }
     }
 
-    this.logger.log(`分区聚合补算完成: ${zoneCode}-${metricType} ${startMs} ~ ${endMs}`);
+    this.logger.log(`分区聚合补算完成: ${zoneCode}-${metricType} ${dirtyStartMs} ~ ${dirtyEndMs}`);
   }
 }
