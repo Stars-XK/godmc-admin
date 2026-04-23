@@ -272,6 +272,12 @@ export class ZoneService {
           sort: item.sort || i,
         });
       }
+
+      const batchSize = 500;
+      for (let i = 0; i < insertData.length; i += batchSize) {
+        const chunk = insertData.slice(i, i + batchSize);
+        await this.zoneRep.insert(chunk);
+      }
     } else {
       // 场景2：没有parentId，根据Excel中的parentCode构建树结构
       // 1. 先收集所有分区的code和基本信息
@@ -303,13 +309,13 @@ export class ZoneService {
         sort: item.sort || i,
       }));
       
-      const savedRoots = await this.zoneRep.save(rootEntities);
+      const savedRoots = await this.zoneRep.insert(rootEntities);
       
       const processedCodes = new Set();
-      savedRoots.forEach(z => {
+      rootEntities.forEach((z, idx) => {
         const info = zoneMap.get(z.code);
         if (info) {
-          info.id = z.id;
+          info.id = savedRoots.identifiers[idx].id;
           info.ancestors = z.ancestors;
           info.level = z.level;
         }
@@ -343,12 +349,12 @@ export class ZoneService {
           };
         });
         
-        const savedChildren = await this.zoneRep.save(childEntities);
+        const savedChildren = await this.zoneRep.insert(childEntities);
         
-        savedChildren.forEach(z => {
+        childEntities.forEach((z, idx) => {
           const info = zoneMap.get(z.code);
           if (info) {
-            info.id = z.id;
+            info.id = savedChildren.identifiers[idx].id;
             info.ancestors = z.ancestors;
             info.level = z.level;
           }
@@ -921,7 +927,7 @@ export class ZoneService {
         const zCodes = chunk.map(c => c.zoneCode);
         const pCodes = chunk.map(c => c.pointCode);
         await this.metricCalcRep.delete({ zoneCode: In(zCodes), pointCode: In(pCodes) });
-        await this.metricCalcRep.save(chunk);
+        await this.metricCalcRep.insert(chunk);
       }
     }
 
