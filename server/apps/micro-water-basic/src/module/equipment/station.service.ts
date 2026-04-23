@@ -28,11 +28,11 @@ export class StationService {
     return { rows, byLabel, byValue };
   }
 
-  private async normalizeStationType(raw: any) {
+  private normalizeStationType(raw: any, dictMaps: { rows: any[], byLabel: Map<string, string>, byValue: Map<string, string> }) {
     const input = String(raw ?? '').trim();
     if (!input) return { ok: true, value: 'OTHER' };
 
-    const { rows, byLabel, byValue } = await this.getDictMaps('water_station_type');
+    const { rows, byLabel, byValue } = dictMaps;
     if (byValue.has(input)) return { ok: true, value: input };
     if (byLabel.has(input)) return { ok: true, value: byLabel.get(input) };
     
@@ -230,11 +230,12 @@ export class StationService {
     const validData = dataList.filter(item => !!item.name && !!item.code);
     if (!validData || validData.length === 0) return ResultData.ok();
 
+    const dictMaps = await this.getDictMaps('water_station_type');
     const errors: any[] = [];
     const normalized: any[] = [];
     for (let i = 0; i < validData.length; i++) {
       const item = validData[i];
-      const normType = await this.normalizeStationType(item.type);
+      const normType = this.normalizeStationType(item.type, dictMaps);
       if (!normType.ok) {
         errors.push({ row: i + 2, field: 'type', value: item.type, allowed: normType.allowed });
         continue;

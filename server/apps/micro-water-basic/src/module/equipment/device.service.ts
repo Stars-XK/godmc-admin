@@ -27,18 +27,18 @@ export class DeviceService {
     return { rows, byLabel, byValue };
   }
 
-  private async normalizeDeviceType(raw: any) {
+  private normalizeDeviceType(raw: any, dictMaps: { rows: any[], byLabel: Map<string, string>, byValue: Map<string, string> }) {
     const input = String(raw ?? '').trim();
     if (!input) return { ok: true, value: 'OTHER' };
 
-    const { rows, byLabel, byValue } = await this.getDictMaps('water_device_type');
+    const { rows, byLabel, byValue } = dictMaps;
     if (byValue.has(input)) return { ok: true, value: input };
     if (byLabel.has(input)) return { ok: true, value: byLabel.get(input) };
     
     // 直接查询字典数据，处理数字类型的输入
     const numericInput = parseInt(input, 10);
     if (!isNaN(numericInput)) {
-      const dictItem = rows.find(item => parseInt(item.dictValue, 10) === numericInput);
+      const dictItem = rows.find(item => String(item.dictValue) === String(numericInput));
       if (dictItem) {
         return { ok: true, value: dictItem.dictValue };
       }
@@ -228,11 +228,12 @@ export class DeviceService {
     const validData = dataList.filter(item => !!item.name && !!item.code);
     if (!validData || validData.length === 0) return ResultData.ok();
 
+    const dictMaps = await this.getDictMaps('water_device_type');
     const errors: any[] = [];
     const normalized: any[] = [];
     for (let i = 0; i < validData.length; i++) {
       const item = validData[i];
-      const normType = await this.normalizeDeviceType(item.type);
+      const normType = this.normalizeDeviceType(item.type, dictMaps);
       if (!normType.ok) {
         errors.push({ row: i + 2, field: 'type', value: item.type, allowed: normType.allowed });
         continue;
