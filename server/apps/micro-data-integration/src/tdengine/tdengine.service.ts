@@ -63,32 +63,43 @@ export class TdengineService implements OnModuleInit {
 
       // 创建 5 分钟聚合超级表
       await this.executeSql(
-        `CREATE STABLE IF NOT EXISTS ${this.dbName}.meters_5m (ts TIMESTAMP, avg_val DOUBLE, max_val DOUBLE, min_val DOUBLE, spread_val DOUBLE) TAGS (device_code NCHAR(100), point_code NCHAR(100))`
+        `CREATE STABLE IF NOT EXISTS ${this.dbName}.meters_5m (ts TIMESTAMP, avg_val DOUBLE, max_val DOUBLE, min_val DOUBLE, spread_val DOUBLE, diff_val DOUBLE) TAGS (device_code NCHAR(100), point_code NCHAR(100))`
       );
 
       // 创建 1 小时聚合超级表
       await this.executeSql(
-        `CREATE STABLE IF NOT EXISTS ${this.dbName}.meters_1h (ts TIMESTAMP, avg_val DOUBLE, max_val DOUBLE, min_val DOUBLE, spread_val DOUBLE) TAGS (device_code NCHAR(100), point_code NCHAR(100))`
+        `CREATE STABLE IF NOT EXISTS ${this.dbName}.meters_1h (ts TIMESTAMP, avg_val DOUBLE, max_val DOUBLE, min_val DOUBLE, spread_val DOUBLE, diff_val DOUBLE) TAGS (device_code NCHAR(100), point_code NCHAR(100))`
       );
 
       // 创建 1 天聚合超级表
       await this.executeSql(
-        `CREATE STABLE IF NOT EXISTS ${this.dbName}.meters_1d (ts TIMESTAMP, avg_val DOUBLE, max_val DOUBLE, min_val DOUBLE, spread_val DOUBLE) TAGS (device_code NCHAR(100), point_code NCHAR(100))`
+        `CREATE STABLE IF NOT EXISTS ${this.dbName}.meters_1d (ts TIMESTAMP, avg_val DOUBLE, max_val DOUBLE, min_val DOUBLE, spread_val DOUBLE, diff_val DOUBLE) TAGS (device_code NCHAR(100), point_code NCHAR(100))`
       );
 
       // 创建流计算: 5 分钟
       await this.executeSql(
-        `CREATE STREAM IF NOT EXISTS ${this.dbName}.stream_meters_5m INTO ${this.dbName}.meters_5m AS SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val FROM ${this.dbName}.meters PARTITION BY device_code, point_code INTERVAL(5m)`
+        `CREATE STREAM IF NOT EXISTS ${this.dbName}.stream_meters_5m INTO ${this.dbName}.meters_5m AS SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, 0 as diff_val FROM ${this.dbName}.meters PARTITION BY device_code, point_code INTERVAL(5m)`
       );
 
       // 创建流计算: 1 小时
       await this.executeSql(
-        `CREATE STREAM IF NOT EXISTS ${this.dbName}.stream_meters_1h INTO ${this.dbName}.meters_1h AS SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val FROM ${this.dbName}.meters PARTITION BY device_code, point_code INTERVAL(1h)`
+        `CREATE STREAM IF NOT EXISTS ${this.dbName}.stream_meters_1h INTO ${this.dbName}.meters_1h AS SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, 0 as diff_val FROM ${this.dbName}.meters PARTITION BY device_code, point_code INTERVAL(1h)`
       );
 
       // 创建流计算: 1 天
       await this.executeSql(
-        `CREATE STREAM IF NOT EXISTS ${this.dbName}.stream_meters_1d INTO ${this.dbName}.meters_1d AS SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val FROM ${this.dbName}.meters PARTITION BY device_code, point_code INTERVAL(1d)`
+        `CREATE STREAM IF NOT EXISTS ${this.dbName}.stream_meters_1d INTO ${this.dbName}.meters_1d AS SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, 0 as diff_val FROM ${this.dbName}.meters PARTITION BY device_code, point_code INTERVAL(1d)`
+      );
+
+      // 创建分区聚合超级表 (5m, 1h, 1d)
+      await this.executeSql(
+        `CREATE STABLE IF NOT EXISTS ${this.dbName}.zone_meters_5m (ts TIMESTAMP, total_val DOUBLE) TAGS (zone_code NCHAR(100), metric_type NCHAR(100))`
+      );
+      await this.executeSql(
+        `CREATE STABLE IF NOT EXISTS ${this.dbName}.zone_meters_1h (ts TIMESTAMP, total_val DOUBLE) TAGS (zone_code NCHAR(100), metric_type NCHAR(100))`
+      );
+      await this.executeSql(
+        `CREATE STABLE IF NOT EXISTS ${this.dbName}.zone_meters_1d (ts TIMESTAMP, total_val DOUBLE) TAGS (zone_code NCHAR(100), metric_type NCHAR(100))`
       );
 
       this.logger.log('TDengine 数据库、超级表与流计算 (5m, 1h, 1d) 初始化成功');
@@ -128,5 +139,14 @@ export class TdengineService implements OnModuleInit {
 
     const sql = `INSERT INTO ${tableName} USING ${this.dbName}.meters TAGS ('${deviceCode}', '${pointCode}') VALUES (${timeStr}, ${value})`;
     return this.executeSql(sql);
+  }
+
+  /**
+   * 辅助方法：生成分区聚合子表表名
+   */
+  zoneChildTable(interval: '5m' | '1h' | '1d', zoneCode: string, metricType: string) {
+    const safeZone = zoneCode.replace(/-/g, '_').toLowerCase();
+    const safeMetric = metricType.replace(/-/g, '_').toLowerCase();
+    return `${this.dbName}.z_${interval}_${safeZone}_${safeMetric}`;
   }
 }

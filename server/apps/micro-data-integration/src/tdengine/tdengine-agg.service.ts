@@ -118,7 +118,7 @@ export class TdengineAggService {
       if (kind === 'cumulative') {
         await this.tdengineService.querySql(`
           INSERT INTO ${child}
-          SELECT _wstart, LAST(val), LAST(val), LAST(val), 0
+          SELECT _wstart, LAST(val), LAST(val), LAST(val), 0, DIFF(val)
           FROM ${rawTable}
           WHERE ts >= ${startMs} AND ts <= ${endMs}
           INTERVAL(${interval}) FILL(PREV)
@@ -126,15 +126,19 @@ export class TdengineAggService {
       } else if (kind === 'incremental') {
         await this.tdengineService.querySql(`
           INSERT INTO ${child}
-          SELECT _wstart, SUM(val), MAX(val), MIN(val), SUM(val)
+          SELECT _wstart, SUM(val), MAX(val), MIN(val), SUM(val), SUM(val)
           FROM ${rawTable}
           WHERE ts >= ${startMs} AND ts <= ${endMs}
           INTERVAL(${interval}) FILL(VALUE, 0)
         `);
       } else {
+        // 判断是否为瞬时流量
+        const isInstant = point?.type && (point.type.includes('INSTANT') || point.type.includes('INLET') || point.type.includes('OUTLET'));
+        const diffCalc = isInstant ? 'INTEGRAL(val)/3600000' : '0';
+
         await this.tdengineService.querySql(`
           INSERT INTO ${child}
-          SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val)
+          SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val), ${diffCalc}
           FROM ${rawTable}
           WHERE ts >= ${startMs} AND ts <= ${endMs}
           INTERVAL(${interval}) FILL(LINEAR)
