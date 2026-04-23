@@ -153,6 +153,7 @@ export class TdengineZoneAggService {
         `;
         
         try {
+          this.logger.debug(`[分区聚合 SQL] 执行: ${finalSql.trim()}`);
           await this.tdengineService.querySql(finalSql);
         } catch (e) {
           this.logger.error(`分区聚合执行 SQL 失败，SQL: ${finalSql}`);
