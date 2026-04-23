@@ -1,9 +1,11 @@
-import { Controller, Get } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { Controller, Get, Logger } from '@nestjs/common';
+import { EventPattern, Payload } from '@nestjs/microservices';
 import { MicroWaterBasicService } from './micro-water-basic.service';
 
 @Controller()
 export class MicroWaterBasicController {
+  private readonly logger = new Logger(MicroWaterBasicController.name);
+
   constructor(private readonly microWaterBasicService: MicroWaterBasicService) {}
 
   @Get()
@@ -11,7 +13,9 @@ export class MicroWaterBasicController {
     return this.microWaterBasicService.getHello();
   }
 
-  @MessagePattern('water.status.batchUpdate')
+  // 接收状态引擎发来的批量更新指令
+  // 注意：status-engine.service.ts 中使用的是 client.emit 发送事件，所以这里必须使用 @EventPattern 而不是 @MessagePattern
+  @EventPattern('water.status.batchUpdate')
   async batchUpdateStatus(@Payload() payload: { points: {code: string, status: string}[], devices: {code: string, status: string}[], stations: {code: string, status: string}[] }) {
     return this.microWaterBasicService.batchUpdateStatus(payload);
   }
