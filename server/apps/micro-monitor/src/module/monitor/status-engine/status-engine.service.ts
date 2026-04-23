@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { ClientProxy } from '@nestjs/microservices';
 import { WaterPointEntity, WaterDeviceEntity, WaterStationEntity } from '@app/common';
 import { RedisService } from '@app/shared/redis/redis.service';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class StatusEngineService implements OnModuleInit {
@@ -180,11 +181,12 @@ export class StatusEngineService implements OnModuleInit {
     if (totalChanges > 0) {
       this.logger.log(`检测到状态变更，触发回写: 活跃测点${activeCount} 变更测点${changedPoints.length} 设备${changedDevices.length} 站点${changedStations.length}`);
       try {
-        this.waterBasicClient.emit('water.status.batchUpdate', {
+        const obs = this.waterBasicClient.emit('water.status.batchUpdate', {
           points: changedPoints,
           devices: changedDevices,
           stations: changedStations
         });
+        await lastValueFrom(obs);
         this.logger.log(`状态回写事件已发送: water.status.batchUpdate (payload=${totalChanges})`);
       } catch (e) {
         this.logger.error('回写状态通知失败', e);

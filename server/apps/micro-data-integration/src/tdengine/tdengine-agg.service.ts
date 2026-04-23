@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WaterPointEntity } from '@app/common';
 import { TdengineService } from './tdengine.service';
+import dayjs from 'dayjs';
 
 export type AggInterval = '5m' | '1h' | '1d';
 export type PointKind = 'instantaneous' | 'cumulative' | 'incremental';
@@ -27,7 +28,7 @@ export class TdengineAggService {
   }
 
   private toTdTimeString(tsMs: number) {
-    return new Date(tsMs).toISOString().replace('T', ' ').replace('Z', '');
+    return dayjs(tsMs).format('YYYY-MM-DD HH:mm:ss.SSS');
   }
 
   private aggChildTable(interval: AggInterval, deviceCode: string, pointCode: string) {
@@ -52,11 +53,9 @@ export class TdengineAggService {
 
   async getFirstLastTsMs(deviceCode: string, pointCode: string, startMs: number, endMs: number) {
     const table = this.rawChildTable(deviceCode, pointCode);
-    const start = this.toTdTimeString(startMs);
-    const end = this.toTdTimeString(endMs);
 
     const res = await this.tdengineService.querySql(
-      `SELECT FIRST(ts) as firstTs, LAST(ts) as lastTs FROM ${table} WHERE ts >= '${start}' AND ts <= '${end}'`,
+      `SELECT FIRST(ts) as firstTs, LAST(ts) as lastTs FROM ${table} WHERE ts >= ${startMs} AND ts <= ${endMs}`,
     );
 
     const row = res?.data?.[0] || res?.data?.data?.[0] || null;
@@ -67,18 +66,19 @@ export class TdengineAggService {
   }
 
   async rebuildAggTables(deviceCode: string, pointCode: string, dirtyStartMs: number, dirtyEndMs: number) {
-    const point = await this.pointRep.findOne({ where: { code: pointCode, delFlag: '0' as any } });
+    // 1. 获取该范围内的真实数据边界
+    const { firstTs, lastTs } = await this.getFirstLastTsMs(deviceCode, pointCode, dirtyStartMs, dirtyEndMs);
+    if (!firstTs || !lastTs) {
+      return;
+    }
+
+    // 2. 根据首尾时间对齐窗口（向下对齐到5分钟/1小时/1天的起点）
+    const startMs = this.alignToWindow(firstTs, '5m');
+    const endMs = this.alignToWindow(lastTs, '5m') + 5 * 60 * 1000; // 包含当前窗口结束
+
+    const point = await this.pointRep.findOne({ where: { code: pointCode, deviceCode } });
     const kind = await this.getPointKind(point);
 
-    const { firstTs, lastTs } = await this.getFirstLastTsMs(deviceCode, pointCode, dirtyStartMs, dirtyEndMs);
-    if (!firstTs || !lastTs) return;
-
-    const startMs = Math.max(dirtyStartMs, firstTs);
-    const endMs = Math.min(dirtyEndMs, lastTs);
-    if (endMs < startMs) return;
-
-    const start = this.toTdTimeString(startMs);
-    const end = this.toTdTimeString(endMs);
     const rawTable = this.rawChildTable(deviceCode, pointCode);
 
     const intervals: AggInterval[] = ['5m', '1h', '1d'];
@@ -90,14 +90,14 @@ export class TdengineAggService {
         `CREATE TABLE IF NOT EXISTS ${child} USING ${stable} TAGS ('${deviceCode}', '${pointCode}')`,
       );
 
-      await this.tdengineService.querySql(`DELETE FROM ${child} WHERE ts >= '${start}' AND ts <= '${end}'`);
+      await this.tdengineService.querySql(`DELETE FROM ${child} WHERE ts >= ${startMs} AND ts <= ${endMs}`);
 
       if (kind === 'cumulative') {
         await this.tdengineService.querySql(`
           INSERT INTO ${child}
           SELECT _wstart, LAST(val), LAST(val), LAST(val), 0
           FROM ${rawTable}
-          WHERE ts >= '${start}' AND ts <= '${end}'
+          WHERE ts >= ${startMs} AND ts <= ${endMs}
           INTERVAL(${interval}) FILL(PREV)
         `);
       } else if (kind === 'incremental') {
@@ -105,7 +105,7 @@ export class TdengineAggService {
           INSERT INTO ${child}
           SELECT _wstart, SUM(val), MAX(val), MIN(val), SUM(val)
           FROM ${rawTable}
-          WHERE ts >= '${start}' AND ts <= '${end}'
+          WHERE ts >= ${startMs} AND ts <= ${endMs}
           INTERVAL(${interval}) FILL(VALUE, 0)
         `);
       } else {
@@ -113,13 +113,13 @@ export class TdengineAggService {
           INSERT INTO ${child}
           SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val)
           FROM ${rawTable}
-          WHERE ts >= '${start}' AND ts <= '${end}'
+          WHERE ts >= ${startMs} AND ts <= ${endMs}
           INTERVAL(${interval}) FILL(LINEAR)
         `);
       }
     }
 
-    this.logger.log(`聚合插值补算完成: ${deviceCode}-${pointCode} (${kind}) ${start} ~ ${end}`);
+    this.logger.log(`聚合插值补算完成: ${deviceCode}-${pointCode} (${kind}) ${startMs} ~ ${endMs}`);
   }
 }
 
