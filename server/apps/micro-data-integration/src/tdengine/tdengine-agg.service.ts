@@ -31,6 +31,19 @@ export class TdengineAggService {
     return dayjs(tsMs).format('YYYY-MM-DD HH:mm:ss.SSS');
   }
 
+  private alignToWindow(tsMs: number, interval: AggInterval): number {
+    const d = dayjs(tsMs);
+    if (interval === '5m') {
+      const minutes = d.minute();
+      return d.minute(Math.floor(minutes / 5) * 5).second(0).millisecond(0).valueOf();
+    } else if (interval === '1h') {
+      return d.minute(0).second(0).millisecond(0).valueOf();
+    } else if (interval === '1d') {
+      return d.hour(0).minute(0).second(0).millisecond(0).valueOf();
+    }
+    return tsMs;
+  }
+
   private aggChildTable(interval: AggInterval, deviceCode: string, pointCode: string) {
     const d = this.safeCode(deviceCode);
     const p = this.safeCode(pointCode);
