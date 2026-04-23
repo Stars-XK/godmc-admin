@@ -425,6 +425,7 @@ CREATE TABLE `sys_job` (
   `misfire_policy` varchar(20) DEFAULT '3' COMMENT '计划执行错误策略（1立即执行 2执行一次 3放弃执行）',
   `concurrent` char(1) DEFAULT '1' COMMENT '是否并发执行（0允许 1禁止）',
   `status` char(1) DEFAULT '0' COMMENT '状态（0正常 1暂停）',
+  `del_flag` char(1) DEFAULT '0' COMMENT '删除标志',
   `create_by` varchar(64) NOT NULL DEFAULT '' COMMENT '创建者',
   `create_time` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   `update_by` varchar(64) NOT NULL DEFAULT '' COMMENT '更新者',
@@ -437,9 +438,9 @@ CREATE TABLE `sys_job` (
 -- Records of sys_job
 -- ----------------------------
 BEGIN;
-INSERT INTO `sys_job` (`job_id`, `job_name`, `job_group`, `invoke_target`, `cron_expression`, `misfire_policy`, `concurrent`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (1, '系统默认（无参）', 'DEFAULT', 'task.noParams', '0/10 * * * * ?', '3', '1', '1', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '');
-INSERT INTO `sys_job` (`job_id`, `job_name`, `job_group`, `invoke_target`, `cron_expression`, `misfire_policy`, `concurrent`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (2, '系统默认（有参）', 'DEFAULT', 'task.params(\'ry\')', '0/15 * * * * ?', '3', '1', '1', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '');
-INSERT INTO `sys_job` (`job_id`, `job_name`, `job_group`, `invoke_target`, `cron_expression`, `misfire_policy`, `concurrent`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (3, '系统默认（多参）', 'DEFAULT', 'task.multipleParams(\'ry\', true, 2000L, 316.50D, 100)', '0/20 * * * * ?', '3', '1', '1', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '');
+INSERT INTO `sys_job` (`job_id`, `job_name`, `job_group`, `invoke_target`, `cron_expression`, `misfire_policy`, `concurrent`, `status`, `del_flag`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (1, '系统默认（无参）', 'DEFAULT', 'task.noParams', '0/10 * * * * ?', '3', '1', '1', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '');
+INSERT INTO `sys_job` (`job_id`, `job_name`, `job_group`, `invoke_target`, `cron_expression`, `misfire_policy`, `concurrent`, `status`, `del_flag`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (2, '系统默认（有参）', 'DEFAULT', 'task.params(\'ry\')', '0/15 * * * * ?', '3', '1', '1', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '');
+INSERT INTO `sys_job` (`job_id`, `job_name`, `job_group`, `invoke_target`, `cron_expression`, `misfire_policy`, `concurrent`, `status`, `del_flag`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (3, '系统默认（多参）', 'DEFAULT', 'task.multipleParams(\'ry\', true, 2000L, 316.50D, 100)', '0/20 * * * * ?', '3', '1', '1', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '');
 COMMIT; -- 【系统管理模块 - 任务表】
 
 -- ----------------------------
