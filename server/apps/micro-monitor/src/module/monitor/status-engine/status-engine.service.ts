@@ -181,13 +181,16 @@ export class StatusEngineService implements OnModuleInit {
     if (totalChanges > 0) {
       this.logger.log(`检测到状态变更，触发回写: 活跃测点${activeCount} 变更测点${changedPoints.length} 设备${changedDevices.length} 站点${changedStations.length}`);
       try {
-        const obs = this.waterBasicClient.emit('water.status.batchUpdate', {
+        // 在 NestJS 中，ClientProxy.emit 返回的是一个冷流(Observable)，
+        // 必须调用 .subscribe() 或将其转为 Promise 才会真正发出网络请求。
+        this.waterBasicClient.emit('water.status.batchUpdate', {
           points: changedPoints,
           devices: changedDevices,
           stations: changedStations
+        }).subscribe({
+          next: () => this.logger.log(`状态回写事件发送成功: water.status.batchUpdate (payload=${totalChanges})`),
+          error: (err) => this.logger.error('状态回写事件发送报错', err)
         });
-        await lastValueFrom(obs);
-        this.logger.log(`状态回写事件已发送: water.status.batchUpdate (payload=${totalChanges})`);
       } catch (e) {
         this.logger.error('回写状态通知失败', e);
       }

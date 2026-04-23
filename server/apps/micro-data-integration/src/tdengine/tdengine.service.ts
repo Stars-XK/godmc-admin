@@ -109,7 +109,7 @@ export class TdengineService implements OnModuleInit {
    * @param value 数值
    * @param ts 时间戳 (可选，默认当前时间)
    */
-  async insertData(deviceCode: string, pointCode: string, value: number, ts?: Date | string) {
+  async insertData(deviceCode: string, pointCode: string, value: number, ts?: Date | string | number) {
     // 确保子表名合法 (TDengine 表名不支持横线，这里替换为下划线)
     const safeDeviceCode = deviceCode.replace(/-/g, '_').toLowerCase();
     const safePointCode = pointCode.replace(/-/g, '_').toLowerCase();
@@ -118,7 +118,9 @@ export class TdengineService implements OnModuleInit {
     let timeStr = 'NOW';
     if (ts) {
       if (ts instanceof Date) {
-        timeStr = `'${ts.toISOString().replace('T', ' ').replace('Z', '')}'`; // 格式 2024-01-01 10:00:00.000
+        timeStr = `${ts.getTime()}`; // 直接使用毫秒时间戳，彻底避免时区问题
+      } else if (typeof ts === 'number') {
+        timeStr = `${ts}`;
       } else {
         timeStr = `'${ts}'`;
       }
