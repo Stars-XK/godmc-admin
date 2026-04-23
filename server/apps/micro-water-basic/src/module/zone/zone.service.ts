@@ -285,76 +285,77 @@ export class ZoneService {
       
       // 2. 批量插入根分区（parentCode为0或空）
       const rootZones = validData.filter(item => !item.parentCode || item.parentCode === '0');
-      for (let i = 0; i < rootZones.length; i++) {
-        const item = rootZones[i];
-        const zoneData = {
-          name: item.name,
-          code: item.code,
-          type: item.type,
-          area: item.area,
-          population: item.population,
-          address: item.address,
-          managerName: item.managerName,
-          managerPhone: item.managerPhone,
-          parentId: 0,
-          ancestors: '0',
-          level: 1,
-          createBy: user.userName,
-          deptId: user.deptId,
-          sort: item.sort || i,
-        };
-        
-        const savedZone = await this.zoneRep.save(zoneData);
-        zoneMap.get(item.code).id = savedZone.id;
-        insertData.push(savedZone);
-      }
       
-      // 3. 批量插入子分区（递归处理层级）
+      const rootEntities = rootZones.map((item, i) => ({
+        name: item.name,
+        code: item.code,
+        type: item.type,
+        area: item.area,
+        population: item.population,
+        address: item.address,
+        managerName: item.managerName,
+        managerPhone: item.managerPhone,
+        parentId: 0,
+        ancestors: '0',
+        level: 1,
+        createBy: user.userName,
+        deptId: user.deptId,
+        sort: item.sort || i,
+      }));
+      
+      const savedRoots = await this.zoneRep.save(rootEntities);
+      
       const processedCodes = new Set();
-      rootZones.forEach(item => processedCodes.add(item.code));
-      
-      // 循环处理直到所有分区都被处理
-      let hasUnprocessed = true;
-      while (hasUnprocessed) {
-        hasUnprocessed = false;
-        
-        for (const item of validData) {
-          if (!processedCodes.has(item.code) && item.parentCode && item.parentCode !== '0') {
-            const parentInfo = zoneMap.get(item.parentCode);
-            if (parentInfo && parentInfo.id) {
-              // 父级已处理，现在处理子级
-              const parent = await this.zoneRep.findOne({
-                where: { id: parentInfo.id, delFlag: '0' },
-                select: ['id', 'ancestors', 'level', 'code'],
-              });
-              
-              if (parent) {
-                const zoneData = {
-                  name: item.name,
-                  code: item.code,
-                  type: item.type,
-                  area: item.area,
-                  population: item.population,
-                  address: item.address,
-                  managerName: item.managerName,
-                  managerPhone: item.managerPhone,
-                  parentId: item.parentCode,
-                  ancestors: parent.ancestors ? `${parent.ancestors},${parent.code}` : `${parent.code}`,
-                  level: parent.level + 1,
-                  createBy: user.userName,
-                  deptId: user.deptId,
-                  sort: item.sort || 0,
-                };
-                
-                const savedZone = await this.zoneRep.save(zoneData);
-                zoneMap.get(item.code).id = savedZone.id;
-                insertData.push(savedZone);
-                processedCodes.add(item.code);
-                hasUnprocessed = true;
-              }
-            }
-          }
+      savedRoots.forEach(z => {
+        const info = zoneMap.get(z.code);
+        if (info) {
+          info.id = z.id;
+          info.ancestors = z.ancestors;
+          info.level = z.level;
         }
+        processedCodes.add(z.code);
+      });
+      
+      // 3. 批量插入子分区（按层级递归处理）
+      let currentParents = rootZones.map(z => z.code);
+      
+      while (currentParents.length > 0) {
+        const children = validData.filter(item => currentParents.includes(item.parentCode) && !processedCodes.has(item.code));
+        if (children.length === 0) break;
+        
+        const childEntities = children.map((item, i) => {
+          const parentInfo = zoneMap.get(item.parentCode);
+          return {
+            name: item.name,
+            code: item.code,
+            type: item.type,
+            area: item.area,
+            population: item.population,
+            address: item.address,
+            managerName: item.managerName,
+            managerPhone: item.managerPhone,
+            parentId: parentInfo.id,
+            ancestors: parentInfo.ancestors ? `${parentInfo.ancestors},${item.parentCode}` : `${item.parentCode}`,
+            level: parentInfo.level + 1,
+            createBy: user.userName,
+            deptId: user.deptId,
+            sort: item.sort || i,
+          };
+        });
+        
+        const savedChildren = await this.zoneRep.save(childEntities);
+        
+        savedChildren.forEach(z => {
+          const info = zoneMap.get(z.code);
+          if (info) {
+            info.id = z.id;
+            info.ancestors = z.ancestors;
+            info.level = z.level;
+          }
+          processedCodes.add(z.code);
+        });
+        
+        currentParents = children.map(z => z.code);
       }
     }
 
@@ -505,6 +506,14 @@ export class ZoneService {
     let failCount = 0;
     const results = [];
 
+    const codes = dataList.map(item => item.code || item['设备编码']).filter(Boolean);
+    const existingDevices = codes.length > 0 
+      ? await this.deviceRep.find({ where: { code: In(codes), delFlag: '0' } }) 
+      : [];
+    const deviceMap = new Map(existingDevices.map(d => [d.code, d]));
+
+    const updateIds = [];
+
     for (const item of dataList) {
       const code = item.code || item['设备编码'];
       if (!code) {
@@ -513,7 +522,7 @@ export class ZoneService {
         continue;
       }
 
-      const device = await this.deviceRep.findOne({ where: { code, delFlag: '0' } });
+      const device = deviceMap.get(code);
       if (!device) {
         failCount++;
         results.push({ code, success: false, reason: '设备编码不存在' });
@@ -526,9 +535,16 @@ export class ZoneService {
         continue;
       }
 
-      await this.deviceRep.update(device.id, { zoneCode });
+      updateIds.push(device.id);
       successCount++;
       results.push({ code, success: true, reason: '关联成功' });
+    }
+
+    if (updateIds.length > 0) {
+      const batchSize = 500;
+      for (let i = 0; i < updateIds.length; i += batchSize) {
+        await this.deviceRep.update({ id: In(updateIds.slice(i, i + batchSize)) }, { zoneCode });
+      }
     }
 
     return ResultData.ok({ successCount, failCount, results });
@@ -577,6 +593,14 @@ export class ZoneService {
     let failCount = 0;
     const results = [];
 
+    const userNos = dataList.map(item => item.userNo || item['用户编号']).filter(Boolean);
+    const existingUsers = userNos.length > 0 
+      ? await this.revenueUserRep.find({ where: { userNo: In(userNos), delFlag: '0' } }) 
+      : [];
+    const userMap = new Map(existingUsers.map(u => [u.userNo, u]));
+
+    const updateIds = [];
+
     for (const item of dataList) {
       const userNo = item.userNo || item['用户编号'];
       if (!userNo) {
@@ -585,7 +609,7 @@ export class ZoneService {
         continue;
       }
 
-      const user = await this.revenueUserRep.findOne({ where: { userNo, delFlag: '0' } });
+      const user = userMap.get(userNo);
       if (!user) {
         failCount++;
         results.push({ userNo, success: false, reason: '用户编号不存在' });
@@ -598,9 +622,16 @@ export class ZoneService {
         continue;
       }
 
-      await this.revenueUserRep.update(user.id, { zoneCode });
+      updateIds.push(user.id);
       successCount++;
       results.push({ userNo, success: true, reason: '关联成功' });
+    }
+
+    if (updateIds.length > 0) {
+      const batchSize = 500;
+      for (let i = 0; i < updateIds.length; i += batchSize) {
+        await this.revenueUserRep.update({ id: In(updateIds.slice(i, i + batchSize)) }, { zoneCode });
+      }
     }
 
     return ResultData.ok({ successCount, failCount, results });
@@ -752,6 +783,17 @@ export class ZoneService {
     let failCount = 0;
     const results = [];
 
+    const zoneCodes = dataList.map(item => item.zoneCode || item['分区编码']).filter(Boolean);
+    const userNos = dataList.map(item => item.userNo || item['用户编号']).filter(Boolean);
+
+    const zones = zoneCodes.length > 0 ? await this.zoneRep.find({ where: { code: In(zoneCodes), delFlag: '0' } }) : [];
+    const users = userNos.length > 0 ? await this.revenueUserRep.find({ where: { userNo: In(userNos), delFlag: '0' } }) : [];
+
+    const zoneMap = new Map(zones.map(z => [z.code, z]));
+    const userMap = new Map(users.map(u => [u.userNo, u]));
+
+    const updates = new Map();
+
     for (const item of dataList) {
       const zoneCode = item.zoneCode || item['分区编码'];
       const userNo = item.userNo || item['用户编号'];
@@ -762,23 +804,32 @@ export class ZoneService {
         continue;
       }
 
-      const zone = await this.zoneRep.findOne({ where: { code: zoneCode, delFlag: '0' } });
+      const zone = zoneMap.get(zoneCode);
       if (!zone) {
         failCount++;
         results.push({ code: userNo, success: false, reason: `分区编码(${zoneCode})不存在` });
         continue;
       }
 
-      const user = await this.revenueUserRep.findOne({ where: { userNo, delFlag: '0' } });
+      const user = userMap.get(userNo);
       if (!user) {
         failCount++;
         results.push({ code: userNo, success: false, reason: '用户编号不存在' });
         continue;
       }
 
-      await this.revenueUserRep.update(user.id, { zoneCode });
+      if (!updates.has(zoneCode)) updates.set(zoneCode, []);
+      updates.get(zoneCode).push(user.id);
+
       successCount++;
       results.push({ code: userNo, success: true, reason: '关联成功' });
+    }
+
+    for (const [zCode, uIds] of updates.entries()) {
+      const batchSize = 500;
+      for (let i = 0; i < uIds.length; i += batchSize) {
+        await this.revenueUserRep.update({ id: In(uIds.slice(i, i + batchSize)) }, { zoneCode: zCode });
+      }
     }
 
     return ResultData.ok({ successCount, failCount, results });
@@ -805,6 +856,17 @@ export class ZoneService {
     let failCount = 0;
     const results = [];
 
+    const zoneCodes = dataList.map(item => item.zoneCode || item['分区编码']).filter(Boolean);
+    const pointCodes = dataList.map(item => item.pointCode || item['测点编码']).filter(Boolean);
+
+    const zones = zoneCodes.length > 0 ? await this.zoneRep.find({ where: { code: In(zoneCodes), delFlag: '0' } }) : [];
+    const points = pointCodes.length > 0 ? await this.pointRep.find({ where: { code: In(pointCodes), delFlag: '0' } }) : [];
+
+    const zoneMap = new Map(zones.map(z => [z.code, z]));
+    const pointMap = new Map(points.map(p => [p.code, p]));
+
+    const metricCalcUpserts = [];
+
     for (const item of dataList) {
       const zoneCode = item.zoneCode || item['分区编码'];
       const metricType = item.metricType || item['指标类型(water_supply/min_flow)'];
@@ -825,7 +887,7 @@ export class ZoneService {
       }
 
       // 校验分区
-      const zone = await this.zoneRep.findOne({ where: { code: zoneCode, delFlag: '0' } });
+      const zone = zoneMap.get(zoneCode);
       if (!zone) {
         failCount++;
         results.push({ code: pointCode, success: false, reason: `分区编码(${zoneCode})不存在` });
@@ -833,28 +895,34 @@ export class ZoneService {
       }
 
       // 校验测点
-      const point = await this.pointRep.findOne({ where: { code: pointCode, delFlag: '0' } });
+      const point = pointMap.get(pointCode);
       if (!point) {
         failCount++;
         results.push({ code: pointCode, success: false, reason: `测点编码(${pointCode})不存在` });
         continue;
       }
 
-      // 校验是否存在并插入/更新
-      const exist = await this.metricCalcRep.findOne({ where: { zoneCode, metricType, pointCode } });
-      if (exist) {
-        await this.metricCalcRep.update(exist.id, { calcSign });
-      } else {
-        const entity = new WaterZoneMetricCalcEntity();
-        entity.zoneCode = zoneCode;
-        entity.metricType = metricType;
-        entity.pointCode = pointCode;
-        entity.calcSign = calcSign;
-        await this.metricCalcRep.save(entity);
-      }
+      metricCalcUpserts.push({
+        zoneCode,
+        metricType,
+        pointCode,
+        calcSign,
+      });
       
       successCount++;
       results.push({ code: pointCode, success: true, reason: '配置成功' });
+    }
+
+    if (metricCalcUpserts.length > 0) {
+      const batchSize = 500;
+      for (let i = 0; i < metricCalcUpserts.length; i += batchSize) {
+        const chunk = metricCalcUpserts.slice(i, i + batchSize);
+        // 先删除后插入实现Upsert效果
+        const zCodes = chunk.map(c => c.zoneCode);
+        const pCodes = chunk.map(c => c.pointCode);
+        await this.metricCalcRep.delete({ zoneCode: In(zCodes), pointCode: In(pCodes) });
+        await this.metricCalcRep.save(chunk);
+      }
     }
 
     return ResultData.ok({ successCount, failCount, results });
