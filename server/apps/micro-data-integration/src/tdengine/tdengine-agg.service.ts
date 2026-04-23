@@ -120,6 +120,8 @@ export class TdengineAggService {
       await this.tdengineService.querySql(`DELETE FROM ${child} WHERE ts >= ${startMs} AND ts <= ${endMs}`);
 
       if (kind === 'cumulative') {
+        // 使用两段式聚合: 先通过子查询拿到每个时间窗口的 LAST(val)，再通过 DIFF 函数算出相邻两个窗口 last_val 的差值
+        // 因为 DIFF 只能对查询结果中的相邻行做差分，所以在聚合时使用
         await this.tdengineService.querySql(`
           INSERT INTO ${child}
           SELECT ts, last_val, last_val, last_val, 0, IFNULL(DIFF(last_val), 0)

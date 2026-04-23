@@ -131,16 +131,18 @@ export class TdengineZoneAggService {
 
         const sourceTable = this.rawDeviceChildTable(interval, deviceCode, config.pointCode);
         const sign = config.calcSign === -1 ? -1 : 1;
+        // 注意：由于 unionParts 将会被拼接到 FROM ( ... ) 子查询中，这里需要起别名，否则嵌套查询可能找不到列
         unionParts.push(`SELECT ts, diff_val * ${sign} as val FROM ${sourceTable} WHERE ts >= ${startMs} AND ts <= ${endMs}`);
       }
 
       if (unionParts.length > 0) {
         const unionSql = unionParts.join(' UNION ALL ');
+        // 关键修复点：TDengine 中子查询的结果作为派生表必须给定表别名（比如 t1），否则会报 syntax error 或者不执行
         const finalSql = `
           INSERT INTO ${child}
-          SELECT ts, SUM(val) as val FROM (
+          SELECT ts, SUM(val) as total_val FROM (
             ${unionSql}
-          ) GROUP BY ts
+          ) t1 GROUP BY ts
         `;
         
         await this.tdengineService.querySql(finalSql);
