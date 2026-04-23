@@ -126,7 +126,7 @@ export class TdengineAggService {
           SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val), SPREAD(val)
           FROM ${rawTable}
           WHERE ts >= ${startMs} AND ts <= ${endMs}
-          INTERVAL(${interval}) FILL(PREV)
+          INTERVAL(${interval}) FILL(VALUE, 0)
         `);
       } else if (kind === 'incremental') {
         await this.tdengineService.querySql(`
