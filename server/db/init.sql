@@ -259,6 +259,10 @@ INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (39, 5, '水质分析仪', '5', 'water_device_type', '', 'danger', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '水质分析仪', '0');
 -- 测点类型字典数据
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (40, 1, '流量', 'FLOW', 'water_point_type', '', 'primary', 'Y', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '流量测点', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (45, 1, '在线', '0', 'iot_device_status', '', 'success', 'Y', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '在线状态', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (46, 2, '异常', '1', 'iot_device_status', '', 'warning', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '异常状态', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (47, 3, '离线', '2', 'iot_device_status', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '离线状态', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (48, 4, '报警', '3', 'iot_device_status', '', 'danger', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '报警状态', '0');
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (41, 2, '累计流量', 'FLOW_TOTAL', 'water_point_type', '', 'primary', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '累计流量测点', '0');
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (42, 3, '瞬时流量', 'FLOW_INSTANT', 'water_point_type', '', 'primary', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '瞬时流量测点', '0');
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (43, 4, '进水流量', 'FLOW_INLET', 'water_point_type', '', 'primary', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '进水流量测点', '0');
@@ -407,6 +411,7 @@ INSERT INTO `sys_dict_type` (`dict_id`, `dict_name`, `dict_type`, `status`, `cre
 INSERT INTO `sys_dict_type` (`dict_id`, `dict_name`, `dict_type`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (11, '站点类型', 'water_station_type', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '智慧水务-站点类型', '0');
 INSERT INTO `sys_dict_type` (`dict_id`, `dict_name`, `dict_type`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (12, '设备类型', 'water_device_type', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '智慧水务-设备类型', '0');
 INSERT INTO `sys_dict_type` (`dict_id`, `dict_name`, `dict_type`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (13, '测点类型', 'water_point_type', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '智慧水务-测点类型', '0');
+INSERT INTO `sys_dict_type` (`dict_id`, `dict_name`, `dict_type`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (17, '物联状态', 'iot_device_status', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '智慧水务-物联状态', '0');
 INSERT INTO `sys_dict_type` (`dict_id`, `dict_name`, `dict_type`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (14, '用户水卡分类', 'water_card_category', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '用户水卡分类', '0');
 INSERT INTO `sys_dict_type` (`dict_id`, `dict_name`, `dict_type`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (15, '用户分类', 'water_user_category', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '用户分类', '0');
 INSERT INTO `sys_dict_type` (`dict_id`, `dict_name`, `dict_type`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (16, '测点聚合模式', 'water_point_agg_type', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '测点在流计算中使用的聚合和插值模式', '0');
@@ -1063,6 +1068,7 @@ CREATE TABLE IF NOT EXISTS `water_zone` (
   `boundary` longtext COMMENT '地理边界信息(GeoJSON)',
   `sort` int(11) DEFAULT 0 COMMENT '排序号',
   `status` char(1) DEFAULT '0' COMMENT '状态（0正常 1停用）',
+  `iot_status` char(1) DEFAULT '0' COMMENT '物联状态（0在线 1异常 2离线 3报警）',
   `del_flag` char(1) DEFAULT '0' COMMENT '删除标志（0代表存在 1代表删除）',
   `create_by` varchar(64) DEFAULT '' COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
@@ -1113,6 +1119,7 @@ CREATE TABLE IF NOT EXISTS `water_station` (
   `design_capacity` decimal(10,2) DEFAULT NULL COMMENT '设计能力',
   `sort` int DEFAULT 0 COMMENT '排序',
   `status` char(1) DEFAULT '0' COMMENT '状态（0正常 1停用）',
+  `iot_status` char(1) DEFAULT '0' COMMENT '物联状态（0在线 1异常 2离线 3报警）',
   `del_flag` char(1) DEFAULT '0' COMMENT '删除标志（0代表存在 1代表删除）',
   `dept_id` bigint(20) DEFAULT NULL COMMENT '部门ID',
   `user_id` bigint(20) DEFAULT NULL COMMENT '用户ID',
@@ -1145,6 +1152,7 @@ CREATE TABLE IF NOT EXISTS `water_device` (
   `manager_phone` varchar(20) DEFAULT NULL COMMENT '负责人电话',
   `sort` int DEFAULT 0 COMMENT '排序',
   `status` char(1) DEFAULT '0' COMMENT '状态',
+  `iot_status` char(1) DEFAULT '0' COMMENT '物联状态（0在线 1异常 2离线 3报警）',
   `del_flag` char(1) DEFAULT '0' COMMENT '删除标志',
   `dept_id` bigint(20) DEFAULT NULL COMMENT '部门ID',
   `user_id` bigint(20) DEFAULT NULL COMMENT '用户ID',
@@ -1177,6 +1185,7 @@ CREATE TABLE IF NOT EXISTS `water_point` (
   `rw_attr` varchar(10) DEFAULT 'R' COMMENT '读写属性',
   `sort` int DEFAULT 0 COMMENT '排序',
   `status` char(1) DEFAULT '0' COMMENT '状态',
+  `iot_status` char(1) DEFAULT '0' COMMENT '物联状态（0在线 1异常 2离线 3报警）',
   `del_flag` char(1) DEFAULT '0' COMMENT '删除标志',
   `dept_id` bigint(20) DEFAULT NULL COMMENT '部门ID',
   `user_id` bigint(20) DEFAULT NULL COMMENT '用户ID',

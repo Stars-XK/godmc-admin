@@ -58,6 +58,10 @@ export class WaterStationEntity extends BaseEntity {
   @Column({ type: 'decimal', name: 'design_capacity', precision: 10, scale: 2, comment: '设计能力', nullable: true })
   public designCapacity: number;
 
+  @ApiProperty({ type: String, description: '物联状态（0在线 1异常 2离线 3报警）' })
+  @Column({ type: 'char', name: 'iot_status', length: 1, default: '0', comment: '物联状态（0在线 1异常 2离线 3报警）' })
+  public iotStatus: string;
+
   @ApiProperty({ type: Number, description: '排序' })
   @Column({ type: 'int', name: 'sort', default: 0, comment: '排序' })
   public sort: number;

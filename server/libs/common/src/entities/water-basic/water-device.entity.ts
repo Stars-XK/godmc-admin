@@ -62,6 +62,10 @@ export class WaterDeviceEntity extends BaseEntity {
   @Column({ type: 'varchar', name: 'manager_phone', length: 20, comment: '负责人电话', nullable: true })
   public managerPhone: string;
 
+  @ApiProperty({ type: String, description: '物联状态（0在线 1异常 2离线 3报警）' })
+  @Column({ type: 'char', name: 'iot_status', length: 1, default: '0', comment: '物联状态（0在线 1异常 2离线 3报警）' })
+  public iotStatus: string;
+
   @ApiProperty({ type: Number, description: '排序' })
   @Column({ type: 'int', name: 'sort', default: 0, comment: '排序' })
   public sort: number;

@@ -161,11 +161,10 @@ const queryParams = ref({
 })
 
 function getStationStatusClass(station) {
-  // 根据用户需求：在线绿色(0)，异常黄色(1)，离线灰色(2)
-  // 这里暂时用 status (0=正常 1=停用) 做 fallback
-  const s = String(station.iotStatus || station.status || '0')
+  const s = String(station.iotStatus || '0')
   if (s === '0') return 'status-online'
   if (s === '1') return 'status-abnormal'
+  if (s === '3') return 'status-alarm'
   return 'status-offline'
 }
 
@@ -173,6 +172,7 @@ function getStatusTagType(status) {
   const s = String(status ?? '0')
   if (s === '0') return 'success'
   if (s === '1') return 'warning'
+  if (s === '3') return 'danger'
   return 'info'
 }
 
@@ -180,6 +180,7 @@ function getStatusText(status) {
   const s = String(status ?? '0')
   if (s === '0') return '在线'
   if (s === '1') return '异常'
+  if (s === '3') return '报警'
   return '离线'
 }
 
@@ -223,7 +224,7 @@ function handleStationClick(station) {
     nodeType: 'station',
     code: station.code,
     name: station.name,
-    status: station.iotStatus || station.status || '0',
+    status: station.iotStatus || '0',
     parentCode: ''
   }
 }
@@ -398,6 +399,9 @@ onMounted(() => {
 
 .status-offline { color: #909399; background-color: #f4f4f5; }
 .status-offline.station-status-indicator { background-color: #909399; }
+
+.status-alarm { color: #F56C6C; background-color: #fef0f0; }
+.status-alarm.station-status-indicator { background-color: #F56C6C; }
 
 .pagination-container {
   padding: 12px;

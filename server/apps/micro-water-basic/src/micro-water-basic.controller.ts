@@ -16,7 +16,7 @@ export class MicroWaterBasicController {
   // 接收状态引擎发来的批量更新指令
   // 注意：status-engine.service.ts 中使用的是 client.emit 发送事件，所以这里必须使用 @EventPattern 而不是 @MessagePattern
   @EventPattern('water.status.batchUpdate')
-  async batchUpdateStatus(@Payload() payload: { points: {code: string, status: string}[], devices: {code: string, status: string}[], stations: {code: string, status: string}[] }) {
+  async batchUpdateStatus(@Payload() payload: { points: {code: string, iotStatus: string}[], devices: {code: string, iotStatus: string}[], stations: {code: string, iotStatus: string}[] }) {
     return this.microWaterBasicService.batchUpdateStatus(payload);
   }
 }

@@ -89,13 +89,19 @@ export class StatusEngineService implements OnModuleInit {
       const lastActive = activeTimes[pCode] ? parseInt(activeTimes[pCode], 10) : 0;
       const isTimeout = (now - lastActive) > cycle * 60 * 1000;
       
-      const status = isTimeout ? '2' : '0'; // 0: 在线, 2: 离线
+      let status = isTimeout ? '2' : '0'; // 0: 在线, 2: 离线
+      
+      // 如果没有超时且当前已经是报警状态，则保留报警状态（报警由其他规则引擎触发）
+      if (!isTimeout && point.iotStatus === '3') {
+        status = '3';
+      }
+
       newTree[`p_${pCode}`] = status;
 
       // 增量判定
-      if (lastTree[`p_${pCode}`] !== status || point.status !== status) {
-        changedPoints.push({ code: pCode, status });
-        point.status = status; // 内存同步
+      if (lastTree[`p_${pCode}`] !== status || point.iotStatus !== status) {
+        changedPoints.push({ code: pCode, iotStatus: status });
+        point.iotStatus = status; // 内存同步
       }
 
       // 归集到所属设备
@@ -114,18 +120,23 @@ export class StatusEngineService implements OnModuleInit {
       const pStatuses = deviceChildrenStatus.get(dCode) || ['2']; // 没测点的默认离线
       
       let status = '0';
-      const hasOnline = pStatuses.includes('0');
-      const hasOffline = pStatuses.includes('2');
-
-      if (hasOnline && !hasOffline) status = '0'; // 全在线
-      else if (!hasOnline && hasOffline) status = '2'; // 全离线
-      else status = '1'; // 部分在线/异常
+      
+      // 只要有一个测点报警(3)，设备就报警
+      if (pStatuses.includes('3')) {
+        status = '3';
+      } else if (pStatuses.every(s => s === '0')) {
+        status = '0'; // 全在线
+      } else if (pStatuses.every(s => s === '2')) {
+        status = '2'; // 全离线
+      } else {
+        status = '1'; // 部分异常
+      }
 
       newTree[`d_${dCode}`] = status;
 
-      if (lastTree[`d_${dCode}`] !== status || device.status !== status) {
-        changedDevices.push({ code: dCode, status });
-        device.status = status; // 内存同步
+      if (lastTree[`d_${dCode}`] !== status || device.iotStatus !== status) {
+        changedDevices.push({ code: dCode, iotStatus: status });
+        device.iotStatus = status; // 内存同步
       }
 
       // 归集到所属站点
@@ -142,18 +153,22 @@ export class StatusEngineService implements OnModuleInit {
       const dStatuses = stationChildrenStatus.get(sCode) || ['2'];
 
       let status = '0';
-      const hasOffline = dStatuses.includes('2') || dStatuses.includes('1');
-      const hasOnline = dStatuses.includes('0') || dStatuses.includes('1');
-
-      if (hasOnline && !hasOffline) status = '0'; // 全在线
-      else if (!hasOnline && hasOffline) status = '2'; // 全离线
-      else status = '1'; // 部分在线/异常
+      
+      if (dStatuses.includes('3')) {
+        status = '3'; // 只要有一个设备报警(3)，站点就报警
+      } else if (dStatuses.every(s => s === '0')) {
+        status = '0'; // 全在线
+      } else if (dStatuses.every(s => s === '2')) {
+        status = '2'; // 全离线
+      } else {
+        status = '1'; // 部分异常
+      }
 
       newTree[`s_${sCode}`] = status;
 
-      if (lastTree[`s_${sCode}`] !== status || station.status !== status) {
-        changedStations.push({ code: sCode, status });
-        station.status = status; // 内存同步
+      if (lastTree[`s_${sCode}`] !== status || station.iotStatus !== status) {
+        changedStations.push({ code: sCode, iotStatus: status });
+        station.iotStatus = status; // 内存同步
       }
     }
 

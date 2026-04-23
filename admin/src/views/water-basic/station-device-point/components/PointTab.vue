@@ -63,6 +63,11 @@
           <el-table-column label="单位" align="center" prop="unit" width="80" />
           <el-table-column label="数据类型" align="center" prop="dataType" width="100" />
           <el-table-column label="读写属性" align="center" prop="rwAttr" width="80" />
+          <el-table-column label="物联状态" align="center" prop="iotStatus" width="100">
+            <template #default="scope">
+              <dict-tag :options="iot_device_status" :value="scope.row.iotStatus" />
+            </template>
+          </el-table-column>
           <el-table-column label="操作" align="center" width="240" class-name="small-padding fixed-width">
             <template #default="scope">
               <el-button link type="primary" icon="TrendCharts" @click="handleDataView(scope.row)">历史曲线</el-button>
@@ -218,7 +223,7 @@ import { getToken } from "@/utils/auth"
 import DataViewer from '@/components/DataViewer/index.vue'
 
 const { proxy } = getCurrentInstance()
-const { water_point_type, sys_normal_disable } = proxy.useDict('water_point_type', 'sys_normal_disable')
+const { water_point_type, sys_normal_disable , iot_device_status } = proxy.useDict('water_point_type', 'sys_normal_disable', 'iot_device_status')
 
 const loading = ref(true)
 const showSearch = ref(true)

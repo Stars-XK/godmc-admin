@@ -17,7 +17,7 @@ export class MicroWaterBasicService {
     return 'Hello World!';
   }
 
-  async batchUpdateStatus(payload: { points: {code: string, status: string}[], devices: {code: string, status: string}[], stations: {code: string, status: string}[] }) {
+  async batchUpdateStatus(payload: { points: {code: string, iotStatus: string}[], devices: {code: string, iotStatus: string}[], stations: {code: string, iotStatus: string}[] }) {
     const start = Date.now();
     const pTotal = payload.points?.length || 0;
     const dTotal = payload.devices?.length || 0;
@@ -31,7 +31,7 @@ export class MicroWaterBasicService {
     // 更新测点状态
     if (payload.points && payload.points.length > 0) {
       for (const p of payload.points) {
-        const res = await this.pointRep.update({ code: p.code }, { status: p.status });
+        const res = await this.pointRep.update({ code: p.code }, { iotStatus: p.iotStatus });
         if ((res as any)?.affected) pOk += (res as any).affected;
       }
     }
@@ -39,7 +39,7 @@ export class MicroWaterBasicService {
     // 更新设备状态
     if (payload.devices && payload.devices.length > 0) {
       for (const d of payload.devices) {
-        const res = await this.deviceRep.update({ code: d.code }, { status: d.status });
+        const res = await this.deviceRep.update({ code: d.code }, { iotStatus: d.iotStatus });
         if ((res as any)?.affected) dOk += (res as any).affected;
       }
     }
@@ -47,7 +47,7 @@ export class MicroWaterBasicService {
     // 更新站点状态
     if (payload.stations && payload.stations.length > 0) {
       for (const s of payload.stations) {
-        const res = await this.stationRep.update({ code: s.code }, { status: s.status });
+        const res = await this.stationRep.update({ code: s.code }, { iotStatus: s.iotStatus });
         if ((res as any)?.affected) sOk += (res as any).affected;
       }
     }

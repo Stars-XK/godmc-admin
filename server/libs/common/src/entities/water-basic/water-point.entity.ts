@@ -58,9 +58,13 @@ export class WaterPointEntity extends BaseEntity {
   @Column({ type: 'varchar', name: 'data_type', length: 20, comment: '数据类型', default: 'float' })
   public dataType: string;
 
-  @ApiProperty({ type: String, description: '读写属性(R/W)' })
-  @Column({ type: 'varchar', name: 'rw_attr', length: 10, comment: '读写属性', default: 'R' })
+  @ApiProperty({ type: String, description: '读写属性' })
+  @Column({ type: 'varchar', name: 'rw_attr', length: 10, default: 'R', comment: '读写属性' })
   public rwAttr: string;
+
+  @ApiProperty({ type: String, description: '物联状态（0在线 1异常 2离线 3报警）' })
+  @Column({ type: 'char', name: 'iot_status', length: 1, default: '0', comment: '物联状态（0在线 1异常 2离线 3报警）' })
+  public iotStatus: string;
 
   @ApiProperty({ type: Number, description: '排序' })
   @Column({ type: 'int', name: 'sort', default: 0, comment: '排序' })

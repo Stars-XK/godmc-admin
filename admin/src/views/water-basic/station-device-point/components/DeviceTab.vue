@@ -57,6 +57,11 @@
               <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
             </template>
           </el-table-column>
+      <el-table-column label="物联状态" align="center" prop="iotStatus" width="100">
+        <template #default="scope">
+          <dict-tag :options="iot_device_status" :value="scope.row.iotStatus" />
+        </template>
+      </el-table-column>
           <el-table-column label="操作" align="center" width="240" class-name="small-padding fixed-width">
             <template #default="scope">
               <el-button link type="primary" icon="DataLine" @click="handleDataView(scope.row)">实时数据</el-button>
@@ -210,7 +215,7 @@ import { getToken } from "@/utils/auth"
 import DataViewer from '@/components/DataViewer/index.vue'
 
 const { proxy } = getCurrentInstance()
-const { water_device_type, sys_normal_disable } = proxy.useDict('water_device_type', 'sys_normal_disable')
+const { water_device_type, sys_normal_disable , iot_device_status } = proxy.useDict('water_device_type', 'sys_normal_disable', 'iot_device_status')
 
 const loading = ref(true)
 const showSearch = ref(true)
