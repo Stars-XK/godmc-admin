@@ -120,20 +120,20 @@ export class TdengineAggService {
       await this.tdengineService.querySql(`DELETE FROM ${child} WHERE ts >= ${startMs} AND ts <= ${endMs}`);
 
       if (kind === 'cumulative') {
-        // 累计流量：使用 MAX(val) - MIN(val) 作为这段时间的增量。
-        // 在某些 TDengine 版本中，SELECT 列表里不能两次使用同一个聚合函数(如 SPREAD(val))作为不同的列。
-        // 为了安全起见，分别使用 MAX(val) - MIN(val)
+        // 累计流量：由于部分 TDengine 版本对 FILL(VALUE, 0) 处理极度稀疏数据的行为会导致直接生成空表或插入被抛弃，
+        // 并且我们在使用聚合函数 (MAX - MIN) 时如果窗口内没数据就会算不出结果。
+        // 改为最安全的 FILL(PREV) 向前补齐，确保累计数据不会断层。
         await this.tdengineService.querySql(`
           INSERT INTO ${child}
-          SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val), (MAX(val) - MIN(val))
+          SELECT _wstart, ROUND(AVG(val), 3), ROUND(MAX(val), 3), ROUND(MIN(val), 3), ROUND(SPREAD(val), 3), ROUND((MAX(val) - MIN(val)), 3)
           FROM ${rawTable}
           WHERE ts >= ${startMs} AND ts <= ${endMs}
-          INTERVAL(${interval}) FILL(VALUE, 0)
+          INTERVAL(${interval}) FILL(PREV)
         `);
       } else if (kind === 'incremental') {
         await this.tdengineService.querySql(`
           INSERT INTO ${child}
-          SELECT _wstart, SUM(val), MAX(val), MIN(val), SUM(val), SUM(val)
+          SELECT _wstart, ROUND(SUM(val), 3), ROUND(MAX(val), 3), ROUND(MIN(val), 3), ROUND(SUM(val), 3), ROUND(SUM(val), 3)
           FROM ${rawTable}
           WHERE ts >= ${startMs} AND ts <= ${endMs}
           INTERVAL(${interval}) FILL(VALUE, 0)
@@ -153,7 +153,7 @@ export class TdengineAggService {
 
         await this.tdengineService.querySql(`
           INSERT INTO ${child}
-          SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val), ${diffCalc}
+          SELECT _wstart, ROUND(AVG(val), 3), ROUND(MAX(val), 3), ROUND(MIN(val), 3), ROUND(SPREAD(val), 3), ROUND(${diffCalc}, 3)
           FROM ${rawTable}
           WHERE ts >= ${startMs} AND ts <= ${endMs}
           INTERVAL(${interval}) FILL(LINEAR)

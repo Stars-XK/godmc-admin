@@ -151,7 +151,7 @@ export class TdengineZoneAggService {
         // 我们再优化一下 SQL，将条件前置，确保能匹配。
         const finalSql = `
           INSERT INTO ${child}
-          SELECT ts, SUM(diff_val * (${caseWhenStr})) as total_val 
+          SELECT ts, ROUND(SUM(diff_val * (${caseWhenStr})), 3) as total_val 
           FROM ${sourceTable} 
           WHERE point_code IN (${pcList}) AND ts >= ${startMs} AND ts <= ${endMs} 
           GROUP BY ts
