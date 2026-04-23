@@ -93,7 +93,7 @@ export class StatusEngineService implements OnModuleInit {
       newTree[`p_${pCode}`] = status;
 
       // 增量判定
-      if (lastTree[`p_${pCode}`] !== status && point.status !== status) {
+      if (lastTree[`p_${pCode}`] !== status || point.status !== status) {
         changedPoints.push({ code: pCode, status });
         point.status = status; // 内存同步
       }
@@ -123,7 +123,7 @@ export class StatusEngineService implements OnModuleInit {
 
       newTree[`d_${dCode}`] = status;
 
-      if (lastTree[`d_${dCode}`] !== status && device.status !== status) {
+      if (lastTree[`d_${dCode}`] !== status || device.status !== status) {
         changedDevices.push({ code: dCode, status });
         device.status = status; // 内存同步
       }
@@ -151,7 +151,7 @@ export class StatusEngineService implements OnModuleInit {
 
       newTree[`s_${sCode}`] = status;
 
-      if (lastTree[`s_${sCode}`] !== status && station.status !== status) {
+      if (lastTree[`s_${sCode}`] !== status || station.status !== status) {
         changedStations.push({ code: sCode, status });
         station.status = status; // 内存同步
       }
