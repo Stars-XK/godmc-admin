@@ -150,6 +150,7 @@ function toggleAutoMock() {
           return;
         }
         form.count = 1; // 自动模式下每次只生成 1 条
+        form.timeRange = 'realtime'; // 自动定时生成必须为实时，否则时间跨度会导致时间戳穿越
         ElMessage.success(`已启动定时生成，每 ${autoInterval.value} 秒生成一次`);
         submitMockData(); // 先执行一次
         autoTimer.value = setInterval(() => {

@@ -72,8 +72,18 @@ export class TdengineAggService {
     );
 
     const row = res?.data?.[0] || res?.data?.data?.[0] || null;
-    const firstTs = row?.firstTs ? new Date(row.firstTs).getTime() : null;
-    const lastTs = row?.lastTs ? new Date(row.lastTs).getTime() : null;
+    let firstTs = null;
+    let lastTs = null;
+
+    if (Array.isArray(row)) {
+      // TDengine REST API 返回的是二维数组，例如：data: [["2026-03-24 13:30:00.000", "2026-04-23 13:30:00.000"]]
+      firstTs = row[0] ? new Date(row[0]).getTime() : null;
+      lastTs = row[1] ? new Date(row[1]).getTime() : null;
+    } else if (row && typeof row === 'object') {
+      // 兼容某些驱动或转换件将其转为对象的情况
+      firstTs = row.firstTs ? new Date(row.firstTs).getTime() : null;
+      lastTs = row.lastTs ? new Date(row.lastTs).getTime() : null;
+    }
 
     return { firstTs, lastTs };
   }
