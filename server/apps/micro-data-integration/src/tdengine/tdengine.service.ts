@@ -78,17 +78,17 @@ export class TdengineService implements OnModuleInit {
 
       // 创建流计算: 5 分钟
       await this.executeSql(
-        `CREATE STREAM IF NOT EXISTS ${this.dbName}.stream_meters_5m INTO ${this.dbName}.meters_5m AS SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, 0 as diff_val FROM ${this.dbName}.meters PARTITION BY device_code, point_code INTERVAL(5m)`
+        `CREATE STREAM IF NOT EXISTS ${this.dbName}.stream_meters_5m INTO ${this.dbName}.meters_5m AS SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, SPREAD(val) as diff_val FROM ${this.dbName}.meters PARTITION BY device_code, point_code INTERVAL(5m)`
       );
 
       // 创建流计算: 1 小时
       await this.executeSql(
-        `CREATE STREAM IF NOT EXISTS ${this.dbName}.stream_meters_1h INTO ${this.dbName}.meters_1h AS SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, 0 as diff_val FROM ${this.dbName}.meters PARTITION BY device_code, point_code INTERVAL(1h)`
+        `CREATE STREAM IF NOT EXISTS ${this.dbName}.stream_meters_1h INTO ${this.dbName}.meters_1h AS SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, SPREAD(val) as diff_val FROM ${this.dbName}.meters PARTITION BY device_code, point_code INTERVAL(1h)`
       );
 
       // 创建流计算: 1 天
       await this.executeSql(
-        `CREATE STREAM IF NOT EXISTS ${this.dbName}.stream_meters_1d INTO ${this.dbName}.meters_1d AS SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, 0 as diff_val FROM ${this.dbName}.meters PARTITION BY device_code, point_code INTERVAL(1d)`
+        `CREATE STREAM IF NOT EXISTS ${this.dbName}.stream_meters_1d INTO ${this.dbName}.meters_1d AS SELECT _wstart as ts, AVG(val) as avg_val, MAX(val) as max_val, MIN(val) as min_val, SPREAD(val) as spread_val, SPREAD(val) as diff_val FROM ${this.dbName}.meters PARTITION BY device_code, point_code INTERVAL(1d)`
       );
 
       // 创建分区聚合超级表 (5m, 1h, 1d)
