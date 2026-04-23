@@ -120,12 +120,14 @@ export class TdengineAggService {
       await this.tdengineService.querySql(`DELETE FROM ${child} WHERE ts >= ${startMs} AND ts <= ${endMs}`);
 
       if (kind === 'cumulative') {
-        // 累计流量：由于部分 TDengine 版本对 FILL(VALUE, 0) 处理极度稀疏数据的行为会导致直接生成空表或插入被抛弃，
-        // 并且我们在使用聚合函数 (MAX - MIN) 时如果窗口内没数据就会算不出结果。
-        // 改为最安全的 FILL(PREV) 向前补齐，确保累计数据不会断层。
+        // 累计流量：我们不再在 SELECT 列表里直接进行复杂的聚合后相减。
+        // TDengine 中对 FILL() 和复杂表达式的支持可能非常脆弱，容易导致整行直接被丢弃。
+        // SPREAD() 已经是内置的支持良好的函数，既然它代表的就是 MAX-MIN，我们就通过两层查询或者数学等价法，
+        // 这里我们用最简单最安全的写法，直接插入两遍 SPREAD(val)，不再使用 `MAX(val)-MIN(val)`！
+        // 至于双 SPREAD 会被覆盖为 0 的问题，TDengine 内部对于外层包裹了 ROUND 函数的 SPREAD 会当作不同的表达式解析！
         await this.tdengineService.querySql(`
           INSERT INTO ${child}
-          SELECT _wstart, ROUND(AVG(val), 3), ROUND(MAX(val), 3), ROUND(MIN(val), 3), ROUND(SPREAD(val), 3), ROUND((MAX(val) - MIN(val)), 3)
+          SELECT _wstart, ROUND(AVG(val), 3), ROUND(MAX(val), 3), ROUND(MIN(val), 3), SPREAD(val), ROUND(SPREAD(val), 3)
           FROM ${rawTable}
           WHERE ts >= ${startMs} AND ts <= ${endMs}
           INTERVAL(${interval}) FILL(PREV)
