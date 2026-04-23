@@ -1,11 +1,11 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-import { BaseEntity } from './base';
+import { FullBaseEntity } from './base';
 
 @Entity('sys_post', {
   comment: '【系统基础】岗位信息表',
 })
-export class SysPostEntity extends BaseEntity {
+export class SysPostEntity extends FullBaseEntity {
   @ApiProperty({ type: String, description: '岗位ID' })
   @PrimaryGeneratedColumn({ type: 'int', name: 'post_id', comment: '岗位ID' })
   public postId: number;

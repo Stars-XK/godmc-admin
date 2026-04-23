@@ -1,11 +1,11 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
-import { BaseEntity } from '../base';
+import { FullBaseEntity } from '../base';
 import { ApiProperty } from '@nestjs/swagger';
 
 @Entity('water_data_mapping', {
   comment: '【数据接入】字段映射规则表',
 })
-export class DataIntegrationMappingEntity extends BaseEntity {
+export class DataIntegrationMappingEntity extends FullBaseEntity {
   @ApiProperty({ type: Number, description: '映射ID' })
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'id', comment: '映射ID' })
   public id: number;

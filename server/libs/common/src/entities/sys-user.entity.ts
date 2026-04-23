@@ -1,10 +1,10 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { Exclude } from 'class-transformer';
-import { BaseEntity } from './base';
+import { FullBaseEntity } from './base';
 @Entity('sys_user', {
   comment: '【系统基础】用户信息表',
 })
-export class UserEntity extends BaseEntity {
+export class UserEntity extends FullBaseEntity {
   @PrimaryGeneratedColumn({ type: 'int', name: 'user_id', comment: '用户ID' })
   public userId: number;
 

@@ -1,11 +1,11 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-import { BaseEntity } from './base';
+import { FullBaseEntity } from './base';
 
 @Entity('gen_table', {
   comment: '【代码生成】代码生成业务表',
 })
-export class GenTableEntity extends BaseEntity {
+export class GenTableEntity extends FullBaseEntity {
   @ApiProperty({ type: Number, description: '编号' })
   @PrimaryGeneratedColumn({ type: 'int', name: 'table_id', comment: '编号' })
   public tableId: number;
