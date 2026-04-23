@@ -144,6 +144,11 @@ export class TdengineZoneAggService {
         caseWhenStr += ` ELSE 0 END`;
 
         // 使用 CASE WHEN 结合超级表进行聚合，彻底规避 TDengine 中复杂的 UNION ALL 子查询报错以及表不存在等问题。
+        // 注意：TDengine 3.x 某些版本在超级表中使用 GROUP BY 时必须包含超级表的标签列。
+        // 为了确保安全，我们可以使用一个更稳定的两段式写入，或者直接尝试确保聚合能成功写入。
+        // 如果依然为空，很大可能是 WHERE IN ('...') 查不出数据，或者是 GROUP BY ts 的限制。
+        // 既然是从超级表 meters_5m 查数据，如果里面有符合条件的点，SUM 必然能算出来。
+        // 我们再优化一下 SQL，将条件前置，确保能匹配。
         const finalSql = `
           INSERT INTO ${child}
           SELECT ts, SUM(diff_val * (${caseWhenStr})) as total_val 
@@ -155,6 +160,11 @@ export class TdengineZoneAggService {
         try {
           this.logger.debug(`[分区聚合 SQL] 执行: ${finalSql.trim()}`);
           await this.tdengineService.querySql(finalSql);
+          
+          // 增加一个调试查询，验证超级表中是否有源数据
+          const checkSql = `SELECT count(*) as cnt FROM ${sourceTable} WHERE point_code IN (${pcList}) AND ts >= ${startMs} AND ts <= ${endMs}`;
+          const checkRes = await this.tdengineService.querySql(checkSql);
+          this.logger.debug(`[分区聚合检查] 源数据条数: ${JSON.stringify(checkRes?.data)}`);
         } catch (e) {
           this.logger.error(`分区聚合执行 SQL 失败，SQL: ${finalSql}`);
           throw e;
