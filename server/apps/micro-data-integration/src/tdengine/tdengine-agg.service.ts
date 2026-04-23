@@ -120,17 +120,13 @@ export class TdengineAggService {
       await this.tdengineService.querySql(`DELETE FROM ${child} WHERE ts >= ${startMs} AND ts <= ${endMs}`);
 
       if (kind === 'cumulative') {
-        // 使用两段式聚合: 先通过子查询拿到每个时间窗口的 LAST(val)，再通过 DIFF 函数算出相邻两个窗口 last_val 的差值
-        // 因为 DIFF 只能对查询结果中的相邻行做差分，所以在聚合时使用
+        // 累计流量：直接使用 SPREAD(val) 即 MAX - MIN 作为这算时间的增量，完美规避跨行 DIFF 导致空值的问题
         await this.tdengineService.querySql(`
           INSERT INTO ${child}
-          SELECT ts, last_val, last_val, last_val, 0, IFNULL(DIFF(last_val), 0)
-          FROM (
-            SELECT _wstart as ts, LAST(val) as last_val
-            FROM ${rawTable}
-            WHERE ts >= ${startMs} AND ts <= ${endMs}
-            INTERVAL(${interval}) FILL(PREV)
-          )
+          SELECT _wstart, AVG(val), MAX(val), MIN(val), SPREAD(val), SPREAD(val)
+          FROM ${rawTable}
+          WHERE ts >= ${startMs} AND ts <= ${endMs}
+          INTERVAL(${interval}) FILL(PREV)
         `);
       } else if (kind === 'incremental') {
         await this.tdengineService.querySql(`
@@ -143,7 +139,15 @@ export class TdengineAggService {
       } else {
         // 判断是否为瞬时流量
         const isInstant = point?.type && (point.type.includes('INSTANT') || point.type.includes('INLET') || point.type.includes('OUTLET'));
-        const diffCalc = isInstant ? 'INTEGRAL(val)/3600000' : '0';
+        
+        // 瞬时流量：由于 INTEGRAL 积分函数需要至少2个点，数据稀疏时会返回 NULL 导致空数据。
+        // 改为数学等价的换算：平均流速(m³/h) * 时间占比(小时)
+        let diffCalc = '0';
+        if (isInstant) {
+          if (interval === '5m') diffCalc = 'AVG(val) * (5.0 / 60.0)';
+          else if (interval === '1h') diffCalc = 'AVG(val) * 1.0';
+          else if (interval === '1d') diffCalc = 'AVG(val) * 24.0';
+        }
 
         await this.tdengineService.querySql(`
           INSERT INTO ${child}
