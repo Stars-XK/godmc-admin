@@ -18,6 +18,16 @@ export class ReceiverController {
     return ResultData.ok(results);
   }
 
+  @ApiOperation({ summary: '模拟产生营收数据' })
+  @Post('mock/revenue/generate')
+  async generateMockRevenueData(
+    @Body() body: { userNo: string; zoneCode: string; min: number; max: number; count: number; mockType?: string; dataType?: '1d'|'1mo'; baseValue?: number; timeRange?: string },
+  ) {
+    const { userNo, zoneCode, min = 0, max = 100, count = 10, mockType = 'cumulative', dataType = '1d', baseValue = 0, timeRange = '1mo' } = body;
+    const results = await this.receiverService.generateMockRevenueData(userNo, zoneCode, min, max, count, mockType, dataType, baseValue, timeRange);
+    return ResultData.ok(results);
+  }
+
   @ApiOperation({ summary: '接收 HTTP 推送的数据' })
   @Post('push/:taskId')
   async receiveData(

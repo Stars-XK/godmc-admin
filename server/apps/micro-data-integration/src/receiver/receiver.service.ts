@@ -137,6 +137,95 @@ export class ReceiverService {
   }
 
   /**
+   * 模拟营收数据生成器
+   */
+  async generateMockRevenueData(userNo: string, zoneCode: string, min: number, max: number, count: number, mockType: string, dataType: '1d' | '1mo', baseValue: number, timeRange: string) {
+    const results = [];
+    const now = new Date();
+    
+    let durationMs = 0;
+    if (timeRange === '1mo') durationMs = 30 * 24 * 60 * 60 * 1000;
+    else if (timeRange === '6mo') durationMs = 6 * 30 * 24 * 60 * 60 * 1000;
+    else if (timeRange === '1y') durationMs = 365 * 24 * 60 * 60 * 1000;
+
+    let currentVal = baseValue;
+
+    if (mockType === 'cumulative') {
+      try {
+        const safeUserNo = userNo.replace(/-/g, '_').toLowerCase();
+        const safeZoneCode = zoneCode.replace(/-/g, '_').toLowerCase();
+        const tableName = `water_iot.rev_${dataType}_${safeUserNo}_${safeZoneCode}`;
+        const res = await this.tdengineService.querySql(`SELECT LAST_ROW(ts, val) FROM ${tableName}`);
+        if (res && res.data && res.data.length > 0) {
+          currentVal = res.data[0][1]; 
+        }
+      } catch (err) {}
+    }
+
+    for (let i = 0; i < count; i++) {
+      let ts: Date;
+      if (timeRange === 'realtime') {
+        ts = new Date(now.getTime() - (count - i - 1) * 1000);
+      } else {
+        const stepMs = durationMs / count;
+        ts = new Date(now.getTime() - durationMs + i * stepMs);
+      }
+      
+      let val: number;
+      if (mockType === 'cumulative' || mockType === 'boundary_interpolation' || mockType === 'meter_replace') {
+        const step = Number((Math.random() * (max - min) + min).toFixed(2));
+        currentVal += step;
+        val = Number(currentVal.toFixed(2));
+      } else {
+        val = Number((Math.random() * (max - min) + min).toFixed(2));
+      }
+
+      // 如果是边界/插值模式，只插入头和尾，中间的数据跳过不插入
+      if (mockType === 'boundary_interpolation' && i !== 0 && i !== count - 1) {
+        continue;
+      }
+
+      try {
+        await this.tdengineService.insertRevenueData(dataType, userNo, zoneCode, val, ts);
+        results.push({ timestamp: ts.toLocaleString(), deviceCode: userNo, pointCode: zoneCode, value: val, status: 'success' });
+      } catch (err) {
+        results.push({ timestamp: ts.toLocaleString(), deviceCode: userNo, pointCode: zoneCode, value: val, status: 'error', error: err.message });
+      }
+    }
+
+    // 针对特殊场景：换表、插值等逻辑的演示模拟
+    if (mockType === 'meter_replace' && results.length > 0) {
+      const midPoint = Math.floor(results.length / 2);
+      const item = results[midPoint];
+      const oldVal = item.value;
+      const newVal = 0; // 新表起度
+      try {
+        // 插入旧表结底读数（稍微提前一毫秒）
+        const oldTs = new Date(new Date(item.timestamp).getTime() - 1);
+        await this.tdengineService.insertRevenueData(dataType, userNo, zoneCode, oldVal, oldTs);
+        // 插入新表起度读数
+        const newTs = new Date(item.timestamp);
+        await this.tdengineService.insertRevenueData(dataType, userNo, zoneCode, newVal, newTs);
+        
+        results.push({ timestamp: oldTs.toLocaleString(), deviceCode: userNo, pointCode: zoneCode, value: oldVal, status: 'success', note: '旧表结底' });
+        results.push({ timestamp: newTs.toLocaleString(), deviceCode: userNo, pointCode: zoneCode, value: newVal, status: 'success', note: '新表起度' });
+      } catch(err) {
+        results.push({ timestamp: item.timestamp, deviceCode: userNo, pointCode: zoneCode, value: newVal, status: 'error', error: err.message, note: '换表失败' });
+      }
+    } else if (mockType === 'boundary_interpolation' && results.length > 0) {
+      // 模拟中间缺失数据，只保留头尾数据用于后续插值测试
+      const head = results[0];
+      const tail = results[results.length - 1];
+      results.length = 0;
+      results.push(head, tail);
+      this.logger.log(`模拟边界/插值场景：仅保留起止数据`);
+    }
+
+    this.logger.log(`成功模拟生成了 ${count} 条营收数据 (用户: ${userNo}, 周期: ${dataType})`);
+    return results;
+  }
+
+  /**
    * 通用 HTTP 数据推送接收器
    */
   async receiveData(taskId: number, payload: any | any[], autoBackfill: boolean = false, interpolation: boolean = false) {

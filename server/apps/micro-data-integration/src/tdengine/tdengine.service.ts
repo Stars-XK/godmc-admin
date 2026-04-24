@@ -108,6 +108,14 @@ export class TdengineService implements OnModuleInit {
         `CREATE STABLE IF NOT EXISTS ${this.dbName}.zone_meters_1d (ts TIMESTAMP, total_val DOUBLE) TAGS (zone_code NCHAR(100), metric_type NCHAR(100))`
       );
 
+      // 营收数据超级表
+      await this.executeSql(
+        `CREATE STABLE IF NOT EXISTS ${this.dbName}.revenue_meters_1d (ts TIMESTAMP, val DOUBLE) TAGS (user_no NCHAR(100), zone_code NCHAR(100))`
+      );
+      await this.executeSql(
+        `CREATE STABLE IF NOT EXISTS ${this.dbName}.revenue_meters_1mo (ts TIMESTAMP, val DOUBLE) TAGS (user_no NCHAR(100), zone_code NCHAR(100))`
+      );
+
       this.logger.log('TDengine 数据库、超级表与流计算 (5m, 1h, 1d) 初始化成功');
     } catch (error) {
       this.logger.warn('TDengine 初始化被挂起，将在服务可用时再次尝试。');
@@ -144,6 +152,35 @@ export class TdengineService implements OnModuleInit {
     }
 
     const sql = `INSERT INTO ${tableName} USING ${this.dbName}.meters TAGS ('${deviceCode}', '${pointCode}') VALUES (${timeStr}, ${value})`;
+    return this.executeSql(sql);
+  }
+
+  /**
+   * 插入营收数据
+   * @param dataType 日数据或月数据 ('1d' | '1mo')
+   * @param userNo 用户编号
+   * @param zoneCode 分区编码
+   * @param value 数值
+   * @param ts 时间戳
+   */
+  async insertRevenueData(dataType: '1d' | '1mo', userNo: string, zoneCode: string, value: number, ts: Date | string | number) {
+    const safeUserNo = userNo.replace(/-/g, '_').toLowerCase();
+    const safeZoneCode = zoneCode.replace(/-/g, '_').toLowerCase();
+    const tableName = `${this.dbName}.rev_${dataType}_${safeUserNo}_${safeZoneCode}`;
+    const sTable = `${this.dbName}.revenue_meters_${dataType}`;
+    
+    let timeStr = 'NOW';
+    if (ts) {
+      if (ts instanceof Date) {
+        timeStr = `${ts.getTime()}`;
+      } else if (typeof ts === 'number') {
+        timeStr = `${ts}`;
+      } else {
+        timeStr = `'${ts}'`;
+      }
+    }
+
+    const sql = `INSERT INTO ${tableName} USING ${sTable} TAGS ('${userNo}', '${zoneCode}') VALUES (${timeStr}, ${value})`;
     return this.executeSql(sql);
   }
 
