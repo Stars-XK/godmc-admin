@@ -13,10 +13,11 @@
           ></el-input>
         </div>
       </div>
-      <div class="list-container">
-        <div class="list-inner">
+      <div class="list-container" ref="listContainer" @scroll="handleScroll">
+        <div class="list-phantom" :style="{ height: totalHeight + 'px' }"></div>
+        <div class="list-inner" :style="{ transform: `translateY(${offsetTop}px)` }">
           <div 
-            v-for="item in pagedData" 
+            v-for="item in visibleData" 
             :key="item.zoneCode" 
             class="zone-card"
             :class="{ 'is-alarm': item.isAlarm, 'is-focus': item.isFocus }"
@@ -24,6 +25,13 @@
           >
             <div class="card-header">
               <div class="zone-info">
+                <i
+                  v-if="item.hasChildren"
+                  class="el-icon-arrow-right expand-icon"
+                  :class="{ 'is-expanded': item.expanded }"
+                  @click.stop="toggleExpand(item)"
+                ></i>
+                <i v-else class="el-icon-caret-right expand-icon invisible"></i>
                 <span class="level-badge" :class="'level-' + item.level">L{{ item.level }}</span>
                 <span class="zone-name">{{ item.zoneName }}</span>
               </div>
@@ -59,19 +67,8 @@
             </div>
           </div>
           
-          <el-empty v-if="pagedData.length === 0" description="暂无数据" :image-size="100"></el-empty>
+          <el-empty v-if="renderData.length === 0" description="暂无数据" :image-size="100"></el-empty>
         </div>
-      </div>
-      <div class="pagination-container">
-        <el-pagination
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-          :current-page="currentPage"
-          :page-sizes="[10, 20, 50, 100]"
-          :page-size="pageSize"
-          layout="total, sizes, prev, pager, next"
-          :total="filteredData.length">
-        </el-pagination>
       </div>
     </div>
     
@@ -177,13 +174,12 @@ export default {
     return {
       // 树形列表展平后的全部数据
       flatData: [],
-      // 根据搜索过滤后的数据
-      filteredData: [],
+      renderData: [],
       
-      // 搜索和分页相关
       searchQuery: '',
-      currentPage: 1,
-      pageSize: 10,
+      itemHeight: 88,
+      visibleCount: 18,
+      startIndex: 0,
       
       // 定时器
       mainTimer: null,
@@ -205,10 +201,17 @@ export default {
     }
   },
   computed: {
-    pagedData() {
-      const start = (this.currentPage - 1) * this.pageSize;
-      const end = start + this.pageSize;
-      return this.filteredData.slice(start, end);
+    totalHeight() {
+      return this.renderData.length * this.itemHeight;
+    },
+    offsetTop() {
+      const start = Math.max(0, this.startIndex - 5);
+      return start * this.itemHeight;
+    },
+    visibleData() {
+      const start = Math.max(0, this.startIndex - 5);
+      const end = Math.min(this.renderData.length, this.startIndex + this.visibleCount + 5);
+      return this.renderData.slice(start, end);
     },
     drawerTitle() {
       return this.activeZone ? `分区详情 - ${this.activeZone.zoneName}` : '分区详情';
@@ -231,16 +234,18 @@ export default {
         if (res.code === 200 && res.data) {
           // 2. 将树形结构拍平
           this.flatData = this.flattenTree(res.data, 1);
-          this.handleSearch(); // 初始化过滤数据
+          this.updateRenderData();
           
-          // 3. 加载当前页的数据
+          // 3. 加载首屏的数据
           this.$nextTick(() => {
-            this.fetchPageData();
+            if (this.$refs.listContainer) this.$refs.listContainer.scrollTop = 0;
+            this.startIndex = 0;
+            this.fetchVisibleData();
           });
           
           // 4. 开启主列表的 5 分钟定时刷新
           this.mainTimer = setInterval(() => {
-            this.fetchPageData();
+            this.fetchVisibleData();
           }, 5 * 60 * 1000);
         }
       } catch (error) {
@@ -258,6 +263,7 @@ export default {
           zoneName: node.name,
           level,
           hasChildren: node.children && node.children.length > 0,
+          expanded: level <= 2,
           // 初始指标数据为空
           todayVal: null,
           yesterdayVal: null,
@@ -272,36 +278,56 @@ export default {
       return result;
     },
     
-    // 搜索处理
     handleSearch() {
-      this.currentPage = 1;
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
-        this.filteredData = this.flatData.filter(item => 
+        this.flatData.forEach(item => {
+          if (item.hasChildren) item.expanded = true;
+        });
+        this.renderData = this.flatData.filter(item =>
           item.zoneName && item.zoneName.toLowerCase().includes(query)
         );
       } else {
-        this.filteredData = [...this.flatData];
+        this.updateRenderData();
       }
       this.$nextTick(() => {
-        this.fetchPageData();
+        if (this.$refs.listContainer) this.$refs.listContainer.scrollTop = 0;
+        this.startIndex = 0;
+        this.fetchVisibleData();
       });
     },
     
-    // 分页处理
-    handleSizeChange(val) {
-      this.pageSize = val;
-      this.currentPage = 1;
-      this.fetchPageData();
+    updateRenderData() {
+      const renderList = [];
+      let skipLevel = -1;
+      for (const item of this.flatData) {
+        if (skipLevel !== -1 && item.level > skipLevel) {
+          continue;
+        } else {
+          skipLevel = -1;
+        }
+
+        renderList.push(item);
+        if (item.hasChildren && !item.expanded) {
+          skipLevel = item.level;
+        }
+      }
+      this.renderData = renderList;
     },
-    handleCurrentChange(val) {
-      this.currentPage = val;
-      this.fetchPageData();
+
+    handleScroll() {
+      if (!this.$refs.listContainer) return;
+      const scrollTop = this.$refs.listContainer.scrollTop;
+      this.startIndex = Math.floor(scrollTop / this.itemHeight);
+
+      clearTimeout(this.scrollTimeout);
+      this.scrollTimeout = setTimeout(() => {
+        this.fetchVisibleData();
+      }, 120);
     },
-    
-    // 获取当前页的数据
-    async fetchPageData() {
-      const currentVisible = this.pagedData;
+
+    async fetchVisibleData() {
+      const currentVisible = this.visibleData;
       if (currentVisible.length === 0) return;
       
       const zoneCodes = currentVisible.map(item => item.zoneCode).join(',');
@@ -328,6 +354,14 @@ export default {
       } catch (error) {
         console.error('获取分区流量数据失败', error);
       }
+    },
+
+    toggleExpand(item) {
+      item.expanded = !item.expanded;
+      this.updateRenderData();
+      this.$nextTick(() => {
+        this.fetchVisibleData();
+      });
     },
     
     // 点击卡片
@@ -580,15 +614,6 @@ export default {
       flex: 1;
       overflow-y: auto;
       position: relative;
-    }
-    
-    .pagination-container {
-      padding: 10px 20px;
-      border-top: 1px solid #ebeef5;
-      background-color: #fff;
-      display: flex;
-      justify-content: flex-end;
-      flex-shrink: 0;
     }
   }
   
