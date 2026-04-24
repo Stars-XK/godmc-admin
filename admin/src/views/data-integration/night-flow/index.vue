@@ -5,7 +5,8 @@
         <span class="title">分区夜间最小流量</span>
       </div>
       <div class="list-container" ref="listContainer" @scroll="handleScroll">
-        <div class="list-inner" :style="{ height: totalHeight + 'px', paddingTop: offsetTop + 'px' }">
+        <div class="list-phantom" :style="{ height: totalHeight + 'px' }"></div>
+        <div class="list-inner" :style="{ transform: `translateY(${offsetTop}px)` }">
           <div 
             v-for="item in visibleData" 
             :key="item.zoneCode" 
@@ -27,7 +28,7 @@
                 <span class="zone-name">{{ item.zoneName }}</span>
               </div>
               <div class="zone-actions">
-                <el-tag v-if="item.isAlarm" type="danger" size="mini" effect="dark">报警</el-tag>
+                <el-tag v-if="item.isAlarm" type="danger" size="small" effect="dark">报警</el-tag>
               </div>
             </div>
             
@@ -76,7 +77,7 @@
     <!-- 详情抽屉 -->
     <el-drawer
       :title="drawerTitle"
-      :visible.sync="drawerVisible"
+      v-model="drawerVisible"
       direction="ltr"
       size="60%"
       :modal="false"
@@ -139,7 +140,7 @@
                   <el-table-column prop="content" label="报警内容" show-overflow-tooltip></el-table-column>
                   <el-table-column prop="level" label="等级" width="80">
                     <template slot-scope="scope">
-                      <el-tag size="mini" :type="scope.row.level === '严重' ? 'danger' : 'warning'">{{ scope.row.level }}</el-tag>
+                      <el-tag size="small" :type="scope.row.level === '严重' ? 'danger' : 'warning'">{{ scope.row.level }}</el-tag>
                     </template>
                   </el-table-column>
                 </el-table>
@@ -487,6 +488,14 @@ export default {
       flex: 1;
       overflow-y: auto;
       position: relative;
+      
+      .list-phantom {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        z-index: -1;
+      }
       
       .list-inner {
         position: absolute;
