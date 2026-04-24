@@ -190,7 +190,7 @@ export class QueryService {
     
     // 查询今日夜间最小流量
     const sqlToday = `
-      SELECT zone_code, MIN(avg_val) as min_flow
+      SELECT zone_code, MIN(total_val) as min_flow
       FROM water_iot.zone_meters_5m 
       WHERE metric_type = 'min_flow' 
         AND ts >= '${todayStart}' 
@@ -201,7 +201,7 @@ export class QueryService {
 
     // 查询昨日夜间最小流量
     const sqlYesterday = `
-      SELECT zone_code, MIN(avg_val) as min_flow
+      SELECT zone_code, MIN(total_val) as min_flow
       FROM water_iot.zone_meters_5m 
       WHERE metric_type = 'min_flow' 
         AND ts >= '${yesterdayStart}' 
@@ -292,19 +292,20 @@ export class QueryService {
     }
 
     const today = dayjs();
-    const startTimeStr = today.subtract(30, 'day').format('YYYY-MM-DD');
-    const endTimeStr = today.format('YYYY-MM-DD');
+    const timeConditions = [];
+    for (let i = 0; i < 30; i++) {
+      const d = today.subtract(i, 'day').format('YYYY-MM-DD');
+      timeConditions.push(`(ts >= '${d} ${startStr}:00' AND ts <= '${d} ${endStr}:00')`);
+    }
+    const timeFilter = `(${timeConditions.join(' OR ')})`;
 
     const sql = `
       SELECT _c0 as date, MIN(min_flow) as min_flow
       FROM (
-        SELECT DATE_TRUNC('1d', ts) as _c0, avg_val as min_flow
+        SELECT DATE_TRUNC('1d', ts) as _c0, total_val as min_flow
         FROM water_iot.zone_meters_5m 
         WHERE metric_type = 'min_flow' 
-          AND CAST(ts AS TIME) >= CAST('${startStr}:00' AS TIME)
-          AND CAST(ts AS TIME) <= CAST('${endStr}:00' AS TIME)
-          AND ts >= '${startTimeStr} 00:00:00' 
-          AND ts <= '${endTimeStr} 23:59:59'
+          AND ${timeFilter}
           AND zone_code = '${zoneCode}' 
       ) t
       GROUP BY date
@@ -340,7 +341,7 @@ export class QueryService {
     const endTimeStr = today.format('YYYY-MM-DD');
 
     const sql = `
-      SELECT ts, diff_val
+      SELECT ts, total_val
       FROM water_iot.zone_meters_1h 
       WHERE metric_type = 'water_supply' 
         AND ts >= '${startTimeStr} 00:00:00' 
