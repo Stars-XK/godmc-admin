@@ -76,4 +76,18 @@ export class QueryController {
     const data = await this.queryService.getHistoryData(deviceCode, pointCode, startTime, endTime, interval);
     return ResultData.ok(data);
   }
+
+  @ApiOperation({ summary: '批量获取分区夜间最小流量 (今日/昨日/插值/比率)' })
+  @ApiQuery({ name: 'zoneCodes', required: true, description: '分区编码列表，逗号分隔' })
+  @Get('zone-night-flow/batch')
+  @NotRequireAuth()
+  async getZoneNightFlowBatch(
+    @Query('zoneCodes') zoneCodes: string,
+  ) {
+    if (!zoneCodes) {
+      return ResultData.fail(500, '缺少必要参数 zoneCodes');
+    }
+    const result = await this.queryService.getZoneNightFlowBatch(zoneCodes.split(','));
+    return ResultData.ok(result);
+  }
 }

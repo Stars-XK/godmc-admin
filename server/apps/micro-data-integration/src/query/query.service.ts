@@ -1,11 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TdengineService } from '../tdengine/tdengine.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { SysConfigEntity } from '@app/common/entities/config.entity';
+import dayjs = require('dayjs');
 
 @Injectable()
 export class QueryService {
   private readonly logger = new Logger(QueryService.name);
 
-  constructor(private readonly tdengineService: TdengineService) {}
+  constructor(
+    private readonly tdengineService: TdengineService,
+    @InjectRepository(SysConfigEntity)
+    private readonly sysConfigRep: Repository<SysConfigEntity>,
+  ) {}
 
   /**
    * 按时间窗口查询时序数据的聚合统计值
@@ -140,6 +148,122 @@ export class QueryService {
       }
       return result;
     } catch (error) {
+      return [];
+    }
+  }
+
+  /**
+   * 批量获取分区夜间最小流量 (今日/昨日/插值/比率)
+   * 动态计算，不查历史固化表，以解决配置变动和数据延迟问题
+   */
+  async getZoneNightFlowBatch(zoneCodes: string[]) {
+    if (!zoneCodes || zoneCodes.length === 0) return [];
+
+    // 1. 获取系统配置中的夜间流量起止时间，默认 02:00 - 04:00
+    let startStr = '02:00';
+    let endStr = '04:00';
+    
+    try {
+      const configStart = await this.sysConfigRep.findOne({ where: { configKey: 'zone.night.flow.start' } });
+      const configEnd = await this.sysConfigRep.findOne({ where: { configKey: 'zone.night.flow.end' } });
+      if (configStart?.configValue) startStr = configStart.configValue;
+      if (configEnd?.configValue) endStr = configEnd.configValue;
+    } catch (e) {
+      this.logger.warn('获取系统配置 zone.night.flow.start/end 失败，使用默认值 02:00-04:00');
+    }
+
+    const todayStr = dayjs().format('YYYY-MM-DD');
+    const yesterdayStr = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
+
+    const todayStart = `${todayStr} ${startStr}:00`;
+    const todayEnd = `${todayStr} ${endStr}:00`;
+    const yesterdayStart = `${yesterdayStr} ${startStr}:00`;
+    const yesterdayEnd = `${yesterdayStr} ${endStr}:00`;
+
+    const codesStr = zoneCodes.map(c => `'${c}'`).join(',');
+    
+    // 查询今日夜间最小流量
+    const sqlToday = `
+      SELECT zone_code, MIN(total_val) as min_flow
+      FROM water_iot.zone_meters_5m 
+      WHERE metric_type = 'min_flow' 
+        AND ts >= '${todayStart}' 
+        AND ts <= '${todayEnd}'
+        AND zone_code IN (${codesStr}) 
+      GROUP BY zone_code
+    `;
+
+    // 查询昨日夜间最小流量
+    const sqlYesterday = `
+      SELECT zone_code, MIN(total_val) as min_flow
+      FROM water_iot.zone_meters_5m 
+      WHERE metric_type = 'min_flow' 
+        AND ts >= '${yesterdayStart}' 
+        AND ts <= '${yesterdayEnd}'
+        AND zone_code IN (${codesStr}) 
+      GROUP BY zone_code
+    `;
+
+    const resultMap = new Map<string, any>();
+    zoneCodes.forEach(code => {
+      resultMap.set(code, {
+        zoneCode: code,
+        todayVal: null,
+        yesterdayVal: null,
+        diffVal: null,
+        ratio: null
+      });
+    });
+
+    try {
+      const [resToday, resYesterday] = await Promise.all([
+        this.tdengineService.querySql(sqlToday).catch(() => ({ data: [] })),
+        this.tdengineService.querySql(sqlYesterday).catch(() => ({ data: [] }))
+      ]);
+
+      if (resToday && resToday.data) {
+        resToday.data.forEach(row => {
+          const zCode = row[0];
+          const minFlow = row[1];
+          if (resultMap.has(zCode)) {
+            resultMap.get(zCode).todayVal = minFlow;
+          }
+        });
+      }
+
+      if (resYesterday && resYesterday.data) {
+        resYesterday.data.forEach(row => {
+          const zCode = row[0];
+          const minFlow = row[1];
+          if (resultMap.has(zCode)) {
+            resultMap.get(zCode).yesterdayVal = minFlow;
+          }
+        });
+      }
+
+      // 计算插值和比率
+      const finalResult = [];
+      for (const [code, item] of resultMap.entries()) {
+        const tVal = item.todayVal;
+        const yVal = item.yesterdayVal;
+        
+        if (tVal !== null && yVal !== null) {
+          item.diffVal = Number((tVal - yVal).toFixed(3));
+          if (yVal !== 0) {
+            item.ratio = Number(((item.diffVal / yVal) * 100).toFixed(1));
+          }
+        }
+        
+        // 格式化展示
+        if (item.todayVal !== null) item.todayVal = Number(item.todayVal.toFixed(3));
+        if (item.yesterdayVal !== null) item.yesterdayVal = Number(item.yesterdayVal.toFixed(3));
+        
+        finalResult.push(item);
+      }
+
+      return finalResult;
+    } catch (e) {
+      this.logger.error('批量获取分区夜间最小流量失败', e);
       return [];
     }
   }
