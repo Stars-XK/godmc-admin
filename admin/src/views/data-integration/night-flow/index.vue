@@ -155,6 +155,7 @@
 
 <script>
 import request from '@/utils/request'
+import { listZoneTree } from '@/api/water-basic/zone'
 
 export default {
   name: 'ZoneNightFlow',
@@ -167,7 +168,7 @@ export default {
       
       // 虚拟滚动相关
       itemHeight: 88, // 卡片高度
-      visibleCount: 15, // 可见数量
+      visibleCount: 25, // 可见数量
       startIndex: 0,
       
       // 定时器
@@ -190,10 +191,13 @@ export default {
       return this.renderData.length * this.itemHeight;
     },
     offsetTop() {
-      return this.startIndex * this.itemHeight;
+      const start = Math.max(0, this.startIndex - 5);
+      return start * this.itemHeight;
     },
     visibleData() {
-      return this.renderData.slice(this.startIndex, this.startIndex + this.visibleCount);
+      const start = Math.max(0, this.startIndex - 5);
+      const end = Math.min(this.renderData.length, this.startIndex + this.visibleCount + 5);
+      return this.renderData.slice(start, end);
     },
     drawerTitle() {
       return this.activeZone ? `分区详情 - ${this.activeZone.zoneName}` : '分区详情';
@@ -207,21 +211,27 @@ export default {
   },
   methods: {
     async initData() {
-      // 1. 先获取分区的树形结构（假设已有接口）
-      // 这里用 mock 数据代替真实的树形结构获取
-      const mockTree = this.generateMockTree();
-      
-      // 2. 将树形结构拍平，添加层级和折叠状态
-      this.flatData = this.flattenTree(mockTree, 1);
-      this.updateRenderData();
-      
-      // 3. 初始加载视口内的数据
-      this.fetchVisibleData();
-      
-      // 4. 开启主列表的 5 分钟定时刷新
-      this.mainTimer = setInterval(() => {
-        this.fetchVisibleData();
-      }, 5 * 60 * 1000);
+      // 1. 获取分区的树形结构
+      try {
+        const res = await listZoneTree();
+        if (res.code === 200 && res.data) {
+          // 2. 将树形结构拍平，添加层级和折叠状态
+          this.flatData = this.flattenTree(res.data, 1);
+          this.updateRenderData();
+          
+          // 3. 初始加载视口内的数据
+          this.$nextTick(() => {
+            this.fetchVisibleData();
+          });
+          
+          // 4. 开启主列表的 5 分钟定时刷新
+          this.mainTimer = setInterval(() => {
+            this.fetchVisibleData();
+          }, 5 * 60 * 1000);
+        }
+      } catch (error) {
+        console.error('获取分区树失败', error);
+      }
     },
     
     // 拍平树形结构
@@ -230,6 +240,8 @@ export default {
       tree.forEach(node => {
         const item = {
           ...node,
+          zoneCode: node.code,
+          zoneName: node.name,
           level,
           expanded: true, // 默认展开
           hasChildren: node.children && node.children.length > 0,
@@ -347,36 +359,44 @@ export default {
       clearInterval(this.drawerAlarmTimer);
     },
     
-    // 刷新最新数据 (Mock)
-    refreshLatestData() {
-      const now = new Date();
-      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-      
-      this.latestDataList = [
-        { pointName: '进口瞬时流量', val: (Math.random() * 50 + 50).toFixed(2), ts: timeStr },
-        { pointName: '出口瞬时流量', val: (Math.random() * 40 + 40).toFixed(2), ts: timeStr },
-        { pointName: '夜间最小流量', val: (Math.random() * 5 + 5).toFixed(2), ts: timeStr },
-        { pointName: '管网压力', val: (Math.random() * 0.2 + 0.3).toFixed(3), ts: timeStr }
-      ];
+    // 刷新最新数据
+    async refreshLatestData() {
+      if (!this.activeZone || !this.activeZone.zoneCode) return;
+      try {
+        const res = await request({
+          url: '/data-integration/query/zone-points/latest',
+          method: 'get',
+          params: { zoneCode: this.activeZone.zoneCode }
+        });
+        if (res.code === 200 && res.data) {
+          this.latestDataList = res.data;
+        } else {
+          this.latestDataList = [];
+        }
+      } catch (error) {
+        console.error('获取测点最新数据失败', error);
+        this.latestDataList = [];
+      }
     },
     
-    // 刷新报警数据 (Mock)
-    refreshAlarmData() {
-      const now = new Date();
-      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-      
-      // 随机生成 0-2 条报警
-      const newAlarms = [];
-      const count = Math.floor(Math.random() * 3);
-      for (let i = 0; i < count; i++) {
-        newAlarms.push({
-          time: timeStr,
-          content: Math.random() > 0.5 ? '管网压力异常波动' : '夜间最小流量超标',
-          level: Math.random() > 0.3 ? '警告' : '严重'
+    // 刷新报警数据
+    async refreshAlarmData() {
+      if (!this.activeZone || !this.activeZone.zoneCode) return;
+      try {
+        const res = await request({
+          url: '/data-integration/query/zone-alarms',
+          method: 'get',
+          params: { zoneCode: this.activeZone.zoneCode }
         });
+        if (res.code === 200 && res.data) {
+          this.alarmList = res.data;
+        } else {
+          this.alarmList = [];
+        }
+      } catch (error) {
+        console.error('获取报警数据失败', error);
+        this.alarmList = [];
       }
-      
-      this.alarmList = [...newAlarms, ...this.alarmList].slice(0, 20); // 保留最新20条
     },
     
     // 清除所有定时器
@@ -402,54 +422,6 @@ export default {
     getTrendIcon(val) {
       if (val === null || val === undefined || val === 0) return '';
       return val > 0 ? 'el-icon-top' : 'el-icon-bottom';
-    },
-    
-    // 生成测试用的 Mock 树
-    generateMockTree() {
-      return [
-        {
-          zoneCode: '10001',
-          zoneName: '华东大区',
-          isFocus: true,
-          children: [
-            {
-              zoneCode: '20001',
-              zoneName: '上海市辖区',
-              children: [
-                { zoneCode: '30001', zoneName: '浦东新区片区' },
-                { zoneCode: '30002', zoneName: '黄浦区片区', isAlarm: true }
-              ]
-            },
-            {
-              zoneCode: '20002',
-              zoneName: '江苏省辖区',
-              children: [
-                { zoneCode: '30003', zoneName: '南京市片区' },
-                { zoneCode: '30004', zoneName: '苏州市片区' }
-              ]
-            }
-          ]
-        },
-        {
-          zoneCode: '10002',
-          zoneName: '华北大区',
-          children: [
-            {
-              zoneCode: '20003',
-              zoneName: '北京市辖区',
-              children: [
-                { zoneCode: '30005', zoneName: '朝阳区片区' },
-                { zoneCode: '30006', zoneName: '海淀区片区' }
-              ]
-            }
-          ]
-        },
-        {
-          zoneCode: '10003',
-          zoneName: '华南大区',
-          children: []
-        }
-      ];
     }
   }
 }
@@ -533,6 +505,7 @@ export default {
 
 // 卡片样式
 .zone-card {
+  box-sizing: border-box;
   height: 76px;
   margin: 6px 12px;
   padding: 10px 16px;

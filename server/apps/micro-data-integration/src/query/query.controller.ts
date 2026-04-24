@@ -90,4 +90,32 @@ export class QueryController {
     const result = await this.queryService.getZoneNightFlowBatch(zoneCodes.split(','));
     return ResultData.ok(result);
   }
+
+  @ApiOperation({ summary: '获取分区下测点最新实时数据' })
+  @ApiQuery({ name: 'zoneCode', required: true, description: '分区编码' })
+  @Get('zone-points/latest')
+  @NotRequireAuth()
+  async getZonePointsLatestData(
+    @Query('zoneCode') zoneCode: string,
+  ) {
+    if (!zoneCode) {
+      return ResultData.fail(500, '缺少必要参数 zoneCode');
+    }
+    const result = await this.queryService.getZonePointsLatestData(zoneCode);
+    return ResultData.ok(result);
+  }
+
+  @ApiOperation({ summary: '获取分区实时报警数据' })
+  @ApiQuery({ name: 'zoneCode', required: true, description: '分区编码' })
+  @Get('zone-alarms')
+  @NotRequireAuth()
+  async getZoneAlarms(
+    @Query('zoneCode') zoneCode: string,
+  ) {
+    if (!zoneCode) {
+      return ResultData.fail(500, '缺少必要参数 zoneCode');
+    }
+    // 暂无实际报警表，占位返回空数组
+    return ResultData.ok([]);
+  }
 }

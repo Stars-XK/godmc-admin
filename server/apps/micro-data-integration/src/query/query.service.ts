@@ -3,6 +3,8 @@ import { TdengineService } from '../tdengine/tdengine.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SysConfigEntity } from '@app/common/entities/config.entity';
+import { WaterPointEntity } from '@app/common/entities/water-basic/water-point.entity';
+import { WaterDeviceEntity } from '@app/common/entities/water-basic/water-device.entity';
 import dayjs = require('dayjs');
 
 @Injectable()
@@ -13,6 +15,10 @@ export class QueryService {
     private readonly tdengineService: TdengineService,
     @InjectRepository(SysConfigEntity)
     private readonly sysConfigRep: Repository<SysConfigEntity>,
+    @InjectRepository(WaterPointEntity)
+    private readonly waterPointRep: Repository<WaterPointEntity>,
+    @InjectRepository(WaterDeviceEntity)
+    private readonly waterDeviceRep: Repository<WaterDeviceEntity>,
   ) {}
 
   /**
@@ -266,5 +272,77 @@ export class QueryService {
       this.logger.error('批量获取分区夜间最小流量失败', e);
       return [];
     }
+  }
+
+  /**
+   * 获取分区下所有测点的最新实时数据
+   */
+  async getZonePointsLatestData(zoneCode: string) {
+    if (!zoneCode) return [];
+
+    // 1. 获取该分区下的所有设备
+    const devices = await this.waterDeviceRep.find({
+      where: { zoneCode, delFlag: '0' },
+      select: ['code', 'name']
+    });
+
+    if (devices.length === 0) return [];
+    const deviceCodes = devices.map(d => d.code);
+
+    // 2. 获取这些设备的所有测点
+    const points = await this.waterPointRep.createQueryBuilder('point')
+      .where('point.device_code IN (:...deviceCodes)', { deviceCodes })
+      .andWhere("point.del_flag = '0'")
+      .select(['point.code', 'point.name', 'point.deviceCode'])
+      .getMany();
+
+    if (points.length === 0) return [];
+    
+    // 构建字典加速查找
+    const pointDict = new Map<string, any>();
+    points.forEach(p => {
+      pointDict.set(`${p.deviceCode}_${p.code}`, {
+        pointName: p.name,
+        deviceCode: p.deviceCode,
+        pointCode: p.code,
+        val: null,
+        ts: null
+      });
+    });
+
+    // 3. 从 TDengine 查询这些设备测点的最新值
+    const codesStr = deviceCodes.map(c => `'${c}'`).join(',');
+    const sql = `
+      SELECT LAST_ROW(ts, val), device_code, point_code 
+      FROM water_iot.meters 
+      WHERE device_code IN (${codesStr})
+      GROUP BY device_code, point_code
+    `;
+
+    try {
+      const res = await this.tdengineService.querySql(sql);
+      if (res && res.data) {
+        res.data.forEach(row => {
+          const ts = row[0];
+          const val = row[1];
+          const dCode = row[2];
+          const pCode = row[3];
+          
+          const key = `${dCode}_${pCode}`;
+          if (pointDict.has(key)) {
+            const item = pointDict.get(key);
+            item.val = val !== null ? Number(Number(val).toFixed(3)) : '--';
+            item.ts = ts ? dayjs(ts).format('YYYY-MM-DD HH:mm:ss') : '--';
+          }
+        });
+      }
+    } catch (error) {
+      this.logger.error(`获取分区测点最新数据失败: ${zoneCode}`, error);
+    }
+
+    // 过滤出有数据的测点，或者全部返回
+    const result = Array.from(pointDict.values()).filter(p => p.val !== null);
+    // 按时间倒序或设备排序
+    return result;
   }
 }
