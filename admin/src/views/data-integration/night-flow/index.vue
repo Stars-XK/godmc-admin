@@ -501,7 +501,10 @@ export default {
           top: 'center',
           textStyle: { color: '#909399', fontSize: 14, fontWeight: 'normal' }
         },
-        tooltip: { trigger: 'axis' },
+        tooltip: { 
+          trigger: 'axis',
+          axisPointer: { type: 'line' }
+        },
         grid: { top: 30, right: 20, bottom: 30, left: 50 },
         xAxis: {
           type: 'category',
@@ -517,7 +520,8 @@ export default {
         },
         series: [
           {
-            data: dataList.map(item => item.value || null),
+            name: '夜间最小流量',
+            data: dataList.map(item => item.value !== null ? item.value : 0),
             type: 'line',
             smooth: true,
             itemStyle: { color: '#409EFF' },
@@ -545,7 +549,10 @@ export default {
           top: 'center',
           textStyle: { color: '#909399', fontSize: 14, fontWeight: 'normal' }
         },
-        tooltip: { trigger: 'axis' },
+        tooltip: { 
+          trigger: 'axis',
+          axisPointer: { type: 'shadow' }
+        },
         grid: { top: 30, right: 20, bottom: 30, left: 50 },
         xAxis: {
           type: 'category',
@@ -561,7 +568,8 @@ export default {
         },
         series: [
           {
-            data: dataList.map(item => item.value || null),
+            name: '供水量',
+            data: dataList.map(item => item.value !== null ? item.value : 0),
             type: 'bar',
             itemStyle: { color: '#67C23A', borderRadius: [4, 4, 0, 0] },
             barMaxWidth: 30
