@@ -9,70 +9,69 @@
             placeholder="请输入分区名称搜索"
             size="small"
             clearable
-            @keyup.enter="handleSearch"
-            @clear="handleSearch"
-          >
-            <template #append>
-              <el-button icon="Search" @click="handleSearch"></el-button>
-            </template>
-          </el-input>
+            @input="handleSearch"
+          ></el-input>
         </div>
       </div>
-      
-      <div class="table-container">
-        <el-table
-          ref="zoneTable"
-          v-loading="tableLoading"
-          :data="zoneList"
-          row-key="code"
-          :default-expand-all="false"
-          :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
-          height="100%"
-          size="small"
-          @row-click="handleRowClick"
-          highlight-current-row
-          border
-        >
-          <el-table-column prop="name" label="分区名称" show-overflow-tooltip min-width="220">
-            <template #default="scope">
-              <div class="zone-name-cell">
-                <span class="level-badge" :class="'level-' + scope.row.level">L{{ scope.row.level }}</span>
-                <span class="zone-name">{{ scope.row.name }}</span>
-                <el-tag v-if="scope.row.isAlarm" type="danger" size="small" effect="dark" style="margin-left: 8px;">报警</el-tag>
+      <div class="list-container" ref="listContainer" @scroll="handleScroll">
+        <div class="list-phantom" :style="{ height: totalHeight + 'px' }"></div>
+        <div class="list-inner" :style="{ transform: `translateY(${offsetTop}px)` }">
+          <div 
+            v-for="item in visibleData" 
+            :key="item.zoneCode" 
+            class="zone-card"
+            :class="{ 'is-alarm': item.isAlarm, 'is-focus': item.isFocus }"
+            @click="handleRowClick(item)"
+          >
+            <div class="card-header">
+              <div class="zone-info" :style="{ paddingLeft: (item.level - 1) * 24 + 'px' }">
+                <span
+                  v-if="item.hasChildren"
+                  class="expand-toggle"
+                  :class="{ 'is-expanded': item.expanded }"
+                  @click.stop="toggleExpand(item)"
+                ></span>
+                <span v-else class="expand-toggle invisible"></span>
+                <span class="level-badge" :class="'level-' + item.level">L{{ item.level }}</span>
+                <span class="zone-name">{{ item.zoneName }}</span>
               </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="今日夜小" align="center" width="80">
-            <template #default="scope">
-              <span class="val-text">{{ formatVal(getFlowData(scope.row.code, 'todayVal')) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="昨日夜小" align="center" width="80">
-            <template #default="scope">
-              <span class="val-text">{{ formatVal(getFlowData(scope.row.code, 'yesterdayVal')) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="插值" align="center" width="80">
-            <template #default="scope">
-              <span class="val-text" :class="getTrendClass(getFlowData(scope.row.code, 'diffVal'))">
-                {{ getFlowData(scope.row.code, 'diffVal') > 0 ? '+' : '' }}{{ formatVal(getFlowData(scope.row.code, 'diffVal')) }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column label="比率" align="center" width="80">
-            <template #default="scope">
-              <span class="val-text" :class="getTrendClass(getFlowData(scope.row.code, 'ratio'))">
-                <i :class="getTrendIcon(getFlowData(scope.row.code, 'ratio'))"></i>
-                {{ getFlowData(scope.row.code, 'ratio') > 0 ? '+' : '' }}{{ getFlowData(scope.row.code, 'ratio') !== null ? getFlowData(scope.row.code, 'ratio') + '%' : '--' }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" align="center" width="60" fixed="right">
-            <template #default="scope">
-              <el-button link type="primary" icon="DataLine" @click.stop="openDrawer(scope.row)" title="详情"></el-button>
-            </template>
-          </el-table-column>
-        </el-table>
+              <div class="zone-actions">
+                <el-tag v-if="item.isAlarm" type="danger" size="small" effect="dark" style="margin-right: 12px;">报警</el-tag>
+                <el-button link type="primary" @click.stop="openDrawer(item)">
+                  详情 <i class="el-icon-arrow-right" style="margin-left: 2px;"></i>
+                </el-button>
+              </div>
+            </div>
+            
+            <div class="card-body">
+              <div class="data-row">
+                <div class="data-item">
+                  <span class="label">今日夜小</span>
+                  <span class="value">{{ formatVal(item.todayVal) }}</span>
+                </div>
+                <div class="data-item">
+                  <span class="label">昨日夜小</span>
+                  <span class="value">{{ formatVal(item.yesterdayVal) }}</span>
+                </div>
+                <div class="data-item">
+                  <span class="label">插值</span>
+                  <span class="value" :class="getTrendClass(item.diffVal)">
+                    {{ item.diffVal > 0 ? '+' : '' }}{{ formatVal(item.diffVal) }}
+                  </span>
+                </div>
+                <div class="data-item">
+                  <span class="label">比率</span>
+                  <span class="value" :class="getTrendClass(item.ratio)">
+                    <i :class="getTrendIcon(item.ratio)"></i>
+                    {{ item.ratio > 0 ? '+' : '' }}{{ item.ratio !== null ? item.ratio + '%' : '--' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <el-empty v-if="renderData.length === 0" description="暂无数据" :image-size="100"></el-empty>
+        </div>
       </div>
     </div>
     
@@ -80,7 +79,7 @@
       <!-- 暂时用作地图占位 -->
       <div class="map-placeholder">
         <div class="map-content">
-          <i class="el-icon-location-information" style="font-size: 48px; color: #909399; margin-bottom: 16px;"></i>
+          <el-icon style="font-size: 48px; color: #909399; margin-bottom: 16px;"><LocationInformation /></el-icon>
           <h2>GIS 地图区域</h2>
           <p v-if="activeZone">当前定位分区: <strong>{{ activeZone.zoneName }}</strong></p>
           <p v-else>请点击左侧分区列表定位</p>
@@ -169,18 +168,21 @@
 
 <script>
 import request from '@/utils/request'
-import { listZoneTree } from '@/api/water-basic/zone'
+import { listZoneTree, lazyZoneChildren } from '@/api/water-basic/zone'
 import * as echarts from 'echarts'
 
 export default {
   name: 'ZoneNightFlow',
   data() {
     return {
-      tableLoading: false,
-      zoneList: [],
-      flowDataMap: {},
+      // 树形列表展平后的全部数据
+      flatData: [],
+      renderData: [],
       
       searchQuery: '',
+      itemHeight: 88,
+      visibleCount: 18,
+      startIndex: 0,
       
       // 定时器
       mainTimer: null,
@@ -202,8 +204,20 @@ export default {
     }
   },
   computed: {
+    totalHeight() {
+      return this.renderData.length * this.itemHeight;
+    },
+    offsetTop() {
+      const start = Math.max(0, this.startIndex - 5);
+      return start * this.itemHeight;
+    },
+    visibleData() {
+      const start = Math.max(0, this.startIndex - 5);
+      const end = Math.min(this.renderData.length, this.startIndex + this.visibleCount + 5);
+      return this.renderData.slice(start, end);
+    },
     drawerTitle() {
-      return this.activeZone ? `分区详情 - ${this.activeZone.name}` : '分区详情';
+      return this.activeZone ? `分区详情 - ${this.activeZone.zoneName}` : '分区详情';
     }
   },
   created() {
@@ -217,101 +231,172 @@ export default {
   },
   methods: {
     async initData() {
-      this.tableLoading = true;
+      // 1. 获取分区的树形结构 (默认无搜索词时返回顶级)
       try {
         const res = await listZoneTree({ name: this.searchQuery || undefined });
         if (res.code === 200 && res.data) {
-          this.zoneList = this.addLevelToTree(res.data, 1);
-          this.fetchFlowDataForTree(this.zoneList);
+          // 2. 将树形结构拍平
+          this.flatData = this.flattenTree(res.data, 1);
+          this.updateRenderData();
           
-          // 开启主列表的 5 分钟定时刷新
+          // 3. 加载首屏的数据
+          this.$nextTick(() => {
+            if (this.$refs.listContainer) this.$refs.listContainer.scrollTop = 0;
+            this.startIndex = 0;
+            this.fetchVisibleData();
+          });
+          
+          // 4. 开启主列表的 5 分钟定时刷新
           clearInterval(this.mainTimer);
           this.mainTimer = setInterval(() => {
-            this.fetchFlowDataForTree(this.zoneList);
+            this.fetchVisibleData();
           }, 5 * 60 * 1000);
         }
       } catch (error) {
         console.error('获取分区树失败', error);
-      } finally {
-        this.tableLoading = false;
       }
     },
     
-    addLevelToTree(tree, level) {
-      return tree.map(node => {
-        return {
+    // 拍平树形结构
+    flattenTree(tree, level) {
+      let result = [];
+      tree.forEach(node => {
+        const hasChildren = node.hasChildren || (node.children && node.children.length > 0);
+        
+        // 保留可能已有的状态
+        const existingNode = this.flatData ? this.flatData.find(item => item.zoneCode === node.code) : null;
+        
+        const item = {
           ...node,
+          zoneCode: node.code,
+          zoneName: node.name,
           level,
-          children: node.children && node.children.length > 0 ? this.addLevelToTree(node.children, level + 1) : []
+          hasChildren: hasChildren,
+          expanded: existingNode ? existingNode.expanded : (level <= 2),
+          loadedChildren: existingNode ? existingNode.loadedChildren : !!(node.children && node.children.length > 0),
+          // 初始指标数据为空
+          todayVal: existingNode ? existingNode.todayVal : null,
+          yesterdayVal: existingNode ? existingNode.yesterdayVal : null,
+          diffVal: existingNode ? existingNode.diffVal : null,
+          ratio: existingNode ? existingNode.ratio : null
         };
+        result.push(item);
+        if (node.children && node.children.length > 0) {
+          result = result.concat(this.flattenTree(node.children, level + 1));
+        }
       });
+      return result;
     },
     
-    // 搜索处理
     handleSearch() {
+      // 搜索时重置为全新的扁平列表
+      this.flatData = [];
       this.initData();
     },
     
-    // 批量获取流量数据
-    async fetchFlowDataForTree(tree) {
-      if (!tree || tree.length === 0) return;
-      
-      const allCodes = [];
-      const traverse = (nodes) => {
-        nodes.forEach(node => {
-          allCodes.push(node.code);
-          if (node.children && node.children.length > 0) {
-            traverse(node.children);
-          }
-        });
-      };
-      traverse(tree);
-      
-      if (allCodes.length === 0) return;
-
-      // 分批查询，防止 URL 过长
-      const chunks = [];
-      for (let i = 0; i < allCodes.length; i += 150) {
-        chunks.push(allCodes.slice(i, i + 150));
-      }
-
-      for (const chunk of chunks) {
-        try {
-          const res = await request({
-            url: '/data-integration/query/zone-night-flow/batch',
-            method: 'get',
-            params: { zoneCodes: chunk.join(',') }
-          });
-          if (res.code === 200 && res.data) {
-            res.data.forEach(item => {
-              this.flowDataMap[item.zoneCode] = item;
-            });
-            this.flowDataMap = { ...this.flowDataMap };
-          }
-        } catch(e) {
-          console.error('批量获取流量失败', e);
+    updateRenderData() {
+      const renderList = [];
+      let skipLevel = -1;
+      for (const item of this.flatData) {
+        if (skipLevel !== -1 && item.level > skipLevel) {
+          continue;
+        } else {
+          skipLevel = -1;
+        }
+        
+        renderList.push(item);
+        if (item.hasChildren && !item.expanded) {
+          skipLevel = item.level;
         }
       }
+      this.renderData = renderList;
     },
-    
-    getFlowData(code, field) {
-      if (this.flowDataMap[code]) {
-        return this.flowDataMap[code][field];
+
+    handleScroll() {
+      if (!this.$refs.listContainer) return;
+      const scrollTop = this.$refs.listContainer.scrollTop;
+      this.startIndex = Math.floor(scrollTop / this.itemHeight);
+
+      clearTimeout(this.scrollTimeout);
+      this.scrollTimeout = setTimeout(() => {
+        this.fetchVisibleData();
+      }, 120);
+    },
+
+    async fetchVisibleData() {
+      const currentVisible = this.visibleData;
+      if (currentVisible.length === 0) return;
+      
+      const zoneCodes = currentVisible.map(item => item.zoneCode).join(',');
+      
+      try {
+        const res = await request({
+          url: '/data-integration/query/zone-night-flow/batch',
+          method: 'get',
+          params: { zoneCodes }
+        });
+        
+        if (res.code === 200 && res.data) {
+          // 将结果合并回 flatData
+          res.data.forEach(flowData => {
+            const target = this.flatData.find(item => item.zoneCode === flowData.zoneCode);
+            if (target) {
+              target.todayVal = flowData.todayVal;
+              target.yesterdayVal = flowData.yesterdayVal;
+              target.diffVal = flowData.diffVal;
+              target.ratio = flowData.ratio;
+            }
+          });
+        }
+      } catch (error) {
+        console.error('获取分区流量数据失败', error);
       }
-      return null;
+    },
+
+    async toggleExpand(item) {
+      if (!item.expanded && item.hasChildren && !item.loadedChildren) {
+        // 需要懒加载子节点
+        try {
+          const res = await lazyZoneChildren(item.zoneCode, { name: this.searchQuery || undefined });
+          if (res.code === 200 && res.data) {
+            const newChildren = this.flattenTree(res.data, item.level + 1);
+            
+            // 找到 item 在 flatData 中的索引并插入
+            const index = this.flatData.findIndex(i => i.zoneCode === item.zoneCode);
+            if (index !== -1) {
+              this.flatData.splice(index + 1, 0, ...newChildren);
+            }
+            
+            item.loadedChildren = true;
+          }
+        } catch (error) {
+          console.error('懒加载子节点失败', error);
+        }
+      }
+      
+      item.expanded = !item.expanded;
+      this.updateRenderData();
+      this.$nextTick(() => {
+        this.fetchVisibleData();
+      });
     },
     
-    // 行点击展开/折叠
-    handleRowClick(row, column) {
-      if (column && column.label === '操作') return;
-      if (this.$refs.zoneTable) {
-        this.$refs.zoneTable.toggleRowExpansion(row);
+    // 点击卡片本身触发展开/折叠
+    handleRowClick(item) {
+      this.activeZone = item;
+      this.flatData.forEach(i => { i.isFocus = false; });
+      item.isFocus = true;
+      
+      if (item.hasChildren) {
+        this.toggleExpand(item);
       }
     },
     
-    // 抽屉打开
+    // 点击详情按钮打开抽屉
     openDrawer(item) {
       this.activeZone = item;
+      this.flatData.forEach(i => { i.isFocus = false; });
+      item.isFocus = true;
       this.drawerVisible = true;
     },
     
@@ -555,44 +640,24 @@ export default {
       }
     }
     
-    .table-container {
+    .list-container {
       flex: 1;
-      overflow: hidden;
-      padding: 10px;
+      overflow-y: auto;
+      position: relative;
       
-      .zone-name-cell {
-        display: flex;
-        align-items: center;
+      .list-phantom {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        z-index: -1;
       }
       
-      .level-badge {
-        display: inline-block;
-        padding: 0 6px;
-        height: 20px;
-        line-height: 20px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: bold;
-        margin-right: 8px;
-        color: #fff;
-        &.level-1 { background-color: #409EFF; }
-        &.level-2 { background-color: #67C23A; }
-        &.level-3 { background-color: #E6A23C; }
-        &.level-4 { background-color: #F56C6C; }
-        &.level-5 { background-color: #909399; }
-      }
-      
-      .zone-name {
-        font-size: 14px;
-        color: #303133;
-        font-weight: 500;
-      }
-      
-      .val-text {
-        font-weight: bold;
-        font-size: 14px;
-        &.trend-up { color: #F56C6C; }
-        &.trend-down { color: #67C23A; }
+      .list-inner {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
       }
     }
   }
@@ -617,6 +682,117 @@ export default {
         background: rgba(255, 255, 255, 0.8);
         border-radius: 8px;
         box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+      }
+    }
+  }
+}
+
+// 卡片样式
+.zone-card {
+  box-sizing: border-box;
+  height: 76px;
+  margin: 6px 12px;
+  padding: 10px 16px;
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+    border-color: #c0c4cc;
+  }
+  
+  &.is-focus {
+    border-left: 4px solid #409EFF;
+  }
+  
+  &.is-alarm {
+    border-color: #f56c6c;
+    background-color: #fef0f0;
+  }
+  
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    
+    .zone-info {
+      display: flex;
+      align-items: center;
+      transition: padding-left 0.2s;
+      
+      .expand-toggle {
+        width: 0;
+        height: 0;
+        border-top: 6px solid transparent;
+        border-bottom: 6px solid transparent;
+        border-left: 6px solid #909399;
+        margin-right: 10px;
+        transition: transform 0.2s, border-left-color 0.2s;
+        cursor: pointer;
+      }
+      
+      .expand-toggle.is-expanded {
+        transform: rotate(90deg);
+        border-left-color: #409EFF;
+      }
+      
+      .expand-toggle.invisible {
+        visibility: hidden;
+      }
+      
+      .level-badge {
+        font-size: 12px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-right: 8px;
+        font-weight: bold;
+        
+        &.level-1 { background: #ecf5ff; color: #409EFF; }
+        &.level-2 { background: #f0f9eb; color: #67C23A; }
+        &.level-3 { background: #fdf6ec; color: #E6A23C; }
+        &.level-4 { background: #f4f4f5; color: #909399; }
+      }
+      
+      .zone-name {
+        font-size: 14px;
+        font-weight: bold;
+        color: #303133;
+      }
+    }
+  }
+  
+  .card-body {
+    .data-row {
+      display: flex;
+      justify-content: space-between;
+      
+      .data-item {
+        display: flex;
+        flex-direction: column;
+        
+        .label {
+          font-size: 12px;
+          color: #909399;
+          margin-bottom: 4px;
+        }
+        
+        .value {
+          font-size: 13px;
+          font-weight: bold;
+          color: #303133;
+          
+          &.trend-up {
+            color: #f56c6c;
+          }
+          
+          &.trend-down {
+            color: #67c23a;
+          }
+        }
       }
     }
   }
