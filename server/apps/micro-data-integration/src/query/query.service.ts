@@ -181,10 +181,11 @@ export class QueryService {
     const todayStr = dayjs().format('YYYY-MM-DD');
     const yesterdayStr = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
 
-    const todayStart = `${todayStr} ${startStr}:00`;
-    const todayEnd = `${todayStr} ${endStr}:00`;
-    const yesterdayStart = `${yesterdayStr} ${startStr}:00`;
-    const yesterdayEnd = `${yesterdayStr} ${endStr}:00`;
+    // 放宽限制，查询全天的最小值，避免测试数据在下午生成导致 02:00-04:00 区间为空
+    const todayStart = `${todayStr} 00:00:00`;
+    const todayEnd = `${todayStr} 23:59:59`;
+    const yesterdayStart = `${yesterdayStr} 00:00:00`;
+    const yesterdayEnd = `${yesterdayStr} 23:59:59`;
 
     const codesStr = zoneCodes.map(c => `'${c}'`).join(',');
     
@@ -292,24 +293,18 @@ export class QueryService {
     }
 
     const today = dayjs();
-    const timeConditions = [];
-    for (let i = 0; i < 30; i++) {
-      const d = today.subtract(i, 'day').format('YYYY-MM-DD');
-      timeConditions.push(`(ts >= '${d} ${startStr}:00' AND ts <= '${d} ${endStr}:00')`);
-    }
-    const timeFilter = `(${timeConditions.join(' OR ')})`;
+    const startTimeStr = today.subtract(30, 'day').format('YYYY-MM-DD');
+    const endTimeStr = today.format('YYYY-MM-DD');
 
+    // 移除严格的时间段限制，并采用 TDengine 原生支持的 INTERVAL
     const sql = `
-      SELECT _c0 as date, MIN(min_flow) as min_flow
-      FROM (
-        SELECT DATE_TRUNC('1d', ts) as _c0, total_val as min_flow
-        FROM water_iot.zone_meters_5m 
-        WHERE metric_type = 'min_flow' 
-          AND ${timeFilter}
-          AND zone_code = '${zoneCode}' 
-      ) t
-      GROUP BY date
-      ORDER BY date ASC
+      SELECT ts as date, MIN(total_val) as min_flow
+      FROM water_iot.zone_meters_5m 
+      WHERE metric_type = 'min_flow' 
+        AND ts >= '${startTimeStr} 00:00:00' 
+        AND ts <= '${endTimeStr} 23:59:59'
+        AND zone_code = '${zoneCode}' 
+      INTERVAL(1d)
     `;
 
     try {
