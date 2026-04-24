@@ -25,13 +25,13 @@
           >
             <div class="card-header">
               <div class="zone-info">
-                <i
+                <span
                   v-if="item.hasChildren"
-                  class="el-icon-arrow-right expand-icon"
+                  class="expand-toggle"
                   :class="{ 'is-expanded': item.expanded }"
                   @click.stop="toggleExpand(item)"
-                ></i>
-                <i v-else class="el-icon-caret-right expand-icon invisible"></i>
+                ></span>
+                <span v-else class="expand-toggle invisible"></span>
                 <span class="level-badge" :class="'level-' + item.level">L{{ item.level }}</span>
                 <span class="zone-name">{{ item.zoneName }}</span>
               </div>
@@ -614,6 +614,21 @@ export default {
       flex: 1;
       overflow-y: auto;
       position: relative;
+      
+      .list-phantom {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        z-index: -1;
+      }
+      
+      .list-inner {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+      }
     }
   }
   
@@ -678,24 +693,23 @@ export default {
       display: flex;
       align-items: center;
       
-      .expand-icon {
-        font-size: 14px;
-        color: #909399;
-        margin-right: 8px;
-        padding: 2px;
-        transition: transform 0.3s;
-        
-        &.is-expanded {
-          transform: rotate(90deg);
-        }
-        
-        &.invisible {
-          visibility: hidden;
-        }
-        
-        &:hover {
-          color: #409EFF;
-        }
+      .expand-toggle {
+        width: 0;
+        height: 0;
+        border-top: 6px solid transparent;
+        border-bottom: 6px solid transparent;
+        border-left: 6px solid #909399;
+        margin-right: 10px;
+        transition: transform 0.2s, border-left-color 0.2s;
+      }
+      
+      .expand-toggle.is-expanded {
+        transform: rotate(90deg);
+        border-left-color: #409EFF;
+      }
+      
+      .expand-toggle.invisible {
+        visibility: hidden;
       }
       
       .level-badge {
