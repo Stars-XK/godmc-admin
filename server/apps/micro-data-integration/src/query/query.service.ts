@@ -275,6 +275,99 @@ export class QueryService {
   }
 
   /**
+   * 获取分区30天夜间最小流量趋势
+   */
+  async getZoneNightFlowTrend(zoneCode: string) {
+    if (!zoneCode) return [];
+
+    let startStr = '02:00';
+    let endStr = '04:00';
+    try {
+      const configStart = await this.sysConfigRep.findOne({ where: { configKey: 'zone.night.flow.start' } });
+      const configEnd = await this.sysConfigRep.findOne({ where: { configKey: 'zone.night.flow.end' } });
+      if (configStart?.configValue) startStr = configStart.configValue;
+      if (configEnd?.configValue) endStr = configEnd.configValue;
+    } catch (e) {
+      this.logger.warn('获取系统配置失败，使用默认值 02:00-04:00');
+    }
+
+    const today = dayjs();
+    const startTimeStr = today.subtract(30, 'day').format('YYYY-MM-DD');
+    const endTimeStr = today.format('YYYY-MM-DD');
+
+    const sql = `
+      SELECT _c0 as date, MIN(min_flow) as min_flow
+      FROM (
+        SELECT DATE_TRUNC('1d', ts) as _c0, total_val as min_flow
+        FROM water_iot.zone_meters_5m 
+        WHERE metric_type = 'min_flow' 
+          AND CAST(ts AS TIME) >= CAST('${startStr}:00' AS TIME)
+          AND CAST(ts AS TIME) <= CAST('${endStr}:00' AS TIME)
+          AND ts >= '${startTimeStr} 00:00:00' 
+          AND ts <= '${endTimeStr} 23:59:59'
+          AND zone_code = '${zoneCode}' 
+      ) t
+      GROUP BY date
+      ORDER BY date ASC
+    `;
+
+    try {
+      const res = await this.tdengineService.querySql(sql);
+      const result = [];
+      if (res && res.data) {
+        res.data.forEach(row => {
+          result.push({
+            date: dayjs(row[0]).format('MM-DD'),
+            value: row[1] !== null ? Number(row[1].toFixed(3)) : null
+          });
+        });
+      }
+      return result;
+    } catch (e) {
+      this.logger.error('获取分区30天夜间最小流量趋势失败', e);
+      return [];
+    }
+  }
+
+  /**
+   * 获取分区10天小时表数据
+   */
+  async getZoneHourlyTrend(zoneCode: string) {
+    if (!zoneCode) return [];
+
+    const today = dayjs();
+    const startTimeStr = today.subtract(10, 'day').format('YYYY-MM-DD');
+    const endTimeStr = today.format('YYYY-MM-DD');
+
+    const sql = `
+      SELECT ts, total_val
+      FROM water_iot.zone_meters_1h 
+      WHERE metric_type = 'cumulative_flow' 
+        AND ts >= '${startTimeStr} 00:00:00' 
+        AND ts <= '${endTimeStr} 23:59:59'
+        AND zone_code = '${zoneCode}' 
+      ORDER BY ts ASC
+    `;
+
+    try {
+      const res = await this.tdengineService.querySql(sql);
+      const result = [];
+      if (res && res.data) {
+        res.data.forEach(row => {
+          result.push({
+            time: dayjs(row[0]).format('MM-DD HH:mm'),
+            value: row[1] !== null ? Number(row[1].toFixed(3)) : null
+          });
+        });
+      }
+      return result;
+    } catch (e) {
+      this.logger.error('获取分区10天小时表数据失败', e);
+      return [];
+    }
+  }
+
+  /**
    * 获取分区下所有测点的最新实时数据
    */
   async getZonePointsLatestData(zoneCode: string) {

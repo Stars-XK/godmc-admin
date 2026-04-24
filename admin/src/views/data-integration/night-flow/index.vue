@@ -409,18 +409,54 @@ export default {
     handleDrawerOpened() {
       this.initCharts();
       
-      this.drawerLoading = false;
-      
-      // 渲染空图表或实际数据
-      this.render30DayChart([]);
-      this.render10DayChart([]);
-      
+      this.fetchChartData();
       this.refreshLatestData();
       this.refreshAlarmData();
       
       // 开启抽屉内的定时刷新
       this.drawerLatestTimer = setInterval(this.refreshLatestData, 30 * 1000); // 30秒
       this.drawerAlarmTimer = setInterval(this.refreshAlarmData, 15 * 1000); // 15秒
+    },
+    
+    // 获取图表数据
+    async fetchChartData() {
+      if (!this.activeZone || !this.activeZone.zoneCode) {
+        this.drawerLoading = false;
+        return;
+      }
+      
+      try {
+        const [res30Day, res10Day] = await Promise.all([
+          request({
+            url: '/data-integration/query/zone-night-flow/trend',
+            method: 'get',
+            params: { zoneCode: this.activeZone.zoneCode }
+          }),
+          request({
+            url: '/data-integration/query/zone-hourly/trend',
+            method: 'get',
+            params: { zoneCode: this.activeZone.zoneCode }
+          })
+        ]);
+        
+        if (res30Day.code === 200 && res30Day.data) {
+          this.render30DayChart(res30Day.data);
+        } else {
+          this.render30DayChart([]);
+        }
+        
+        if (res10Day.code === 200 && res10Day.data) {
+          this.render10DayChart(res10Day.data);
+        } else {
+          this.render10DayChart([]);
+        }
+      } catch (error) {
+        console.error('获取图表数据失败', error);
+        this.render30DayChart([]);
+        this.render10DayChart([]);
+      } finally {
+        this.drawerLoading = false;
+      }
     },
     
     // 抽屉关闭

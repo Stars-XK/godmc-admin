@@ -91,6 +91,34 @@ export class QueryController {
     return ResultData.ok(result);
   }
 
+  @ApiOperation({ summary: '获取分区30天夜间最小流量趋势' })
+  @ApiQuery({ name: 'zoneCode', required: true, description: '分区编码' })
+  @Get('zone-night-flow/trend')
+  @NotRequireAuth()
+  async getZoneNightFlowTrend(
+    @Query('zoneCode') zoneCode: string,
+  ) {
+    if (!zoneCode) {
+      return ResultData.fail(500, '缺少必要参数 zoneCode');
+    }
+    const result = await this.queryService.getZoneNightFlowTrend(zoneCode);
+    return ResultData.ok(result);
+  }
+
+  @ApiOperation({ summary: '获取分区10天小时表数据' })
+  @ApiQuery({ name: 'zoneCode', required: true, description: '分区编码' })
+  @Get('zone-hourly/trend')
+  @NotRequireAuth()
+  async getZoneHourlyTrend(
+    @Query('zoneCode') zoneCode: string,
+  ) {
+    if (!zoneCode) {
+      return ResultData.fail(500, '缺少必要参数 zoneCode');
+    }
+    const result = await this.queryService.getZoneHourlyTrend(zoneCode);
+    return ResultData.ok(result);
+  }
+
   @ApiOperation({ summary: '获取分区下测点最新实时数据' })
   @ApiQuery({ name: 'zoneCode', required: true, description: '分区编码' })
   @Get('zone-points/latest')
