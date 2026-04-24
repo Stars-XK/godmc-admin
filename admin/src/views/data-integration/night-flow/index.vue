@@ -21,10 +21,10 @@
             :key="item.zoneCode" 
             class="zone-card"
             :class="{ 'is-alarm': item.isAlarm, 'is-focus': item.isFocus }"
-            @click="handleCardClick(item)"
+            @click="handleRowClick(item)"
           >
             <div class="card-header">
-              <div class="zone-info">
+              <div class="zone-info" :style="{ paddingLeft: (item.level - 1) * 24 + 'px' }">
                 <span
                   v-if="item.hasChildren"
                   class="expand-toggle"
@@ -36,7 +36,10 @@
                 <span class="zone-name">{{ item.zoneName }}</span>
               </div>
               <div class="zone-actions">
-                <el-tag v-if="item.isAlarm" type="danger" size="small" effect="dark">报警</el-tag>
+                <el-tag v-if="item.isAlarm" type="danger" size="small" effect="dark" style="margin-right: 12px;">报警</el-tag>
+                <el-button link type="primary" @click.stop="openDrawer(item)">
+                  详情 <i class="el-icon-arrow-right" style="margin-left: 2px;"></i>
+                </el-button>
               </div>
             </div>
             
@@ -257,12 +260,13 @@ export default {
     flattenTree(tree, level) {
       let result = [];
       tree.forEach(node => {
+        const hasChildren = node.hasChildren || (node.children && node.children.length > 0);
         const item = {
           ...node,
           zoneCode: node.code,
           zoneName: node.name,
           level,
-          hasChildren: node.children && node.children.length > 0,
+          hasChildren: hasChildren,
           expanded: level <= 2,
           // 初始指标数据为空
           todayVal: null,
@@ -271,7 +275,7 @@ export default {
           ratio: null
         };
         result.push(item);
-        if (item.hasChildren) {
+        if (hasChildren && node.children) {
           result = result.concat(this.flattenTree(node.children, level + 1));
         }
       });
@@ -364,8 +368,15 @@ export default {
       });
     },
     
-    // 点击卡片
-    handleCardClick(item) {
+    // 点击卡片本身触发展开/折叠
+    handleRowClick(item) {
+      if (item.hasChildren) {
+        this.toggleExpand(item);
+      }
+    },
+    
+    // 点击详情按钮打开抽屉
+    openDrawer(item) {
       this.activeZone = item;
       this.drawerVisible = true;
     },
@@ -692,6 +703,7 @@ export default {
     .zone-info {
       display: flex;
       align-items: center;
+      transition: padding-left 0.2s;
       
       .expand-toggle {
         width: 0;
@@ -701,6 +713,7 @@ export default {
         border-left: 6px solid #909399;
         margin-right: 10px;
         transition: transform 0.2s, border-left-color 0.2s;
+        cursor: pointer;
       }
       
       .expand-toggle.is-expanded {
