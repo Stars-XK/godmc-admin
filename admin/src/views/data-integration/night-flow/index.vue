@@ -6,8 +6,7 @@
         <div class="search-bar">
           <el-input
             v-model="searchQuery"
-            placeholder="搜索分区名称"
-            prefix-icon="el-icon-search"
+            placeholder="请输入分区名称搜索"
             size="small"
             clearable
             @input="handleSearch"
@@ -88,15 +87,15 @@
       </div>
     </div>
 
-    <!-- 详情抽屉 -->
     <el-drawer
       :title="drawerTitle"
       v-model="drawerVisible"
       direction="ltr"
       size="60%"
-      :modal="false"
+      destroy-on-close
       class="night-flow-drawer"
       @open="handleDrawerOpen"
+      @opened="handleDrawerOpened"
       @close="handleDrawerClose"
     >
       <div class="drawer-content" v-loading="drawerLoading">
@@ -340,27 +339,24 @@ export default {
     // 抽屉打开
     handleDrawerOpen() {
       this.drawerLoading = true;
+    },
+    
+    // 抽屉动画结束，此时 DOM 完全可见且宽度正确
+    handleDrawerOpened() {
+      this.initCharts();
       
-      // 等待 DOM 渲染完毕后初始化图表
-      this.$nextTick(() => {
-        this.initCharts();
-      });
+      this.drawerLoading = false;
       
-      // 模拟加载图表数据（实际应调用接口）
-      setTimeout(() => {
-        this.drawerLoading = false;
-        
-        // 渲染空图表或实际数据
-        this.render30DayChart([]);
-        this.render10DayChart([]);
-        
-        this.refreshLatestData();
-        this.refreshAlarmData();
-        
-        // 开启抽屉内的定时刷新
-        this.drawerLatestTimer = setInterval(this.refreshLatestData, 30 * 1000); // 30秒
-        this.drawerAlarmTimer = setInterval(this.refreshAlarmData, 15 * 1000); // 15秒
-      }, 500);
+      // 渲染空图表或实际数据
+      this.render30DayChart([]);
+      this.render10DayChart([]);
+      
+      this.refreshLatestData();
+      this.refreshAlarmData();
+      
+      // 开启抽屉内的定时刷新
+      this.drawerLatestTimer = setInterval(this.refreshLatestData, 30 * 1000); // 30秒
+      this.drawerAlarmTimer = setInterval(this.refreshAlarmData, 15 * 1000); // 15秒
     },
     
     // 抽屉关闭
@@ -555,6 +551,7 @@ export default {
   .left-panel {
     width: 50%;
     min-width: 500px;
+    height: 100%;
     background: #fff;
     display: flex;
     flex-direction: column;
@@ -568,6 +565,7 @@ export default {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-shrink: 0;
       .title {
         font-size: 16px;
         font-weight: bold;
@@ -588,6 +586,9 @@ export default {
       padding: 10px 20px;
       border-top: 1px solid #ebeef5;
       background-color: #fff;
+      display: flex;
+      justify-content: flex-end;
+      flex-shrink: 0;
     }
   }
   
