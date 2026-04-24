@@ -158,13 +158,7 @@ export class TdengineZoneAggService {
         `;
         
         try {
-          this.logger.debug(`[分区聚合 SQL] 执行: ${finalSql.trim()}`);
           await this.tdengineService.querySql(finalSql);
-          
-          // 增加一个调试查询，验证超级表中是否有源数据
-          const checkSql = `SELECT count(*) as cnt FROM ${sourceTable} WHERE point_code IN (${pcList}) AND ts >= ${startMs} AND ts <= ${endMs}`;
-          const checkRes = await this.tdengineService.querySql(checkSql);
-          this.logger.debug(`[分区聚合检查] 源数据条数: ${JSON.stringify(checkRes?.data)}`);
         } catch (e) {
           this.logger.error(`分区聚合执行 SQL 失败，SQL: ${finalSql}`);
           throw e;
