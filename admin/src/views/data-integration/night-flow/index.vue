@@ -3,12 +3,21 @@
     <div class="left-panel">
       <div class="panel-header">
         <span class="title">分区夜间最小流量</span>
+        <div class="search-bar">
+          <el-input
+            v-model="searchQuery"
+            placeholder="搜索分区名称"
+            prefix-icon="el-icon-search"
+            size="small"
+            clearable
+            @input="handleSearch"
+          ></el-input>
+        </div>
       </div>
-      <div class="list-container" ref="listContainer" @scroll="handleScroll">
-        <div class="list-phantom" :style="{ height: totalHeight + 'px' }"></div>
-        <div class="list-inner" :style="{ transform: `translateY(${offsetTop}px)` }">
+      <div class="list-container">
+        <div class="list-inner">
           <div 
-            v-for="item in visibleData" 
+            v-for="item in pagedData" 
             :key="item.zoneCode" 
             class="zone-card"
             :class="{ 'is-alarm': item.isAlarm, 'is-focus': item.isFocus }"
@@ -16,14 +25,6 @@
           >
             <div class="card-header">
               <div class="zone-info">
-                <i 
-                  v-if="item.hasChildren"
-                  class="el-icon-arrow-right expand-icon" 
-                  :class="{ 'is-expanded': item.expanded }"
-                  @click.stop="toggleExpand(item)"
-                ></i>
-                <i v-else class="el-icon-caret-right expand-icon invisible"></i>
-                
                 <span class="level-badge" :class="'level-' + item.level">L{{ item.level }}</span>
                 <span class="zone-name">{{ item.zoneName }}</span>
               </div>
@@ -58,7 +59,20 @@
               </div>
             </div>
           </div>
+          
+          <el-empty v-if="pagedData.length === 0" description="暂无数据" :image-size="100"></el-empty>
         </div>
+      </div>
+      <div class="pagination-container">
+        <el-pagination
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+          :current-page="currentPage"
+          :page-sizes="[10, 20, 50, 100]"
+          :page-size="pageSize"
+          layout="total, sizes, prev, pager, next"
+          :total="filteredData.length">
+        </el-pagination>
       </div>
     </div>
     
@@ -92,7 +106,7 @@
               <span>分区 30 天夜间最小流量趋势</span>
             </div>
             <div class="chart-container">
-              <div class="placeholder-chart">30天趋势图表区域</div>
+              <div id="chart-30day" style="width: 100%; height: 100%;"></div>
             </div>
           </el-card>
         </div>
@@ -103,7 +117,7 @@
               <span>分区 10 天小时表数据</span>
             </div>
             <div class="chart-container">
-              <div class="placeholder-chart">10天小时趋势图表区域</div>
+              <div id="chart-10day" style="width: 100%; height: 100%;"></div>
             </div>
           </el-card>
         </div>
@@ -156,6 +170,7 @@
 <script>
 import request from '@/utils/request'
 import { listZoneTree } from '@/api/water-basic/zone'
+import * as echarts from 'echarts'
 
 export default {
   name: 'ZoneNightFlow',
@@ -163,13 +178,13 @@ export default {
     return {
       // 树形列表展平后的全部数据
       flatData: [],
-      // 实际渲染的数据列表（虚拟滚动控制）
-      renderData: [],
+      // 根据搜索过滤后的数据
+      filteredData: [],
       
-      // 虚拟滚动相关
-      itemHeight: 88, // 卡片高度
-      visibleCount: 25, // 可见数量
-      startIndex: 0,
+      // 搜索和分页相关
+      searchQuery: '',
+      currentPage: 1,
+      pageSize: 10,
       
       // 定时器
       mainTimer: null,
@@ -181,23 +196,20 @@ export default {
       drawerVisible: false,
       drawerLoading: false,
       
+      // 抽屉图表实例
+      chart30Day: null,
+      chart10Day: null,
+      
       // 抽屉数据
       latestDataList: [],
       alarmList: []
     }
   },
   computed: {
-    totalHeight() {
-      return this.renderData.length * this.itemHeight;
-    },
-    offsetTop() {
-      const start = Math.max(0, this.startIndex - 5);
-      return start * this.itemHeight;
-    },
-    visibleData() {
-      const start = Math.max(0, this.startIndex - 5);
-      const end = Math.min(this.renderData.length, this.startIndex + this.visibleCount + 5);
-      return this.renderData.slice(start, end);
+    pagedData() {
+      const start = (this.currentPage - 1) * this.pageSize;
+      const end = start + this.pageSize;
+      return this.filteredData.slice(start, end);
     },
     drawerTitle() {
       return this.activeZone ? `分区详情 - ${this.activeZone.zoneName}` : '分区详情';
@@ -208,6 +220,9 @@ export default {
   },
   beforeDestroy() {
     this.clearAllTimers();
+    if (this.chart30Day) this.chart30Day.dispose();
+    if (this.chart10Day) this.chart10Day.dispose();
+    window.removeEventListener('resize', this.handleResize);
   },
   methods: {
     async initData() {
@@ -215,18 +230,18 @@ export default {
       try {
         const res = await listZoneTree();
         if (res.code === 200 && res.data) {
-          // 2. 将树形结构拍平，添加层级和折叠状态
+          // 2. 将树形结构拍平
           this.flatData = this.flattenTree(res.data, 1);
-          this.updateRenderData();
+          this.handleSearch(); // 初始化过滤数据
           
-          // 3. 初始加载视口内的数据
+          // 3. 加载当前页的数据
           this.$nextTick(() => {
-            this.fetchVisibleData();
+            this.fetchPageData();
           });
           
           // 4. 开启主列表的 5 分钟定时刷新
           this.mainTimer = setInterval(() => {
-            this.fetchVisibleData();
+            this.fetchPageData();
           }, 5 * 60 * 1000);
         }
       } catch (error) {
@@ -243,7 +258,6 @@ export default {
           zoneCode: node.code,
           zoneName: node.name,
           level,
-          expanded: true, // 默认展开
           hasChildren: node.children && node.children.length > 0,
           // 初始指标数据为空
           todayVal: null,
@@ -259,45 +273,36 @@ export default {
       return result;
     },
     
-    // 根据折叠状态更新需要渲染的列表
-    updateRenderData() {
-      const renderList = [];
-      let skipLevel = -1; // 标记需要跳过的层级深度
-      
-      for (const item of this.flatData) {
-        // 如果当前节点的层级大于被折叠节点的层级，则跳过（不显示）
-        if (skipLevel !== -1 && item.level > skipLevel) {
-          continue;
-        } else {
-          skipLevel = -1; // 恢复正常
-        }
-        
-        renderList.push(item);
-        
-        // 如果当前节点被折叠，标记它的下一级及更深层级都需要被跳过
-        if (item.hasChildren && !item.expanded) {
-          skipLevel = item.level;
-        }
+    // 搜索处理
+    handleSearch() {
+      this.currentPage = 1;
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase();
+        this.filteredData = this.flatData.filter(item => 
+          item.zoneName && item.zoneName.toLowerCase().includes(query)
+        );
+      } else {
+        this.filteredData = [...this.flatData];
       }
-      
-      this.renderData = renderList;
+      this.$nextTick(() => {
+        this.fetchPageData();
+      });
     },
     
-    // 虚拟滚动处理
-    handleScroll() {
-      const scrollTop = this.$refs.listContainer.scrollTop;
-      this.startIndex = Math.floor(scrollTop / this.itemHeight);
-      
-      // 滚动停止后（简单防抖），触发视口数据获取
-      clearTimeout(this.scrollTimeout);
-      this.scrollTimeout = setTimeout(() => {
-        this.fetchVisibleData();
-      }, 200);
+    // 分页处理
+    handleSizeChange(val) {
+      this.pageSize = val;
+      this.currentPage = 1;
+      this.fetchPageData();
+    },
+    handleCurrentChange(val) {
+      this.currentPage = val;
+      this.fetchPageData();
     },
     
-    // 获取当前视口内分区的夜间最小流量数据
-    async fetchVisibleData() {
-      const currentVisible = this.visibleData;
+    // 获取当前页的数据
+    async fetchPageData() {
+      const currentVisible = this.pagedData;
       if (currentVisible.length === 0) return;
       
       const zoneCodes = currentVisible.map(item => item.zoneCode).join(',');
@@ -326,12 +331,6 @@ export default {
       }
     },
     
-    // 展开/折叠节点
-    toggleExpand(item) {
-      item.expanded = !item.expanded;
-      this.updateRenderData();
-    },
-    
     // 点击卡片
     handleCardClick(item) {
       this.activeZone = item;
@@ -341,9 +340,20 @@ export default {
     // 抽屉打开
     handleDrawerOpen() {
       this.drawerLoading = true;
-      // 模拟加载图表数据
+      
+      // 等待 DOM 渲染完毕后初始化图表
+      this.$nextTick(() => {
+        this.initCharts();
+      });
+      
+      // 模拟加载图表数据（实际应调用接口）
       setTimeout(() => {
         this.drawerLoading = false;
+        
+        // 渲染空图表或实际数据
+        this.render30DayChart([]);
+        this.render10DayChart([]);
+        
         this.refreshLatestData();
         this.refreshAlarmData();
         
@@ -357,6 +367,112 @@ export default {
     handleDrawerClose() {
       clearInterval(this.drawerLatestTimer);
       clearInterval(this.drawerAlarmTimer);
+      if (this.chart30Day) {
+        this.chart30Day.dispose();
+        this.chart30Day = null;
+      }
+      if (this.chart10Day) {
+        this.chart10Day.dispose();
+        this.chart10Day = null;
+      }
+      window.removeEventListener('resize', this.handleResize);
+    },
+    
+    // 初始化图表实例
+    initCharts() {
+      const dom30 = document.getElementById('chart-30day');
+      const dom10 = document.getElementById('chart-10day');
+      if (dom30) this.chart30Day = echarts.init(dom30);
+      if (dom10) this.chart10Day = echarts.init(dom10);
+      
+      window.addEventListener('resize', this.handleResize);
+    },
+    
+    handleResize() {
+      if (this.chart30Day) this.chart30Day.resize();
+      if (this.chart10Day) this.chart10Day.resize();
+    },
+    
+    // 渲染 30 天图表
+    render30DayChart(dataList) {
+      if (!this.chart30Day) return;
+      
+      const option = {
+        title: {
+          show: dataList.length === 0,
+          text: '暂无数据',
+          left: 'center',
+          top: 'center',
+          textStyle: { color: '#909399', fontSize: 14, fontWeight: 'normal' }
+        },
+        tooltip: { trigger: 'axis' },
+        grid: { top: 30, right: 20, bottom: 30, left: 50 },
+        xAxis: {
+          type: 'category',
+          data: dataList.map(item => item.date || ''),
+          axisLine: { lineStyle: { color: '#DCDFE6' } },
+          axisLabel: { color: '#606266' }
+        },
+        yAxis: {
+          type: 'value',
+          axisLine: { show: false },
+          axisTick: { show: false },
+          splitLine: { lineStyle: { type: 'dashed', color: '#E4E7ED' } }
+        },
+        series: [
+          {
+            data: dataList.map(item => item.value || null),
+            type: 'line',
+            smooth: true,
+            itemStyle: { color: '#409EFF' },
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(64,158,255,0.3)' },
+                { offset: 1, color: 'rgba(64,158,255,0.05)' }
+              ])
+            }
+          }
+        ]
+      };
+      this.chart30Day.setOption(option, true);
+    },
+    
+    // 渲染 10 天图表
+    render10DayChart(dataList) {
+      if (!this.chart10Day) return;
+      
+      const option = {
+        title: {
+          show: dataList.length === 0,
+          text: '暂无数据',
+          left: 'center',
+          top: 'center',
+          textStyle: { color: '#909399', fontSize: 14, fontWeight: 'normal' }
+        },
+        tooltip: { trigger: 'axis' },
+        grid: { top: 30, right: 20, bottom: 30, left: 50 },
+        xAxis: {
+          type: 'category',
+          data: dataList.map(item => item.time || ''),
+          axisLine: { lineStyle: { color: '#DCDFE6' } },
+          axisLabel: { color: '#606266' }
+        },
+        yAxis: {
+          type: 'value',
+          axisLine: { show: false },
+          axisTick: { show: false },
+          splitLine: { lineStyle: { type: 'dashed', color: '#E4E7ED' } }
+        },
+        series: [
+          {
+            data: dataList.map(item => item.value || null),
+            type: 'bar',
+            itemStyle: { color: '#67C23A', borderRadius: [4, 4, 0, 0] },
+            barMaxWidth: 30
+          }
+        ]
+      };
+      this.chart10Day.setOption(option, true);
     },
     
     // 刷新最新数据
@@ -449,10 +565,16 @@ export default {
     .panel-header {
       padding: 16px 20px;
       border-bottom: 1px solid #ebeef5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       .title {
         font-size: 16px;
         font-weight: bold;
         color: #303133;
+      }
+      .search-bar {
+        width: 200px;
       }
     }
     
@@ -460,21 +582,12 @@ export default {
       flex: 1;
       overflow-y: auto;
       position: relative;
-      
-      .list-phantom {
-        position: absolute;
-        left: 0;
-        top: 0;
-        right: 0;
-        z-index: -1;
-      }
-      
-      .list-inner {
-        position: absolute;
-        left: 0;
-        top: 0;
-        right: 0;
-      }
+    }
+    
+    .pagination-container {
+      padding: 10px 20px;
+      border-top: 1px solid #ebeef5;
+      background-color: #fff;
     }
   }
   
@@ -653,18 +766,6 @@ export default {
     
     .chart-container {
       height: 250px;
-      
-      .placeholder-chart {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: #f0f2f5;
-        color: #909399;
-        border: 1px dashed #dcdfe6;
-        border-radius: 4px;
-      }
     }
     
     .value-highlight {
