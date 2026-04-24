@@ -190,7 +190,7 @@ export class QueryService {
     
     // 查询今日夜间最小流量
     const sqlToday = `
-      SELECT zone_code, MIN(total_val) as min_flow
+      SELECT zone_code, MIN(avg_val) as min_flow
       FROM water_iot.zone_meters_5m 
       WHERE metric_type = 'min_flow' 
         AND ts >= '${todayStart}' 
@@ -201,7 +201,7 @@ export class QueryService {
 
     // 查询昨日夜间最小流量
     const sqlYesterday = `
-      SELECT zone_code, MIN(total_val) as min_flow
+      SELECT zone_code, MIN(avg_val) as min_flow
       FROM water_iot.zone_meters_5m 
       WHERE metric_type = 'min_flow' 
         AND ts >= '${yesterdayStart}' 
@@ -298,7 +298,7 @@ export class QueryService {
     const sql = `
       SELECT _c0 as date, MIN(min_flow) as min_flow
       FROM (
-        SELECT DATE_TRUNC('1d', ts) as _c0, total_val as min_flow
+        SELECT DATE_TRUNC('1d', ts) as _c0, avg_val as min_flow
         FROM water_iot.zone_meters_5m 
         WHERE metric_type = 'min_flow' 
           AND CAST(ts AS TIME) >= CAST('${startStr}:00' AS TIME)
@@ -340,9 +340,9 @@ export class QueryService {
     const endTimeStr = today.format('YYYY-MM-DD');
 
     const sql = `
-      SELECT ts, total_val
+      SELECT ts, diff_val
       FROM water_iot.zone_meters_1h 
-      WHERE metric_type = 'cumulative_flow' 
+      WHERE metric_type = 'water_supply' 
         AND ts >= '${startTimeStr} 00:00:00' 
         AND ts <= '${endTimeStr} 23:59:59'
         AND zone_code = '${zoneCode}' 
