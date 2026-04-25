@@ -694,7 +694,6 @@ INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`
 (3021, '产销差日报表', 1108, 1, 'daily', 'dma/report/daily', 1, 0, 'C', '0', '0', 'dma:report:daily', 'calendar', 'admin', NOW(), '', NULL, '分区产销差日报表'),
 (3022, '产销差月报表', 1108, 2, 'monthly', 'dma/report/monthly', 1, 0, 'C', '0', '0', 'dma:report:monthly', 'date', 'admin', NOW(), '', NULL, '分区产销差月报表');
 
-
 COMMIT; -- 【系统管理模块 - 菜单表】
 
 -- ----------------------------
@@ -1289,6 +1288,7 @@ CREATE TABLE IF NOT EXISTS `water_data_task` (
   `query_sql_or_topic` TEXT NULL COMMENT '提取指令 (SQL/Topic/FilePath)',
   `auto_backfill` TINYINT NOT NULL DEFAULT 0 COMMENT '是否自动触发历史补录 (0-否 1-是)',
   `interpolation` VARCHAR(32) NULL COMMENT '插值策略',
+  `target_entity` VARCHAR(100) NULL COMMENT '目标实体表名或类别(如 sys_zone, sys_device, tdengine)',
   `status` CHAR(1) NOT NULL DEFAULT '0' COMMENT '任务状态 (0正常 1停用)',
   `del_flag` CHAR(1) NOT NULL DEFAULT '0' COMMENT '删除标志',
   `create_by` VARCHAR(64) NOT NULL DEFAULT '' COMMENT '创建者',
@@ -1322,8 +1322,3 @@ CREATE TABLE IF NOT EXISTS `water_data_mapping` (
 COMMIT; -- 【数据接入模块 - 字段映射规则表】
 
 SET FOREIGN_KEY_CHECKS = 1;-- 插入日报表和月报表的菜单
-INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES
-(3020, 'DMA业务', 0, 1, 'dma', '', 1, 0, 'M', '0', '0', '', 'data-analysis', 'admin', NOW(), '', NULL, 'DMA业务目录'),
-(3021, '产销差日报表', 3020, 1, 'daily', 'dma/report/daily', 1, 0, 'C', '0', '0', 'dma:report:daily', 'calendar', 'admin', NOW(), '', NULL, '分区产销差日报表'),
-(3022, '产销差月报表', 3020, 2, 'monthly', 'dma/report/monthly', 1, 0, 'C', '0', '0', 'dma:report:monthly', 'date', 'admin', NOW(), '', NULL, '分区产销差月报表');
-ALTER TABLE `water_data_task` ADD COLUMN `target_entity` varchar(100) NULL COMMENT '目标实体表名或类别(如 sys_zone, sys_device, tdengine)';
