@@ -4,6 +4,24 @@
       <el-col :span="1.5">
         <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['data-integration:task:add']">新增</el-button>
       </el-col>
+      <el-col :span="1.5">
+        <el-dropdown @command="handleTemplateAdd">
+          <el-button type="success" plain icon="DocumentCopy">
+            内置模板生成 <el-icon class="el-icon--right"><arrow-down /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="zone">分区 (Zone) 定时同步模板</el-dropdown-item>
+              <el-dropdown-item command="station">站点 (Station) 定时同步模板</el-dropdown-item>
+              <el-dropdown-item command="device">设备 (Device) 定时同步模板</el-dropdown-item>
+              <el-dropdown-item command="point">测点 (Point) 定时同步模板</el-dropdown-item>
+              <el-dropdown-item command="user">营收基础用户 定时同步模板</el-dropdown-item>
+              <el-dropdown-item divided command="scada">SCADA 时序数据 同步模板</el-dropdown-item>
+              <el-dropdown-item command="revenue">营收日度/月度水量 同步模板</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
@@ -45,12 +63,15 @@
         <el-form-item label="Cron表达式" prop="cronExpression" v-if="isTimingTask(form.sourceId)">
           <el-row :gutter="10" style="width: 100%">
             <el-col :span="8">
-              <el-select v-model="quickCron" placeholder="快捷选择" @change="val => form.cronExpression = val">
-                <el-option label="每 10 秒" value="0/10 * * * * ?" />
+              <el-select v-model="quickCron" placeholder="点击快速选择周期" @change="val => form.cronExpression = val">
                 <el-option label="每 1 分钟" value="0 * * * * ?" />
                 <el-option label="每 5 分钟" value="0 0/5 * * * ?" />
+                <el-option label="每 10 分钟" value="0 0/10 * * * ?" />
+                <el-option label="每半小时" value="0 0/30 * * * ?" />
                 <el-option label="每 1 小时" value="0 0 * * * ?" />
                 <el-option label="每天凌晨0点" value="0 0 0 * * ?" />
+                <el-option label="每天凌晨2点" value="0 0 2 * * ?" />
+                <el-option label="每月1号凌晨3点" value="0 0 3 1 * ?" />
               </el-select>
             </el-col>
             <el-col :span="16">
@@ -59,7 +80,10 @@
           </el-row>
         </el-form-item>
         <el-form-item :label="getQueryLabel(form.sourceId)" prop="querySqlOrTopic">
-          <el-input v-model="form.querySqlOrTopic" type="textarea" :placeholder="getQueryPlaceholder(form.sourceId)" />
+          <el-input v-model="form.querySqlOrTopic" type="textarea" :rows="3" :placeholder="getQueryPlaceholder(form.sourceId)" />
+          <div class="el-upload__tip text-warning" v-if="isTimingTask(form.sourceId) && (form.querySqlOrTopic && form.querySqlOrTopic.includes('?'))">
+            提示：在 SQL 语句中使用 <code>?</code> 代表上一次任务执行的增量时间戳（如: <code>UPDATE_TIME > ?</code>），引擎会自动替换并管理断点。
+          </div>
         </el-form-item>
         <el-form-item label="自动补录历史">
           <el-switch v-model="form.autoBackfill" active-text="开启" inactive-text="关闭" />
@@ -101,7 +125,9 @@
               <el-option label="设备编码 (deviceCode)" value="deviceCode" />
               <el-option label="测点编码 (pointCode)" value="pointCode" />
               <el-option label="监测数值 (value)" value="value" />
-              <el-option label="时间戳 (timestamp)" value="timestamp" />
+              <el-option label="时间戳 (timestamp/ts)" value="timestamp" />
+              <el-option label="营收用量 (total_volume)" value="val" />
+              <el-option label="账单月份 (bill_month)" value="bill_month" />
             </el-select>
           </template>
         </el-table-column>
@@ -301,8 +327,63 @@ function handleMapping(row) {
   currentTaskId.value = row.id;
   listMapping(row.id).then(response => {
     mappingList.value = response.data || [];
+    if (mappingList.value.length === 0) {
+      // 给出一些基础模板提示
+      mappingList.value = [
+        { sourceField: 'id', targetField: 'code' },
+        { sourceField: 'name', targetField: 'name' }
+      ];
+    }
     mappingOpen.value = true;
   });
+}
+
+function handleTemplateAdd(command) {
+  reset();
+  open.value = true;
+  title.value = '通过内置模板创建任务';
+  
+  // 假定通常模板都连接到某个特定的数据源（或者用户创建后自己选）
+  // 这里我们提供默认的数据结构和说明
+  
+  if (command === 'zone') {
+    form.name = '定时同步分区基础数据';
+    form.cronExpression = '0 0 2 * * ?'; // 每天凌晨2点
+    quickCron.value = '0 0 2 * * ?';
+    form.querySqlOrTopic = 'SELECT id, name, parent_id, sort, remark, update_time FROM sys_zone WHERE update_time > ?';
+  } else if (command === 'station') {
+    form.name = '定时同步站点基础数据';
+    form.cronExpression = '0 0 2 * * ?';
+    quickCron.value = '0 0 2 * * ?';
+    form.querySqlOrTopic = 'SELECT id, code, name, zone_code, type, lng, lat, update_time FROM sys_station WHERE update_time > ?';
+  } else if (command === 'device') {
+    form.name = '定时同步设备基础数据';
+    form.cronExpression = '0 0 2 * * ?';
+    quickCron.value = '0 0 2 * * ?';
+    form.querySqlOrTopic = 'SELECT id, code, name, station_code, type, status, expected_cycle, update_time FROM sys_device WHERE update_time > ?';
+  } else if (command === 'point') {
+    form.name = '定时同步测点(变量)数据';
+    form.cronExpression = '0 0 2 * * ?';
+    quickCron.value = '0 0 2 * * ?';
+    form.querySqlOrTopic = 'SELECT id, code, name, device_code, type, unit, expected_cycle, update_time FROM sys_point WHERE update_time > ?';
+  } else if (command === 'user') {
+    form.name = '定时同步营收用户档案';
+    form.cronExpression = '0 0 2 * * ?';
+    quickCron.value = '0 0 2 * * ?';
+    form.querySqlOrTopic = 'SELECT user_no, user_name, zone_code, address, status, meter_no, install_date, update_time FROM third_revenue_user WHERE update_time > ?';
+  } else if (command === 'scada') {
+    form.name = 'SCADA 实时时序数据接入';
+    form.cronExpression = '0 * * * * ?'; // 每分钟
+    quickCron.value = '0 * * * * ?';
+    form.querySqlOrTopic = 'SELECT device_code, point_code, val, ts FROM third_scada_history WHERE ts > ?';
+    form.autoBackfill = true;
+    form.interpolation = true;
+  } else if (command === 'revenue') {
+    form.name = '营收水量账单定时抽取';
+    form.cronExpression = '0 0 3 1 * ?'; // 每月1号凌晨3点
+    quickCron.value = '0 0 3 1 * ?';
+    form.querySqlOrTopic = 'SELECT user_no, zone_code, total_volume as val, bill_month as ts FROM third_revenue_bill WHERE bill_month > ?';
+  }
 }
 
 function addMappingRow() {
