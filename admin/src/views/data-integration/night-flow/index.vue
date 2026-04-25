@@ -76,13 +76,16 @@
     </div>
     
     <div class="right-panel">
-      <!-- 暂时用作地图占位 -->
-      <div class="map-placeholder">
-        <div class="map-content">
-          <el-icon style="font-size: 48px; color: #909399; margin-bottom: 16px;"><LocationInformation /></el-icon>
-          <h2>GIS 地图区域</h2>
-          <p v-if="activeZone">当前定位分区: <strong>{{ activeZone.zoneName }}</strong></p>
-          <p v-else>请点击左侧分区列表定位</p>
+      <div class="map-container" ref="mapContainer" style="width: 100%; height: 100%;">
+        <!-- 默认提示遮罩，当未初始化地图时显示 -->
+        <div class="map-placeholder" v-if="!mapInstance">
+          <div class="map-content">
+            <el-icon style="font-size: 48px; color: #909399; margin-bottom: 16px;"><LocationInformation /></el-icon>
+            <h2>GIS 地图区域</h2>
+            <p v-if="activeZone">当前定位分区: <strong>{{ activeZone.zoneName }}</strong></p>
+            <p v-else>请点击左侧分区列表定位</p>
+            <p v-if="!amapKey" style="color:#F56C6C; margin-top: 10px; font-size: 12px;">（需在系统参数中配置高德地图Key）</p>
+          </div>
         </div>
       </div>
     </div>
@@ -166,484 +169,531 @@
   </div>
 </template>
 
-<script>
+<script setup name="ZoneNightFlow">
+import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { Search, LocationInformation, Setting, FullScreen } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { listZoneTree, lazyZoneChildren } from '@/api/water-basic/zone'
+import { getConfigKey } from '@/api/system/config'
 import * as echarts from 'echarts'
+import AMapLoader from '@amap/amap-jsapi-loader'
 
-export default {
-  name: 'ZoneNightFlow',
-  data() {
-    return {
-      // 树形列表展平后的全部数据
-      flatData: [],
-      renderData: [],
-      
-      searchQuery: '',
-      itemHeight: 88,
-      visibleCount: 18,
-      startIndex: 0,
-      
-      // 定时器
-      mainTimer: null,
-      drawerLatestTimer: null,
-      drawerAlarmTimer: null,
-      
-      // 交互状态
-      activeZone: null,
-      drawerVisible: false,
-      drawerLoading: false,
-      
-      // 抽屉图表实例
-      chart30Day: null,
-      chart10Day: null,
-      
-      // 抽屉数据
-      latestDataList: [],
-      alarmList: []
+// 树形列表展平后的全部数据
+const flatData = ref([])
+const renderData = ref([])
+
+const searchQuery = ref('')
+const itemHeight = 88
+const visibleCount = 18
+const startIndex = ref(0)
+
+// 定时器
+let mainTimer = null
+let drawerLatestTimer = null
+let drawerAlarmTimer = null
+let scrollTimeout = null
+
+// 交互状态
+const activeZone = ref(null)
+const drawerVisible = ref(false)
+const drawerLoading = ref(false)
+
+// 抽屉图表实例
+let chart30Day = null
+let chart10Day = null
+
+// 抽屉数据
+const latestDataList = ref([])
+const alarmList = ref([])
+
+// DOM 引用
+const listContainer = ref(null)
+
+// 地图相关
+const amapKey = ref('')
+const mapInstance = ref(null)
+const mapContainer = ref(null)
+let markers = []
+let currentPolygon = null
+
+const totalHeight = computed(() => renderData.value.length * itemHeight)
+const offsetTop = computed(() => {
+  const start = Math.max(0, startIndex.value - 5)
+  return start * itemHeight
+})
+const visibleData = computed(() => {
+  const start = Math.max(0, startIndex.value - 5)
+  const end = Math.min(renderData.value.length, startIndex.value + visibleCount + 5)
+  return renderData.value.slice(start, end)
+})
+const drawerTitle = computed(() => activeZone.value ? `分区详情 - ${activeZone.value.zoneName}` : '分区详情')
+
+onMounted(async () => {
+  await initMapKey()
+  initData()
+})
+
+onBeforeUnmount(() => {
+  clearAllTimers()
+  if (chart30Day) chart30Day.dispose()
+  if (chart10Day) chart10Day.dispose()
+  if (mapInstance.value) mapInstance.value.destroy()
+  window.removeEventListener('resize', handleResize)
+})
+
+async function initMapKey() {
+  try {
+    const res = await getConfigKey('gis.map.amap.key')
+    if (res.code === 200 && res.msg) {
+      amapKey.value = res.msg
+      initAMap()
     }
-  },
-  computed: {
-    totalHeight() {
-      return this.renderData.length * this.itemHeight;
-    },
-    offsetTop() {
-      const start = Math.max(0, this.startIndex - 5);
-      return start * this.itemHeight;
-    },
-    visibleData() {
-      const start = Math.max(0, this.startIndex - 5);
-      const end = Math.min(this.renderData.length, this.startIndex + this.visibleCount + 5);
-      return this.renderData.slice(start, end);
-    },
-    drawerTitle() {
-      return this.activeZone ? `分区详情 - ${this.activeZone.zoneName}` : '分区详情';
+  } catch (error) {
+    console.error('获取高德地图Key失败', error)
+  }
+}
+
+function initAMap() {
+  if (!amapKey.value) return
+  
+  // 设置安全密钥 (假设系统未配置代理，使用最简单的明文方式，生产环境建议走代理)
+  window._AMapSecurityConfig = {
+    securityJsCode: 'c05a109ecf00a4d3a242f36f45cc315a', // 这是一个示例安全密钥，实际生产不应暴露
+  }
+
+  AMapLoader.load({
+    key: amapKey.value,
+    version: '2.0',
+    plugins: ['AMap.Polygon', 'AMap.Marker']
+  }).then((AMap) => {
+    mapInstance.value = new AMap.Map(mapContainer.value, {
+      viewMode: '2D',
+      zoom: 11,
+      center: [118.6, 24.9], // 默认福建泉州附近
+      mapStyle: 'amap://styles/light' // 使用浅色主题更搭管理后台
+    })
+  }).catch(e => {
+    console.error('高德地图加载失败', e)
+  })
+}
+
+// 在地图上绘制分区边界或打点
+function renderZoneOnMap(zone) {
+  if (!mapInstance.value || !zone) return
+  
+  const AMap = window.AMap
+  if (!AMap) return
+
+  // 清除旧的图形
+  if (currentPolygon) {
+    mapInstance.value.remove(currentPolygon)
+    currentPolygon = null
+  }
+  markers.forEach(m => mapInstance.value.remove(m))
+  markers = []
+
+  // 模拟：实际生产环境应该从 zone 数据中读取 coordinates/geojson
+  // 这里我们生成一个基于中心点的虚拟多边形或标记
+  const lng = zone.lng || (118.6 + (Math.random() - 0.5) * 0.1)
+  const lat = zone.lat || (24.9 + (Math.random() - 0.5) * 0.1)
+  
+  // 添加中心点标记
+  const marker = new AMap.Marker({
+    position: [lng, lat],
+    title: zone.zoneName
+  })
+  mapInstance.value.add(marker)
+  markers.push(marker)
+
+  // 平滑缩放定位
+  mapInstance.value.setZoomAndCenter(14, [lng, lat], false, 1000)
+}
+
+async function initData() {
+  try {
+    const res = await listZoneTree({ name: searchQuery.value || undefined })
+    if (res.code === 200 && res.data) {
+      flatData.value = flattenTree(res.data, 1)
+      updateRenderData()
+      
+      nextTick(() => {
+        if (listContainer.value) listContainer.value.scrollTop = 0
+        startIndex.value = 0
+        fetchVisibleData()
+      })
+      
+      clearInterval(mainTimer)
+      mainTimer = setInterval(() => {
+        fetchVisibleData()
+      }, 5 * 60 * 1000)
     }
-  },
-  created() {
-    this.initData();
-  },
-  beforeDestroy() {
-    this.clearAllTimers();
-    if (this.chart30Day) this.chart30Day.dispose();
-    if (this.chart10Day) this.chart10Day.dispose();
-    window.removeEventListener('resize', this.handleResize);
-  },
-  methods: {
-    async initData() {
-      // 1. 获取分区的树形结构 (默认无搜索词时返回顶级)
-      try {
-        const res = await listZoneTree({ name: this.searchQuery || undefined });
-        if (res.code === 200 && res.data) {
-          // 2. 将树形结构拍平
-          this.flatData = this.flattenTree(res.data, 1);
-          this.updateRenderData();
-          
-          // 3. 加载首屏的数据
-          this.$nextTick(() => {
-            if (this.$refs.listContainer) this.$refs.listContainer.scrollTop = 0;
-            this.startIndex = 0;
-            this.fetchVisibleData();
-          });
-          
-          // 4. 开启主列表的 5 分钟定时刷新
-          clearInterval(this.mainTimer);
-          this.mainTimer = setInterval(() => {
-            this.fetchVisibleData();
-          }, 5 * 60 * 1000);
-        }
-      } catch (error) {
-        console.error('获取分区树失败', error);
-      }
-    },
-    
-    // 拍平树形结构
-    flattenTree(tree, level) {
-      let result = [];
-      tree.forEach(node => {
-        const hasChildren = node.hasChildren || (node.children && node.children.length > 0);
-        
-        // 保留可能已有的状态
-        const existingNode = this.flatData ? this.flatData.find(item => item.zoneCode === node.code) : null;
-        
-        const item = {
-          ...node,
-          zoneCode: node.code,
-          zoneName: node.name,
-          level,
-          hasChildren: hasChildren,
-          expanded: existingNode ? existingNode.expanded : (level <= 2),
-          loadedChildren: existingNode ? existingNode.loadedChildren : !!(node.children && node.children.length > 0),
-          // 初始指标数据为空
-          todayVal: existingNode ? existingNode.todayVal : null,
-          yesterdayVal: existingNode ? existingNode.yesterdayVal : null,
-          diffVal: existingNode ? existingNode.diffVal : null,
-          ratio: existingNode ? existingNode.ratio : null
-        };
-        result.push(item);
-        if (node.children && node.children.length > 0) {
-          result = result.concat(this.flattenTree(node.children, level + 1));
-        }
-      });
-      return result;
-    },
-    
-    handleSearch() {
-      // 搜索时重置为全新的扁平列表
-      this.flatData = [];
-      this.initData();
-    },
-    
-    updateRenderData() {
-      const renderList = [];
-      let skipLevel = -1;
-      for (const item of this.flatData) {
-        if (skipLevel !== -1 && item.level > skipLevel) {
-          continue;
-        } else {
-          skipLevel = -1;
-        }
-        
-        renderList.push(item);
-        if (item.hasChildren && !item.expanded) {
-          skipLevel = item.level;
-        }
-      }
-      this.renderData = renderList;
-    },
+  } catch (error) {
+    console.error('获取分区树失败', error)
+  }
+}
 
-    handleScroll() {
-      if (!this.$refs.listContainer) return;
-      const scrollTop = this.$refs.listContainer.scrollTop;
-      this.startIndex = Math.floor(scrollTop / this.itemHeight);
+function flattenTree(tree, level) {
+  let result = []
+  tree.forEach(node => {
+    const hasChildren = node.hasChildren || (node.children && node.children.length > 0)
+    const existingNode = flatData.value.find(item => item.zoneCode === node.code)
+    
+    const item = {
+      ...node,
+      zoneCode: node.code,
+      zoneName: node.name,
+      level,
+      hasChildren,
+      expanded: existingNode ? existingNode.expanded : (level <= 2),
+      loadedChildren: existingNode ? existingNode.loadedChildren : !!(node.children && node.children.length > 0),
+      todayVal: existingNode ? existingNode.todayVal : null,
+      yesterdayVal: existingNode ? existingNode.yesterdayVal : null,
+      diffVal: existingNode ? existingNode.diffVal : null,
+      ratio: existingNode ? existingNode.ratio : null,
+      isFocus: existingNode ? existingNode.isFocus : false
+    }
+    result.push(item)
+    if (node.children && node.children.length > 0) {
+      result = result.concat(flattenTree(node.children, level + 1))
+    }
+  })
+  return result
+}
 
-      clearTimeout(this.scrollTimeout);
-      this.scrollTimeout = setTimeout(() => {
-        this.fetchVisibleData();
-      }, 120);
-    },
+function handleSearch() {
+  flatData.value = []
+  initData()
+}
 
-    async fetchVisibleData() {
-      const currentVisible = this.visibleData;
-      if (currentVisible.length === 0) return;
-      
-      const zoneCodes = currentVisible.map(item => item.zoneCode).join(',');
-      
-      try {
-        const res = await request({
-          url: '/data-integration/query/zone-night-flow/batch',
-          method: 'get',
-          params: { zoneCodes }
-        });
-        
-        if (res.code === 200 && res.data) {
-          // 将结果合并回 flatData
-          res.data.forEach(flowData => {
-            const target = this.flatData.find(item => item.zoneCode === flowData.zoneCode);
-            if (target) {
-              target.todayVal = flowData.todayVal;
-              target.yesterdayVal = flowData.yesterdayVal;
-              target.diffVal = flowData.diffVal;
-              target.ratio = flowData.ratio;
-            }
-          });
-        }
-      } catch (error) {
-        console.error('获取分区流量数据失败', error);
-      }
-    },
-
-    async toggleExpand(item) {
-      if (!item.expanded && item.hasChildren && !item.loadedChildren) {
-        // 需要懒加载子节点
-        try {
-          const res = await lazyZoneChildren(item.zoneCode, { name: this.searchQuery || undefined });
-          if (res.code === 200 && res.data) {
-            const newChildren = this.flattenTree(res.data, item.level + 1);
-            
-            // 找到 item 在 flatData 中的索引并插入
-            const index = this.flatData.findIndex(i => i.zoneCode === item.zoneCode);
-            if (index !== -1) {
-              this.flatData.splice(index + 1, 0, ...newChildren);
-            }
-            
-            item.loadedChildren = true;
-          }
-        } catch (error) {
-          console.error('懒加载子节点失败', error);
-        }
-      }
-      
-      item.expanded = !item.expanded;
-      this.updateRenderData();
-      this.$nextTick(() => {
-        this.fetchVisibleData();
-      });
-    },
+function updateRenderData() {
+  const renderList = []
+  let skipLevel = -1
+  for (const item of flatData.value) {
+    if (skipLevel !== -1 && item.level > skipLevel) {
+      continue
+    } else {
+      skipLevel = -1
+    }
     
-    // 点击卡片本身触发展开/折叠
-    handleRowClick(item) {
-      this.activeZone = item;
-      this.flatData.forEach(i => { i.isFocus = false; });
-      item.isFocus = true;
-      
-      if (item.hasChildren) {
-        this.toggleExpand(item);
-      }
-    },
-    
-    // 点击详情按钮打开抽屉
-    openDrawer(item) {
-      this.activeZone = item;
-      this.flatData.forEach(i => { i.isFocus = false; });
-      item.isFocus = true;
-      this.drawerVisible = true;
-    },
-    
-    // 抽屉打开
-    handleDrawerOpen() {
-      this.drawerLoading = true;
-    },
-    
-    // 抽屉动画结束，此时 DOM 完全可见且宽度正确
-    handleDrawerOpened() {
-      this.initCharts();
-      
-      this.fetchChartData();
-      this.refreshLatestData();
-      this.refreshAlarmData();
-      
-      // 开启抽屉内的定时刷新
-      this.drawerLatestTimer = setInterval(this.refreshLatestData, 30 * 1000); // 30秒
-      this.drawerAlarmTimer = setInterval(this.refreshAlarmData, 15 * 1000); // 15秒
-    },
-    
-    // 获取图表数据
-    async fetchChartData() {
-      if (!this.activeZone || !this.activeZone.zoneCode) {
-        this.drawerLoading = false;
-        return;
-      }
-      
-      try {
-        const [res30Day, res10Day] = await Promise.all([
-          request({
-            url: '/data-integration/query/zone-night-flow/trend',
-            method: 'get',
-            params: { zoneCode: this.activeZone.zoneCode }
-          }),
-          request({
-            url: '/data-integration/query/zone-hourly/trend',
-            method: 'get',
-            params: { zoneCode: this.activeZone.zoneCode }
-          })
-        ]);
-        
-        if (res30Day.code === 200 && res30Day.data) {
-          this.render30DayChart(res30Day.data);
-        } else {
-          this.render30DayChart([]);
-        }
-        
-        if (res10Day.code === 200 && res10Day.data) {
-          this.render10DayChart(res10Day.data);
-        } else {
-          this.render10DayChart([]);
-        }
-      } catch (error) {
-        console.error('获取图表数据失败', error);
-        this.render30DayChart([]);
-        this.render10DayChart([]);
-      } finally {
-        this.drawerLoading = false;
-      }
-    },
-    
-    // 抽屉关闭
-    handleDrawerClose() {
-      clearInterval(this.drawerLatestTimer);
-      clearInterval(this.drawerAlarmTimer);
-      if (this.chart30Day) {
-        this.chart30Day.dispose();
-        this.chart30Day = null;
-      }
-      if (this.chart10Day) {
-        this.chart10Day.dispose();
-        this.chart10Day = null;
-      }
-      window.removeEventListener('resize', this.handleResize);
-    },
-    
-    // 初始化图表实例
-    initCharts() {
-      const dom30 = document.getElementById('chart-30day');
-      const dom10 = document.getElementById('chart-10day');
-      if (dom30) this.chart30Day = echarts.init(dom30);
-      if (dom10) this.chart10Day = echarts.init(dom10);
-      
-      window.addEventListener('resize', this.handleResize);
-    },
-    
-    handleResize() {
-      if (this.chart30Day) this.chart30Day.resize();
-      if (this.chart10Day) this.chart10Day.resize();
-    },
-    
-    // 渲染 30 天图表
-    render30DayChart(dataList) {
-      if (!this.chart30Day) return;
-      
-      const option = {
-        title: {
-          show: dataList.length === 0,
-          text: '暂无数据',
-          left: 'center',
-          top: 'center',
-          textStyle: { color: '#909399', fontSize: 14, fontWeight: 'normal' }
-        },
-        tooltip: { 
-          trigger: 'axis',
-          axisPointer: { type: 'line' }
-        },
-        grid: { top: 30, right: 20, bottom: 30, left: 50 },
-        xAxis: {
-          type: 'category',
-          data: dataList.map(item => item.date || ''),
-          axisLine: { lineStyle: { color: '#DCDFE6' } },
-          axisLabel: { color: '#606266' }
-        },
-        yAxis: {
-          type: 'value',
-          axisLine: { show: false },
-          axisTick: { show: false },
-          splitLine: { lineStyle: { type: 'dashed', color: '#E4E7ED' } }
-        },
-        series: [
-          {
-            name: '夜间最小流量',
-            data: dataList.map(item => item.value !== null ? item.value : 0),
-            type: 'line',
-            smooth: true,
-            itemStyle: { color: '#409EFF' },
-            areaStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: 'rgba(64,158,255,0.3)' },
-                { offset: 1, color: 'rgba(64,158,255,0.05)' }
-              ])
-            }
-          }
-        ]
-      };
-      this.chart30Day.setOption(option, true);
-    },
-    
-    // 渲染 10 天图表
-    render10DayChart(dataList) {
-      if (!this.chart10Day) return;
-      
-      const option = {
-        title: {
-          show: dataList.length === 0,
-          text: '暂无数据',
-          left: 'center',
-          top: 'center',
-          textStyle: { color: '#909399', fontSize: 14, fontWeight: 'normal' }
-        },
-        tooltip: { 
-          trigger: 'axis',
-          axisPointer: { type: 'shadow' }
-        },
-        grid: { top: 30, right: 20, bottom: 30, left: 50 },
-        xAxis: {
-          type: 'category',
-          data: dataList.map(item => item.time || ''),
-          axisLine: { lineStyle: { color: '#DCDFE6' } },
-          axisLabel: { color: '#606266' }
-        },
-        yAxis: {
-          type: 'value',
-          axisLine: { show: false },
-          axisTick: { show: false },
-          splitLine: { lineStyle: { type: 'dashed', color: '#E4E7ED' } }
-        },
-        series: [
-          {
-            name: '供水量',
-            data: dataList.map(item => item.value !== null ? item.value : 0),
-            type: 'bar',
-            itemStyle: { color: '#67C23A', borderRadius: [4, 4, 0, 0] },
-            barMaxWidth: 30
-          }
-        ]
-      };
-      this.chart10Day.setOption(option, true);
-    },
-    
-    // 刷新最新数据
-    async refreshLatestData() {
-      if (!this.activeZone || !this.activeZone.zoneCode) return;
-      try {
-        const res = await request({
-          url: '/data-integration/query/zone-points/latest',
-          method: 'get',
-          params: { zoneCode: this.activeZone.zoneCode }
-        });
-        if (res.code === 200 && res.data) {
-          this.latestDataList = res.data;
-        } else {
-          this.latestDataList = [];
-        }
-      } catch (error) {
-        console.error('获取测点最新数据失败', error);
-        this.latestDataList = [];
-      }
-    },
-    
-    // 刷新报警数据
-    async refreshAlarmData() {
-      if (!this.activeZone || !this.activeZone.zoneCode) return;
-      try {
-        const res = await request({
-          url: '/data-integration/query/zone-alarms',
-          method: 'get',
-          params: { zoneCode: this.activeZone.zoneCode }
-        });
-        if (res.code === 200 && res.data) {
-          this.alarmList = res.data;
-        } else {
-          this.alarmList = [];
-        }
-      } catch (error) {
-        console.error('获取报警数据失败', error);
-        this.alarmList = [];
-      }
-    },
-    
-    // 清除所有定时器
-    clearAllTimers() {
-      clearInterval(this.mainTimer);
-      clearInterval(this.drawerLatestTimer);
-      clearInterval(this.drawerAlarmTimer);
-      clearTimeout(this.scrollTimeout);
-    },
-    
-    // 格式化展示
-    formatVal(val) {
-      return val !== null && val !== undefined ? val : '--';
-    },
-    
-    // 趋势颜色
-    getTrendClass(val) {
-      if (val === null || val === undefined || val === 0) return '';
-      return val > 0 ? 'trend-up' : 'trend-down';
-    },
-    
-    // 趋势图标
-    getTrendIcon(val) {
-      if (val === null || val === undefined || val === 0) return '';
-      return val > 0 ? 'el-icon-top' : 'el-icon-bottom';
+    renderList.push(item)
+    if (item.hasChildren && !item.expanded) {
+      skipLevel = item.level
     }
   }
+  renderData.value = renderList
+}
+
+function handleScroll() {
+  if (!listContainer.value) return
+  const scrollTop = listContainer.value.scrollTop
+  startIndex.value = Math.floor(scrollTop / itemHeight)
+
+  clearTimeout(scrollTimeout)
+  scrollTimeout = setTimeout(() => {
+    fetchVisibleData()
+  }, 120)
+}
+
+async function fetchVisibleData() {
+  const currentVisible = visibleData.value
+  if (currentVisible.length === 0) return
+  
+  const zoneCodes = currentVisible.map(item => item.zoneCode).join(',')
+  
+  try {
+    const res = await request({
+      url: '/data-integration/query/zone-night-flow/batch',
+      method: 'get',
+      params: { zoneCodes }
+    })
+    
+    if (res.code === 200 && res.data) {
+      res.data.forEach(flowData => {
+        const target = flatData.value.find(item => item.zoneCode === flowData.zoneCode)
+        if (target) {
+          target.todayVal = flowData.todayVal
+          target.yesterdayVal = flowData.yesterdayVal
+          target.diffVal = flowData.diffVal
+          target.ratio = flowData.ratio
+        }
+      })
+    }
+  } catch (error) {
+    console.error('获取分区流量数据失败', error)
+  }
+}
+
+async function toggleExpand(item) {
+  if (!item.expanded && item.hasChildren && !item.loadedChildren) {
+    try {
+      const res = await lazyZoneChildren(item.zoneCode, { name: searchQuery.value || undefined })
+      if (res.code === 200 && res.data) {
+        const newChildren = flattenTree(res.data, item.level + 1)
+        const index = flatData.value.findIndex(i => i.zoneCode === item.zoneCode)
+        if (index !== -1) {
+          flatData.value.splice(index + 1, 0, ...newChildren)
+        }
+        item.loadedChildren = true
+      }
+    } catch (error) {
+      console.error('懒加载子节点失败', error)
+    }
+  }
+  
+  item.expanded = !item.expanded
+  updateRenderData()
+  nextTick(() => {
+    fetchVisibleData()
+  })
+}
+
+function handleRowClick(item) {
+  activeZone.value = item
+  flatData.value.forEach(i => { i.isFocus = false })
+  item.isFocus = true
+  
+  if (item.hasChildren) {
+    toggleExpand(item)
+  }
+  
+  // 联动地图定位
+  renderZoneOnMap(item)
+}
+
+function openDrawer(item) {
+  activeZone.value = item
+  flatData.value.forEach(i => { i.isFocus = false })
+  item.isFocus = true
+  drawerVisible.value = true
+}
+
+function handleDrawerOpen() {
+  drawerLoading.value = true
+}
+
+function handleDrawerOpened() {
+  initCharts()
+  fetchChartData()
+  refreshLatestData()
+  refreshAlarmData()
+  
+  drawerLatestTimer = setInterval(refreshLatestData, 30 * 1000)
+  drawerAlarmTimer = setInterval(refreshAlarmData, 15 * 1000)
+}
+
+async function fetchChartData() {
+  if (!activeZone.value || !activeZone.value.zoneCode) {
+    drawerLoading.value = false
+    return
+  }
+  
+  try {
+    const [res30Day, res10Day] = await Promise.all([
+      request({
+        url: '/data-integration/query/zone-night-flow/trend',
+        method: 'get',
+        params: { zoneCode: activeZone.value.zoneCode }
+      }),
+      request({
+        url: '/data-integration/query/zone-hourly/trend',
+        method: 'get',
+        params: { zoneCode: activeZone.value.zoneCode }
+      })
+    ])
+    
+    if (res30Day.code === 200 && res30Day.data) {
+      render30DayChart(res30Day.data)
+    } else {
+      render30DayChart([])
+    }
+    
+    if (res10Day.code === 200 && res10Day.data) {
+      render10DayChart(res10Day.data)
+    } else {
+      render10DayChart([])
+    }
+  } catch (error) {
+    console.error('获取图表数据失败', error)
+    render30DayChart([])
+    render10DayChart([])
+  } finally {
+    drawerLoading.value = false
+  }
+}
+
+function handleDrawerClose() {
+  clearInterval(drawerLatestTimer)
+  clearInterval(drawerAlarmTimer)
+  if (chart30Day) {
+    chart30Day.dispose()
+    chart30Day = null
+  }
+  if (chart10Day) {
+    chart10Day.dispose()
+    chart10Day = null
+  }
+  window.removeEventListener('resize', handleResize)
+}
+
+function initCharts() {
+  const dom30 = document.getElementById('chart-30day')
+  const dom10 = document.getElementById('chart-10day')
+  if (dom30) chart30Day = echarts.init(dom30)
+  if (dom10) chart10Day = echarts.init(dom10)
+  
+  window.addEventListener('resize', handleResize)
+}
+
+function handleResize() {
+  if (chart30Day) chart30Day.resize()
+  if (chart10Day) chart10Day.resize()
+}
+
+function render30DayChart(dataList) {
+  if (!chart30Day) return
+  
+  const option = {
+    title: {
+      show: dataList.length === 0,
+      text: '暂无数据',
+      left: 'center',
+      top: 'center',
+      textStyle: { color: '#909399', fontSize: 14, fontWeight: 'normal' }
+    },
+    tooltip: { 
+      trigger: 'axis',
+      axisPointer: { type: 'line' }
+    },
+    grid: { top: 30, right: 20, bottom: 30, left: 50 },
+    xAxis: {
+      type: 'category',
+      data: dataList.map(item => item.date || ''),
+      axisLine: { lineStyle: { color: '#DCDFE6' } },
+      axisLabel: { color: '#606266' }
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: { lineStyle: { type: 'dashed', color: '#E4E7ED' } }
+    },
+    series: [
+      {
+        name: '夜间最小流量',
+        data: dataList.map(item => item.value !== null ? item.value : 0),
+        type: 'line',
+        smooth: true,
+        itemStyle: { color: '#409EFF' },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(64,158,255,0.3)' },
+            { offset: 1, color: 'rgba(64,158,255,0.05)' }
+          ])
+        }
+      }
+    ]
+  }
+  chart30Day.setOption(option, true)
+}
+
+function render10DayChart(dataList) {
+  if (!chart10Day) return
+  
+  const option = {
+    title: {
+      show: dataList.length === 0,
+      text: '暂无数据',
+      left: 'center',
+      top: 'center',
+      textStyle: { color: '#909399', fontSize: 14, fontWeight: 'normal' }
+    },
+    tooltip: { 
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' }
+    },
+    grid: { top: 30, right: 20, bottom: 30, left: 50 },
+    xAxis: {
+      type: 'category',
+      data: dataList.map(item => item.time || ''),
+      axisLine: { lineStyle: { color: '#DCDFE6' } },
+      axisLabel: { color: '#606266' }
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: { lineStyle: { type: 'dashed', color: '#E4E7ED' } }
+    },
+    series: [
+      {
+        name: '供水量',
+        data: dataList.map(item => item.value !== null ? item.value : 0),
+        type: 'bar',
+        itemStyle: { color: '#67C23A', borderRadius: [4, 4, 0, 0] },
+        barMaxWidth: 30
+      }
+    ]
+  }
+  chart10Day.setOption(option, true)
+}
+
+async function refreshLatestData() {
+  if (!activeZone.value || !activeZone.value.zoneCode) return
+  try {
+    const res = await request({
+      url: '/data-integration/query/zone-points/latest',
+      method: 'get',
+      params: { zoneCode: activeZone.value.zoneCode }
+    })
+    if (res.code === 200 && res.data) {
+      latestDataList.value = res.data
+    } else {
+      latestDataList.value = []
+    }
+  } catch (error) {
+    console.error('获取测点最新数据失败', error)
+    latestDataList.value = []
+  }
+}
+
+async function refreshAlarmData() {
+  if (!activeZone.value || !activeZone.value.zoneCode) return
+  try {
+    const res = await request({
+      url: '/data-integration/query/zone-alarms',
+      method: 'get',
+      params: { zoneCode: activeZone.value.zoneCode }
+    })
+    if (res.code === 200 && res.data) {
+      alarmList.value = res.data
+    } else {
+      alarmList.value = []
+    }
+  } catch (error) {
+    console.error('获取报警数据失败', error)
+    alarmList.value = []
+  }
+}
+
+function clearAllTimers() {
+  clearInterval(mainTimer)
+  clearInterval(drawerLatestTimer)
+  clearInterval(drawerAlarmTimer)
+  clearTimeout(scrollTimeout)
+}
+
+function formatVal(val) {
+  return val !== null && val !== undefined ? val : '--'
+}
+
+function getTrendClass(val) {
+  if (val === null || val === undefined || val === 0) return ''
+  return val > 0 ? 'trend-up' : 'trend-down'
+}
+
+function getTrendIcon(val) {
+  if (val === null || val === undefined || val === 0) return ''
+  return val > 0 ? 'el-icon-top' : 'el-icon-bottom'
 }
 </script>
 
@@ -711,13 +761,21 @@ export default {
     position: relative;
     background: #e4e7ed;
     
-    .map-placeholder {
+    .map-container {
       width: 100%;
       height: 100%;
+      position: relative;
+      background-color: #e5e3df; /* 高德地图加载前的底色 */
+    }
+    
+    .map-placeholder {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
       display: flex;
       align-items: center;
       justify-content: center;
       background: radial-gradient(circle at center, #f5f7fa 0%, #e4e7ed 100%);
+      z-index: 10;
       
       .map-content {
         text-align: center;
@@ -726,6 +784,40 @@ export default {
         background: rgba(255, 255, 255, 0.8);
         border-radius: 8px;
         box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+      }
+    }
+    
+    /* 添加地图悬浮操作面板 */
+    .map-toolbar {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      z-index: 99;
+      display: flex;
+      gap: 10px;
+      
+      .tool-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 4px;
+        border: 1px solid #dcdfe6;
+        cursor: pointer;
+        color: #606266;
+        background: white;
+        transition: all 0.3s;
+        
+        &:hover {
+          color: #409eff;
+          border-color: #c6e2ff;
+          background-color: #ecf5ff;
+        }
       }
     }
   }
