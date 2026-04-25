@@ -23,9 +23,14 @@
         <system-config-form v-if="activeTab === 'system'" />
       </el-tab-pane>
 
-      <el-tab-pane name="mail_sms">
-        <template #label><div class="tab-label"><el-icon><Message /></el-icon><span>邮件/短信</span></div></template>
-        <placeholder-module icon="Message" title="邮件与短信配置" description="集成 SMTP 发信账号与第三方短信网关服务。" buttonText="保存配置" />
+      <el-tab-pane name="dma">
+        <template #label><div class="tab-label"><el-icon><DataAnalysis /></el-icon><span>DMA业务配置</span></div></template>
+        <dma-config-form v-if="activeTab === 'dma'" />
+      </el-tab-pane>
+
+      <el-tab-pane name="gis">
+        <template #label><div class="tab-label"><el-icon><MapLocation /></el-icon><span>GIS地图配置</span></div></template>
+        <gis-config-form v-if="activeTab === 'gis'" />
       </el-tab-pane>
 
       <el-tab-pane name="storage">
@@ -52,11 +57,13 @@
 import { ref, reactive, toRefs, getCurrentInstance } from 'vue'
 import { delConfig, addConfig, updateConfig, refreshCache } from '@/api/system/config'
 import SystemConfigForm from './components/SystemConfigForm.vue'
+import DmaConfigForm from './components/DmaConfigForm.vue'
+import GisConfigForm from './components/GisConfigForm.vue'
 import StorageConfigForm from './components/StorageConfigForm.vue'
 import BackupModule from './components/BackupModule.vue'
 import ConfigList from './components/ConfigList.vue'
-import PlaceholderModule from './components/PlaceholderModule.vue'
 import ConfigDialog from './components/ConfigDialog.vue'
+import { DataAnalysis, MapLocation } from '@element-plus/icons-vue'
 
 const { proxy } = getCurrentInstance()
 const { sys_yes_no } = proxy.useDict('sys_yes_no')
