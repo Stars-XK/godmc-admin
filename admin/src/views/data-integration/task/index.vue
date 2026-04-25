@@ -468,6 +468,8 @@ onMounted(() => {
   loadSources();
   getList();
 });
+</script>
+
 <style lang="scss" scoped>
 .app-container {
   padding: 24px;
