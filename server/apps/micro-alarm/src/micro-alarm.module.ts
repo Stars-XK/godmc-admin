@@ -15,6 +15,7 @@ import { SysAlarmRuleEntity, SysAlarmHistoryEntity } from '@app/common';
 import { RuleModule } from './rule/rule.module';
 import { EngineModule } from './engine/engine.module';
 import { HistoryModule } from './history/history.module';
+import { TmqModule } from './tmq/tmq.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { HistoryModule } from './history/history.module';
     RuleModule,
     EngineModule,
     HistoryModule,
+    TmqModule,
   ],
   controllers: [MicroAlarmController],
   providers: [
