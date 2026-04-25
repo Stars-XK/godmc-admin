@@ -1,0 +1,4 @@
+INSERT INTO `sys_job` (`job_id`, `job_name`, `job_group`, `invoke_target`, `cron_expression`, `misfire_policy`, `concurrent`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES
+(1001, '自动缺失检测与回溯补全(营收数据)', 'DEFAULT', 'httpTask.post(''http://127.0.0.1:3007/ingestion/revenue/backtrack'')', '0 0 2 * * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每天凌晨2点扫描过去7天是否有营收数据断点，并加入补全重试队列'),
+(1002, '分区售水量日聚合计算(产销差)', 'DEFAULT', 'httpTask.post(''http://127.0.0.1:3007/report/trigger-daily-agg'')', '0 0 3 * * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每天凌晨3点自动触发昨日的底层分区用户售水量聚合计算'),
+(1003, '分区售水量月聚合计算(产销差)', 'DEFAULT', 'httpTask.post(''http://127.0.0.1:3007/report/trigger-monthly-agg'')', '0 0 4 1 * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每月1号凌晨4点自动触发上一个月的底层分区售水量聚合计算');
