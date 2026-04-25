@@ -59,7 +59,7 @@
 
 <script setup>
 import { ref, onMounted, getCurrentInstance } from 'vue'
-import { listConfig, updateConfig } from '@/api/system/config'
+import { listConfig, updateConfig, addConfig } from '@/api/system/config'
 
 const { proxy } = getCurrentInstance()
 const loading = ref(true)
@@ -76,7 +76,7 @@ const configListMap = ref({})
 function loadData() {
   loading.value = true
   listConfig({ pageSize: 500 }).then(res => {
-    const list = res.rows || res.data.rows || res.data
+    const list = res.rows || (res.data && res.data.rows) || (res.data && res.data.list) || (Array.isArray(res.data) ? res.data : [])
     list.forEach(item => {
       if (targetKeys.includes(item.configKey)) {
         formData.value[item.configKey] = item.configValue
@@ -96,14 +96,27 @@ function handleSave() {
   const promises = []
   
   targetKeys.forEach(key => {
+    let payload
     if (configListMap.value[key]) {
-      const payload = { ...configListMap.value[key], configValue: formData.value[key] }
+      payload = { ...configListMap.value[key], configValue: formData.value[key] }
       promises.push(updateConfig(payload))
+    } else {
+      let name = ''
+      if (key === 'sys.storage.type') name = '存储策略'
+      if (key === 'sys.storage.local.path') name = '本地存储路径'
+      if (key === 'sys.storage.oss.endpoint') name = 'OSS Endpoint'
+      if (key === 'sys.storage.oss.bucket') name = 'OSS Bucket'
+      if (key === 'sys.storage.oss.accessKey') name = 'OSS AccessKey'
+      if (key === 'sys.storage.oss.secretKey') name = 'OSS SecretKey'
+      
+      payload = { configName: name, configKey: key, configValue: formData.value[key], configType: 'Y', remark: '对象存储配置' }
+      promises.push(addConfig(payload))
     }
   })
   
   Promise.all(promises).then(() => {
     proxy.$modal.msgSuccess('存储配置保存成功')
+    loadData()
   }).catch(() => {
     proxy.$modal.msgError('部分配置保存失败')
   }).finally(() => {
@@ -130,7 +143,7 @@ onMounted(() => {
   :deep(.el-input__wrapper) {
     border-radius: 8px; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 0 0 1px #d1d5db inset !important; transition: all 0.2s;
     &:hover { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 0 0 1px #9ca3af inset !important; }
-    &.is-focus, &:focus { box-shadow: 0 0 0 2px #111827 inset !important; }
+    &.is-focus, &:focus { box-shadow: 0 0 0 1px var(--el-color-primary) inset !important; }
   }
 }
 .custom-radio-group {
@@ -138,14 +151,13 @@ onMounted(() => {
     border-radius: 8px !important; margin-right: 12px; border: 1px solid #d1d5db !important; box-shadow: none !important;
   }
   :deep(.el-radio-button.is-active .el-radio-button__inner) {
-    background-color: #111827; border-color: #111827 !important; color: #ffffff;
+    background-color: var(--el-color-primary); border-color: var(--el-color-primary) !important; color: #ffffff;
   }
 }
 .form-actions {
   margin-top: 32px; padding-top: 24px; border-top: 1px solid #f3f4f6; display: flex; justify-content: flex-end;
 }
 .btn-primary {
-  background-color: #111827; border-color: #111827; color: #ffffff; border-radius: 8px; font-weight: 500;
-  &:hover { background-color: #374151; border-color: #374151; }
+  border-radius: 8px; font-weight: 500;
 }
 </style>

@@ -44,7 +44,7 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="visible = false" size="large">取 消</el-button>
-        <button class="btn-primary" @click="submitForm">保存配置</button>
+        <el-button type="primary" @click="submitForm">保存配置</el-button>
       </div>
     </template>
   </el-dialog>
@@ -98,25 +98,7 @@ function submitForm() {
 </script>
 
 <style lang="scss" scoped>
-.btn-primary {
-  background-color: #111827;
-  color: #ffffff;
-  border: 1px solid #111827;
-  border-radius: 8px;
-  padding: 0 24px;
-  height: 40px;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  margin-left: 12px;
-  &:hover {
-    background-color: #374151;
-    border-color: #374151;
-  }
-}
+
 
 .premium-dialog {
   :deep(.el-dialog) {
@@ -167,7 +149,7 @@ function submitForm() {
     }
     
     &.is-focus, &:focus {
-      box-shadow: 0 0 0 2px #111827 inset !important;
+      box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
     }
   }
   

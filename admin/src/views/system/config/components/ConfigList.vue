@@ -73,6 +73,8 @@ function getList() {
       listData = res.rows
     } else if (res.data && Array.isArray(res.data.rows)) {
       listData = res.data.rows
+    } else if (res.data && Array.isArray(res.data.list)) {
+      listData = res.data.list
     } else if (res.data && Array.isArray(res.data)) {
       listData = res.data
     } else if (Array.isArray(res)) {
@@ -109,7 +111,7 @@ onMounted(() => {
     width: 320px;
     :deep(.el-input__wrapper) {
       border-radius: 8px; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 0 0 1px #d1d5db inset !important;
-      &.is-focus { box-shadow: 0 0 0 2px #111827 inset !important; }
+      &.is-focus { box-shadow: 0 0 0 1px var(--el-color-primary) inset !important; }
     }
   }
   .search-btn {

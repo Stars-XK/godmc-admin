@@ -88,7 +88,7 @@ const configListMap = ref({})
 function loadData() {
   loading.value = true
   listConfig({ pageSize: 500 }).then(res => {
-    const list = res.rows || res.data.rows || res.data
+    const list = res.rows || (res.data && res.data.rows) || (res.data && res.data.list) || (Array.isArray(res.data) ? res.data : [])
     list.forEach(item => {
       if (targetKeys.includes(item.configKey)) {
         formData.value[item.configKey] = item.configValue
@@ -165,7 +165,7 @@ onMounted(() => {
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 0 0 1px #d1d5db inset !important;
     transition: all 0.2s;
     &:hover { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 0 0 1px #9ca3af inset !important; }
-    &.is-focus, &:focus { box-shadow: 0 0 0 2px #111827 inset !important; }
+    &.is-focus, &:focus { box-shadow: 0 0 0 1px var(--el-color-primary) inset !important; }
   }
 }
 

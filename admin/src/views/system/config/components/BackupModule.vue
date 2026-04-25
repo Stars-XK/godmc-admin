@@ -5,11 +5,10 @@
         <h3>数据库自动备份与恢复</h3>
         <p>查看与管理系统的物理备份文件，可执行手动备份与数据回滚。</p>
       </div>
-      <button class="btn-primary" @click="handleCreate" :disabled="creating" v-hasPermi="['system:backup:create']">
-        <el-icon class="mr-1" v-if="!creating"><Download /></el-icon>
-        <el-icon class="mr-1 is-loading" v-else><Loading /></el-icon>
-        {{ creating ? '备份中...' : '立即备份' }}
-      </button>
+      <el-button type="primary" @click="handleCreate" :loading="creating" v-hasPermi="['system:backup:create']">
+        <el-icon class="mr-1"><Download /></el-icon>
+        立即备份
+      </el-button>
     </div>
 
     <div class="table-container">
@@ -144,30 +143,7 @@ onMounted(() => {
   }
 }
 
-.btn-primary {
-  background-color: #111827;
-  color: #ffffff;
-  border: 1px solid #111827;
-  border-radius: 8px;
-  padding: 0 20px;
-  height: 40px;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  
-  &:hover:not(:disabled) {
-    background-color: #374151;
-    border-color: #374151;
-  }
-  
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
-}
+
 
 .table-container {
   border-radius: 8px;

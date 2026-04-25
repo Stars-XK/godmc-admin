@@ -69,7 +69,7 @@
 
 <script setup>
 import { ref, onMounted, getCurrentInstance } from 'vue'
-import { listConfig, updateConfig } from '@/api/system/config'
+import { listConfig, updateConfig, addConfig } from '@/api/system/config'
 
 const { proxy } = getCurrentInstance()
 const loading = ref(true)
@@ -86,7 +86,7 @@ const configListMap = ref({}) // Store original config objects to retain IDs whe
 function loadData() {
   loading.value = true
   listConfig({ pageSize: 500 }).then(res => {
-    const list = res.rows || res.data.rows || res.data
+    const list = res.rows || (res.data && res.data.rows) || (res.data && res.data.list) || (Array.isArray(res.data) ? res.data : [])
     list.forEach(item => {
       if (targetKeys.includes(item.configKey)) {
         formData.value[item.configKey] = item.configValue
@@ -106,14 +106,28 @@ function handleSave() {
   const promises = []
   
   targetKeys.forEach(key => {
+    let payload
     if (configListMap.value[key]) {
-      const payload = { ...configListMap.value[key], configValue: formData.value[key] }
+      payload = { ...configListMap.value[key], configValue: formData.value[key] }
       promises.push(updateConfig(payload))
+    } else {
+      let name = ''
+      if (key === 'sys.web.siteName') name = '网站名称'
+      if (key === 'sys.web.title') name = '网站标题'
+      if (key === 'sys.web.description') name = '网站描述'
+      if (key === 'sys.web.logo') name = '网站Logo'
+      if (key === 'sys.web.primaryColor') name = '系统主色调'
+      if (key === 'sys.index.skinName') name = '全局皮肤'
+      if (key === 'sys.index.sideTheme') name = '侧边栏主题'
+      
+      payload = { configName: name, configKey: key, configValue: formData.value[key], configType: 'Y', remark: '系统基础配置' }
+      promises.push(addConfig(payload))
     }
   })
   
   Promise.all(promises).then(() => {
     proxy.$modal.msgSuccess('基础系统配置保存成功')
+    loadData()
   }).catch(() => {
     proxy.$modal.msgError('部分配置保存失败')
   }).finally(() => {
@@ -151,7 +165,7 @@ onMounted(() => {
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 0 0 1px #d1d5db inset !important;
     transition: all 0.2s;
     &:hover { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 0 0 1px #9ca3af inset !important; }
-    &.is-focus, &:focus { box-shadow: 0 0 0 2px #111827 inset !important; }
+    &.is-focus, &:focus { box-shadow: 0 0 0 1px var(--el-color-primary) inset !important; }
   }
 }
 
@@ -164,11 +178,7 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background-color: #111827;
-  border-color: #111827;
-  color: #ffffff;
   border-radius: 8px;
   font-weight: 500;
-  &:hover { background-color: #374151; border-color: #374151; }
 }
 </style>
