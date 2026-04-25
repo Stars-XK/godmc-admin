@@ -10,16 +10,16 @@
         <el-col :span="24">
           <el-form-item label="底图瓦片来源 (Map Source)">
             <el-radio-group v-model="formData['gis.map.source']" class="card-radio-group">
-              <el-radio-button label="baidu">
-                <div class="radio-content">
-                  <el-icon><MapLocation /></el-icon>
-                  <strong>百度地图</strong>
-                </div>
-              </el-radio-button>
               <el-radio-button label="amap">
                 <div class="radio-content">
                   <el-icon><LocationInformation /></el-icon>
                   <strong>高德地图</strong>
+                </div>
+              </el-radio-button>
+              <el-radio-button label="baidu">
+                <div class="radio-content">
+                  <el-icon><MapLocation /></el-icon>
+                  <strong>百度地图</strong>
                 </div>
               </el-radio-button>
               <el-radio-button label="tianditu">
@@ -35,6 +35,27 @@
                 </div>
               </el-radio-button>
             </el-radio-group>
+          </el-form-item>
+        </el-col>
+        
+        <el-col :span="24" v-if="formData['gis.map.source'] === 'amap'">
+          <el-form-item label="高德地图 Web端(JS API) Key">
+            <el-input v-model="formData['gis.map.amap.key']" placeholder="请输入高德地图 Key (例如：5b...)" size="large" />
+            <div class="el-upload__tip">前往高德开放平台申请 Web端(JS API) Key。</div>
+          </el-form-item>
+        </el-col>
+
+        <el-col :span="24" v-if="formData['gis.map.source'] === 'baidu'">
+          <el-form-item label="百度地图浏览器端 AK">
+            <el-input v-model="formData['gis.map.baidu.key']" placeholder="请输入百度地图 AK" size="large" />
+            <div class="el-upload__tip">前往百度地图开放平台申请浏览器端 AK。</div>
+          </el-form-item>
+        </el-col>
+
+        <el-col :span="24" v-if="formData['gis.map.source'] === 'tianditu'">
+          <el-form-item label="天地图开发者 Key">
+            <el-input v-model="formData['gis.map.tianditu.key']" placeholder="请输入天地图 Key" size="large" />
+            <div class="el-upload__tip">前往国家地理信息公共服务平台申请开发者 Key。</div>
           </el-form-item>
         </el-col>
         
@@ -81,7 +102,8 @@ const loading = ref(true)
 const saving = ref(false)
 
 const targetKeys = [
-  'gis.map.source', 'gis.coord.transform', 'gis.custom.proj4'
+  'gis.map.source', 'gis.coord.transform', 'gis.custom.proj4',
+  'gis.map.amap.key', 'gis.map.baidu.key', 'gis.map.tianditu.key'
 ]
 
 const formData = ref({})
@@ -99,9 +121,12 @@ function loadData() {
     })
     
     // 初始化默认值
-    if (formData.value['gis.map.source'] === undefined) formData.value['gis.map.source'] = 'tianditu'
+    if (formData.value['gis.map.source'] === undefined) formData.value['gis.map.source'] = 'amap'
     if (formData.value['gis.coord.transform'] === undefined) formData.value['gis.coord.transform'] = 'none'
     if (formData.value['gis.custom.proj4'] === undefined) formData.value['gis.custom.proj4'] = '+proj=tmerc +lat_0=0 +lon_0=117 +k=1 +x_0=39500000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs'
+    if (formData.value['gis.map.amap.key'] === undefined) formData.value['gis.map.amap.key'] = ''
+    if (formData.value['gis.map.baidu.key'] === undefined) formData.value['gis.map.baidu.key'] = ''
+    if (formData.value['gis.map.tianditu.key'] === undefined) formData.value['gis.map.tianditu.key'] = ''
     
     loading.value = false
   }).catch(() => { loading.value = false })
@@ -121,6 +146,9 @@ function handleSave() {
       if (key === 'gis.map.source') name = 'GIS地图来源'
       if (key === 'gis.coord.transform') name = '默认坐标转换规则'
       if (key === 'gis.custom.proj4') name = '自定义Proj4投影参数'
+      if (key === 'gis.map.amap.key') name = '高德地图Key'
+      if (key === 'gis.map.baidu.key') name = '百度地图AK'
+      if (key === 'gis.map.tianditu.key') name = '天地图Key'
       
       payload = { configName: name, configKey: key, configValue: formData.value[key], configType: 'Y', remark: 'GIS系统自动生成配置' }
       promises.push(addConfig(payload))
