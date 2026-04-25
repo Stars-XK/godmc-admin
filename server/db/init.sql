@@ -446,6 +446,17 @@ BEGIN;
 INSERT INTO `sys_job` (`job_id`, `job_name`, `job_group`, `invoke_target`, `cron_expression`, `misfire_policy`, `concurrent`, `status`, `del_flag`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (1, '系统默认（无参）', 'DEFAULT', 'task.noParams', '0/10 * * * * ?', '3', '1', '1', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '');
 INSERT INTO `sys_job` (`job_id`, `job_name`, `job_group`, `invoke_target`, `cron_expression`, `misfire_policy`, `concurrent`, `status`, `del_flag`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (2, '系统默认（有参）', 'DEFAULT', 'task.params(\'ry\')', '0/15 * * * * ?', '3', '1', '1', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '');
 INSERT INTO `sys_job` (`job_id`, `job_name`, `job_group`, `invoke_target`, `cron_expression`, `misfire_policy`, `concurrent`, `status`, `del_flag`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (3, '系统默认（多参）', 'DEFAULT', 'task.multipleParams(\'ry\', true, 2000L, 316.50D, 100)', '0/20 * * * * ?', '3', '1', '1', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '');
+INSERT INTO `sys_job` (`job_id`, `job_name`, `job_group`, `invoke_target`, `cron_expression`, `misfire_policy`, `concurrent`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES
+(1001, '自动缺失检测与回溯补全(营收数据)', 'DEFAULT', 'httpTask.post(''http://127.0.0.1:3007/ingestion/revenue/backtrack'')', '0 0 2 * * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每天凌晨2点扫描过去7天是否有营收数据断点，并加入补全重试队列'),
+(1002, '分区售水量日聚合计算(产销差)', 'DEFAULT', 'httpTask.post(''http://127.0.0.1:3007/report/trigger-daily-agg'')', '0 0 3 * * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每天凌晨3点自动触发昨日的底层分区用户售水量聚合计算'),
+(1003, '分区售水量月聚合计算(产销差)', 'DEFAULT', 'httpTask.post(''http://127.0.0.1:3007/report/trigger-monthly-agg'')', '0 0 4 1 * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每月1号凌晨4点自动触发上一个月的底层分区售水量聚合计算');
+INSERT INTO `sys_job` (`job_id`, `job_name`, `job_group`, `invoke_target`, `cron_expression`, `misfire_policy`, `concurrent`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES
+(1004, '刷新设备状态树', 'DEFAULT', 'statusEngine.refreshAssetTree()', '0 0 * * * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每小时全量刷新一次缓存中的设备状态树结构'),
+(1005, '设备在线状态心跳检测', 'DEFAULT', 'statusEngine.checkStatus()', '0 * * * * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每分钟执行一次所有测点及设备的心跳检测与离线报警联动'),
+(1006, '测点脏数据聚合(5m/1h/1d)', 'DEFAULT', 'httpTask.post(''http://127.0.0.1:3007/tdengine-agg/dirty-points'')', '0 * * * * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每分钟执行一次，将测点的时序脏数据自动向上聚合计算'),
+(1007, '分区脏数据指标聚合', 'DEFAULT', 'httpTask.post(''http://127.0.0.1:3007/tdengine-agg/dirty-zones'')', '0 */2 * * * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每2分钟执行一次，对受测点聚合影响的分区指标进行重算'),
+(1008, 'TDengine插入死信重试', 'DEFAULT', 'httpTask.post(''http://127.0.0.1:3007/tdengine-agg/retry-inserts'')', '*/10 * * * * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每10秒执行一次，重放写入失败的TDengine时序数据');
+
 COMMIT; -- 【系统管理模块 - 任务表】
 
 -- ----------------------------
@@ -1307,13 +1318,3 @@ CREATE TABLE IF NOT EXISTS `water_data_mapping` (
 COMMIT; -- 【数据接入模块 - 字段映射规则表】
 
 SET FOREIGN_KEY_CHECKS = 1;
-INSERT INTO `sys_job` (`job_id`, `job_name`, `job_group`, `invoke_target`, `cron_expression`, `misfire_policy`, `concurrent`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES
-(1001, '自动缺失检测与回溯补全(营收数据)', 'DEFAULT', 'httpTask.post(''http://127.0.0.1:3007/ingestion/revenue/backtrack'')', '0 0 2 * * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每天凌晨2点扫描过去7天是否有营收数据断点，并加入补全重试队列'),
-(1002, '分区售水量日聚合计算(产销差)', 'DEFAULT', 'httpTask.post(''http://127.0.0.1:3007/report/trigger-daily-agg'')', '0 0 3 * * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每天凌晨3点自动触发昨日的底层分区用户售水量聚合计算'),
-(1003, '分区售水量月聚合计算(产销差)', 'DEFAULT', 'httpTask.post(''http://127.0.0.1:3007/report/trigger-monthly-agg'')', '0 0 4 1 * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每月1号凌晨4点自动触发上一个月的底层分区售水量聚合计算');
-INSERT INTO `sys_job` (`job_id`, `job_name`, `job_group`, `invoke_target`, `cron_expression`, `misfire_policy`, `concurrent`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES
-(1004, '刷新设备状态树', 'DEFAULT', 'statusEngine.refreshAssetTree()', '0 0 * * * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每小时全量刷新一次缓存中的设备状态树结构'),
-(1005, '设备在线状态心跳检测', 'DEFAULT', 'statusEngine.checkStatus()', '0 * * * * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每分钟执行一次所有测点及设备的心跳检测与离线报警联动'),
-(1006, '测点脏数据聚合(5m/1h/1d)', 'DEFAULT', 'httpTask.post(''http://127.0.0.1:3007/tdengine-agg/dirty-points'')', '0 * * * * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每分钟执行一次，将测点的时序脏数据自动向上聚合计算'),
-(1007, '分区脏数据指标聚合', 'DEFAULT', 'httpTask.post(''http://127.0.0.1:3007/tdengine-agg/dirty-zones'')', '0 */2 * * * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每2分钟执行一次，对受测点聚合影响的分区指标进行重算'),
-(1008, 'TDengine插入死信重试', 'DEFAULT', 'httpTask.post(''http://127.0.0.1:3007/tdengine-agg/retry-inserts'')', '*/10 * * * * ?', '3', '1', '0', 'admin', NOW(), '', NULL, '每10秒执行一次，重放写入失败的TDengine时序数据');
