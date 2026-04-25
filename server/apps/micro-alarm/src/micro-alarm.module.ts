@@ -13,6 +13,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { RegistryModule } from '@app/common';
 import { SysAlarmRuleEntity, SysAlarmHistoryEntity } from '@app/common';
 import { RuleModule } from './rule/rule.module';
+import { EngineModule } from './engine/engine.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { RuleModule } from './rule/rule.module';
     SharedModule,
     RegistryModule,
     RuleModule,
+    EngineModule,
   ],
   controllers: [MicroAlarmController],
   providers: [
