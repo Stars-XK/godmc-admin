@@ -125,8 +125,34 @@
           <rule-builder v-model="form.ruleConditions" />
         </el-form-item>
         
-        <el-form-item label="触发动作" prop="ruleActions">
-          <el-input v-model="ruleActionsStr" type="textarea" :rows="3" placeholder="请输入JSON格式的动作配置" />
+        <el-form-item label="报警动作设置" prop="ruleActions">
+          <div style="border: 1px solid #ebeef5; padding: 16px; border-radius: 4px; width: 100%;">
+            <el-form-item label="开启连续性防抖" label-width="120px">
+              <el-switch v-model="form.ruleActions.debounce.enabled" />
+              <span class="ml-2 text-gray-400 text-sm">（开启后可避免数据抖动导致的频繁误报）</span>
+            </el-form-item>
+            
+            <template v-if="form.ruleActions.debounce.enabled">
+              <el-form-item label="防抖策略" label-width="120px" class="mt-4">
+                <el-radio-group v-model="form.ruleActions.debounce.strategy">
+                  <el-radio-button label="count">连续触发次数</el-radio-button>
+                  <el-radio-button label="time">持续异常时间</el-radio-button>
+                </el-radio-group>
+              </el-form-item>
+
+              <el-form-item label="报警阈值" label-width="120px" class="mt-4">
+                <el-input-number 
+                  v-model="form.ruleActions.debounce.threshold" 
+                  :min="1" 
+                  :max="100" 
+                  controls-position="right"
+                />
+                <span class="ml-2 text-gray-500">
+                  {{ form.ruleActions.debounce.strategy === 'count' ? '次 (连续达到该次数才报警)' : '分钟 (持续异常达该时长才报警)' }}
+                </span>
+              </el-form-item>
+            </template>
+          </div>
         </el-form-item>
 
         <el-row>
@@ -195,20 +221,6 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 
-// 动作JSON字符串绑定
-const ruleActionsStr = computed({
-  get: () => {
-    return form.value.ruleActions ? JSON.stringify(form.value.ruleActions, null, 2) : '{\n  "action": "notify"\n}';
-  },
-  set: (val) => {
-    try {
-      form.value.ruleActions = JSON.parse(val);
-    } catch (e) {
-      // ignore invalid JSON while typing
-    }
-  }
-});
-
 // 解析时间（Mock实现，实际应来自全局 utils）
 const parseTime = (time) => {
   if (!time) return '';
@@ -241,7 +253,14 @@ function reset() {
     ruleName: undefined,
     ruleType: "1",
     ruleConditions: { all: [] },
-    ruleActions: { action: "notify" },
+    ruleActions: { 
+      action: "notify",
+      debounce: {
+        enabled: false,
+        strategy: "count",
+        threshold: 3
+      }
+    },
     status: "0",
     remark: undefined
   };
@@ -296,6 +315,16 @@ function handleUpdate(row) {
         form.value.ruleActions = { action: "notify" };
       }
     }
+    
+    // Ensure debounce object exists for older records
+    if (!form.value.ruleActions.debounce) {
+      form.value.ruleActions.debounce = {
+        enabled: false,
+        strategy: "count",
+        threshold: 3
+      };
+    }
+    
     open.value = true;
     title.value = "修改规则";
   });
