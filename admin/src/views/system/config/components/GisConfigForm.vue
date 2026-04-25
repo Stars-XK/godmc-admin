@@ -44,6 +44,13 @@
             <div class="el-upload__tip">前往高德开放平台申请 Web端(JS API) Key。</div>
           </el-form-item>
         </el-col>
+        
+        <el-col :span="24" v-if="formData['gis.map.source'] === 'amap'">
+          <el-form-item label="高德地图 Web端安全密钥 (Security Js Code)">
+            <el-input v-model="formData['gis.map.amap.security']" placeholder="请输入高德地图配套的安全密钥" size="large" />
+            <div class="el-upload__tip text-warning">自2021年12月02日后申请的Key必须配置安全密钥，否则将报 "Error key" 错误导致地图白屏。</div>
+          </el-form-item>
+        </el-col>
 
         <el-col :span="24" v-if="formData['gis.map.source'] === 'baidu'">
           <el-form-item label="百度地图浏览器端 AK">
@@ -103,7 +110,7 @@ const saving = ref(false)
 
 const targetKeys = [
   'gis.map.source', 'gis.coord.transform', 'gis.custom.proj4',
-  'gis.map.amap.key', 'gis.map.baidu.key', 'gis.map.tianditu.key'
+  'gis.map.amap.key', 'gis.map.amap.security', 'gis.map.baidu.key', 'gis.map.tianditu.key'
 ]
 
 const formData = ref({})
@@ -125,6 +132,7 @@ function loadData() {
     if (formData.value['gis.coord.transform'] === undefined) formData.value['gis.coord.transform'] = 'none'
     if (formData.value['gis.custom.proj4'] === undefined) formData.value['gis.custom.proj4'] = '+proj=tmerc +lat_0=0 +lon_0=117 +k=1 +x_0=39500000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs'
     if (formData.value['gis.map.amap.key'] === undefined) formData.value['gis.map.amap.key'] = ''
+    if (formData.value['gis.map.amap.security'] === undefined) formData.value['gis.map.amap.security'] = ''
     if (formData.value['gis.map.baidu.key'] === undefined) formData.value['gis.map.baidu.key'] = ''
     if (formData.value['gis.map.tianditu.key'] === undefined) formData.value['gis.map.tianditu.key'] = ''
     
@@ -147,6 +155,7 @@ function handleSave() {
       if (key === 'gis.coord.transform') name = '默认坐标转换规则'
       if (key === 'gis.custom.proj4') name = '自定义Proj4投影参数'
       if (key === 'gis.map.amap.key') name = '高德地图Key'
+      if (key === 'gis.map.amap.security') name = '高德地图安全密钥'
       if (key === 'gis.map.baidu.key') name = '百度地图AK'
       if (key === 'gis.map.tianditu.key') name = '天地图Key'
       

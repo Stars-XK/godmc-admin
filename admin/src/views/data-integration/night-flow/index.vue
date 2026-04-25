@@ -211,6 +211,7 @@ const listContainer = ref(null)
 
 // 地图相关
 const amapKey = ref('')
+const amapSecurity = ref('')
 const mapInstance = shallowRef(null)
 const mapContainer = ref(null)
 let markers = []
@@ -243,9 +244,14 @@ onBeforeUnmount(() => {
 
 async function initMapKey() {
   try {
-    const res = await getConfigKey('gis.map.amap.key')
-    if (res.code === 200 && res.msg) {
-      amapKey.value = res.msg
+    const [resKey, resSecurity] = await Promise.all([
+      getConfigKey('gis.map.amap.key'),
+      getConfigKey('gis.map.amap.security')
+    ])
+    
+    if (resKey.code === 200 && resKey.msg) {
+      amapKey.value = resKey.msg
+      amapSecurity.value = resSecurity.msg || ''
       initAMap()
     }
   } catch (error) {
@@ -256,9 +262,10 @@ async function initMapKey() {
 function initAMap() {
   if (!amapKey.value) return
   
-  // 设置安全密钥 (假设系统未配置代理，使用最简单的明文方式，生产环境建议走代理)
-  window._AMapSecurityConfig = {
-    securityJsCode: 'c05a109ecf00a4d3a242f36f45cc315a', // 这是一个示例安全密钥，实际生产不应暴露
+  if (amapSecurity.value) {
+    window._AMapSecurityConfig = {
+      securityJsCode: amapSecurity.value,
+    }
   }
 
   AMapLoader.load({
