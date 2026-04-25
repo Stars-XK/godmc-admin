@@ -76,6 +76,7 @@ const serviceNameMap = {
   'micro-tools': '工具服务 (Tools)',
   'micro-water-basic': '水务基础 (Water Basic)',
   'micro-data-integration': '数据接入 (Data Integration)',
+  'micro-alarm': '报警中心 (Alarm Module)',
 };
 
 const serviceDescMap = {
@@ -87,6 +88,7 @@ const serviceDescMap = {
   'micro-tools': '代码生成、代码编辑器、实用工具集',
   'micro-water-basic': '分区、站点、设备、测点等资产管理',
   'micro-data-integration': '多协议数据接入、TDengine流计算与写入',
+  'micro-alarm': '复杂规则引擎，并集/交集策略及静默容错降级通知',
 };
 
 function getList() {
