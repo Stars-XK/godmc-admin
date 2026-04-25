@@ -121,59 +121,100 @@
           </el-col>
         </el-row>
         
-        <el-form-item label="规则条件" prop="ruleConditions">
+        <!-- 分隔线与规则条件 -->
+        <div class="section-title mt-4 mb-4">
+          <el-icon class="mr-2"><Filter /></el-icon>
+          <span>触发规则配置</span>
+        </div>
+        
+        <el-form-item label-width="0" prop="ruleConditions">
           <rule-builder v-model="form.ruleConditions" />
         </el-form-item>
         
-        <el-form-item label="报警动作设置" prop="ruleActions">
-          <div style="border: 1px solid #ebeef5; padding: 16px; border-radius: 4px; width: 100%;">
-            <el-form-item label="开启连续性防抖" label-width="120px">
-              <el-switch v-model="form.ruleActions.debounce.enabled" />
-              <span class="ml-2 text-gray-400 text-sm">（开启后可避免数据抖动导致的频繁误报）</span>
-            </el-form-item>
-            
-            <template v-if="form.ruleActions.debounce.enabled">
-              <el-form-item label="防抖策略" label-width="120px" class="mt-4">
-                <el-radio-group v-model="form.ruleActions.debounce.strategy">
-                  <el-radio-button label="count">连续触发次数</el-radio-button>
-                  <el-radio-button label="time">持续异常时间</el-radio-button>
-                </el-radio-group>
-              </el-form-item>
+        <!-- 分隔线与动作设置 -->
+        <div class="section-title mt-6 mb-4">
+          <el-icon class="mr-2"><BellFilled /></el-icon>
+          <span>报警动作与防抖</span>
+        </div>
 
-              <el-form-item label="报警阈值" label-width="120px" class="mt-4">
-                <el-input-number 
-                  v-model="form.ruleActions.debounce.threshold" 
-                  :min="1" 
-                  :max="100" 
-                  controls-position="right"
-                />
-                <span class="ml-2 text-gray-500">
-                  {{ form.ruleActions.debounce.strategy === 'count' ? '次 (连续达到该次数才报警)' : '分钟 (持续异常达该时长才报警)' }}
-                </span>
-              </el-form-item>
-            </template>
+        <el-form-item label-width="0" prop="ruleActions">
+          <div class="action-config-card">
+            <div class="config-row">
+              <div class="config-label">
+                <span class="font-bold">连续性防抖拦截</span>
+                <span class="text-gray-400 text-xs ml-2">开启后可避免数据抖动导致的频繁误报风暴</span>
+              </div>
+              <el-switch 
+                v-model="form.ruleActions.debounce.enabled" 
+                inline-prompt 
+                active-text="已开启" 
+                inactive-text="已关闭"
+                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+              />
+            </div>
+            
+            <el-collapse-transition>
+              <div v-if="form.ruleActions.debounce.enabled" class="debounce-settings mt-4 pt-4 border-t border-dashed border-gray-200">
+                <div class="flex items-center gap-6">
+                  <div class="flex flex-col gap-2">
+                    <span class="text-sm text-gray-600">防抖策略类型</span>
+                    <el-radio-group v-model="form.ruleActions.debounce.strategy" size="default" class="custom-radio-group">
+                      <el-radio-button label="count">连续触发次数</el-radio-button>
+                      <el-radio-button label="time">持续异常时间</el-radio-button>
+                    </el-radio-group>
+                  </div>
+
+                  <div class="flex flex-col gap-2 flex-1">
+                    <span class="text-sm text-gray-600">
+                      报警触发阈值 
+                      <el-tooltip content="只有当规则连续命中达到该阈值时，才会真正生成报警。" placement="top">
+                        <el-icon class="ml-1 text-gray-400"><QuestionFilled /></el-icon>
+                      </el-tooltip>
+                    </span>
+                    <div class="flex items-center gap-3">
+                      <el-input-number 
+                        v-model="form.ruleActions.debounce.threshold" 
+                        :min="1" 
+                        :max="100" 
+                        controls-position="right"
+                        class="custom-input-number"
+                      />
+                      <span class="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-md">
+                        {{ form.ruleActions.debounce.strategy === 'count' ? '次' : '分钟' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </el-collapse-transition>
           </div>
         </el-form-item>
 
-        <el-row>
+        <div class="section-title mt-6 mb-4">
+          <el-icon class="mr-2"><Setting /></el-icon>
+          <span>基础属性</span>
+        </div>
+
+        <el-row :gutter="24">
           <el-col :span="12">
-            <el-form-item label="状态" prop="status">
-              <el-radio-group v-model="form.status">
-                <el-radio label="0">正常</el-radio>
-                <el-radio label="1">停用</el-radio>
+            <el-form-item label="当前状态" prop="status">
+              <el-radio-group v-model="form.status" class="status-radio-group">
+                <el-radio label="0" border>正常监控</el-radio>
+                <el-radio label="1" border>暂停停用</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
+          <el-col :span="12">
+            <el-form-item label="备注描述" prop="remark">
+              <el-input v-model="form.remark" type="textarea" :rows="2" placeholder="请输入规则的用途描述..." />
+            </el-form-item>
+          </el-col>
         </el-row>
-        
-        <el-form-item label="备注" prop="remark">
-          <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
-        </el-form-item>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
+          <el-button @click="cancel" plain>取 消</el-button>
+          <el-button type="primary" @click="submitForm" class="shadow-sm">保 存 规 则</el-button>
         </div>
       </template>
     </el-dialog>
@@ -182,6 +223,7 @@
 
 <script setup>
 import { ref, reactive, toRefs, computed, getCurrentInstance } from 'vue';
+import { Filter, BellFilled, Setting, QuestionFilled } from '@element-plus/icons-vue';
 import { listRule, getRule, addRule, updateRule, delRule } from '@/api/alarm/rule';
 import RuleBuilder from './components/RuleBuilder.vue';
 
@@ -365,9 +407,47 @@ function handleDelete(row) {
 }
 
 getList();
-</script>
-
 <style scoped>
+.section-title {
+  font-size: 15px;
+  font-weight: bold;
+  color: #303133;
+  display: flex;
+  align-items: center;
+  border-bottom: 2px solid #ecf5ff;
+  padding-bottom: 8px;
+}
+.section-title .el-icon {
+  color: #409eff;
+  font-size: 18px;
+}
+
+.action-config-card {
+  width: 100%;
+  border: 1px solid #e4e7ed;
+  background: #fafafa;
+  border-radius: 6px;
+  padding: 16px 20px;
+  transition: all 0.3s;
+}
+.action-config-card:hover {
+  border-color: #c0c4cc;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,.05);
+}
+
+.config-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.custom-radio-group .el-radio-button__inner {
+  border-radius: 4px;
+}
+.status-radio-group .el-radio.is-bordered {
+  margin-right: 15px;
+}
+
 .w-full {
   width: 100%;
 }
