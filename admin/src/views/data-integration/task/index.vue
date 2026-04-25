@@ -58,7 +58,7 @@
 
     <!-- 添加或修改任务对话框 -->
     <el-dialog :title="title" v-model="open" width="600px" append-to-body>
-      <el-form ref="taskRef" :model="form" :rules="rules" label-width="100px">
+      <el-form ref="taskRef" :model="form" :rules="rules" label-width="140px">
         <el-form-item label="任务名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入任务名称" />
         </el-form-item>
@@ -92,7 +92,7 @@
             提示：在 SQL 语句中使用 <code>?</code> 代表上一次任务执行的增量时间戳（如: <code>UPDATE_TIME > ?</code>），引擎会自动替换并管理断点。
           </div>
         </el-form-item>
-        <el-form-item label="目标表/实体名 (Target Entity)" prop="targetEntity">
+        <el-form-item label="目标表(Target Entity)" prop="targetEntity">
           <el-input v-model="form.targetEntity" placeholder="例如：sys_zone、sys_device、tdengine等" />
           <div class="el-upload__tip">指明数据同步的最终去向。基础数据填写系统表名（如 sys_device），时序数据填写 tdengine 或 revenue 等关键字。</div>
         </el-form-item>
@@ -130,15 +130,24 @@
             <el-input v-model="scope.row.sourceField" placeholder="JSON/SQL中的字段名" />
           </template>
         </el-table-column>
-        <el-table-column label="目标TDengine字段" align="center">
+        <el-table-column label="目标数据库字段" align="center">
           <template #default="scope">
-            <el-select v-model="scope.row.targetField" placeholder="请选择" style="width: 100%">
-              <el-option label="设备编码 (deviceCode)" value="deviceCode" />
-              <el-option label="测点编码 (pointCode)" value="pointCode" />
-              <el-option label="监测数值 (value)" value="value" />
-              <el-option label="时间戳 (timestamp/ts)" value="timestamp" />
-              <el-option label="营收用量 (total_volume)" value="val" />
-              <el-option label="账单月份 (bill_month)" value="bill_month" />
+            <el-select v-model="scope.row.targetField" placeholder="选择或输入目标字段" filterable allow-create style="width: 100%">
+              <el-option-group label="时序数据 (TDengine)">
+                <el-option label="设备编码 (deviceCode)" value="deviceCode" />
+                <el-option label="测点编码 (pointCode)" value="pointCode" />
+                <el-option label="监测数值 (value)" value="value" />
+                <el-option label="时间戳 (timestamp/ts)" value="timestamp" />
+                <el-option label="营收用量 (val)" value="val" />
+                <el-option label="账单月份 (bill_month)" value="bill_month" />
+              </el-option-group>
+              <el-option-group label="基础数据字典 (按需输入)">
+                <el-option label="业务编码 (code/user_no)" value="code" />
+                <el-option label="名称 (name/user_name)" value="name" />
+                <el-option label="所属分区 (zone_code)" value="zone_code" />
+                <el-option label="状态 (status)" value="status" />
+                <el-option label="更新时间 (update_time)" value="update_time" />
+              </el-option-group>
             </el-select>
           </template>
         </el-table-column>

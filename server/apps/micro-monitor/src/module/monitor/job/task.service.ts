@@ -121,7 +121,11 @@ export class TaskService implements OnModuleInit {
       status = '1';
       jobMessage = '执行失败';
       exceptionInfo = error.message;
-      this.logger.error(`执行任务失败: ${error.message}`);
+      if (error.message && error.message.includes('未启动或不可达')) {
+        this.logger.warn(`执行任务跳过: ${error.message}`);
+      } else {
+        this.logger.error(`执行任务失败: ${error.message}`);
+      }
       return false;
     } finally {
       // 记录日志
@@ -223,6 +227,10 @@ export class TaskService implements OnModuleInit {
       const response = await axios.get(url);
       return response.data;
     } catch (error) {
+      if (error.code === 'ECONNREFUSED') {
+        this.logger.warn(`HTTP GET 请求失败: 目标服务未启动或不可达 (${url})`);
+        throw new Error(`目标服务未启动或不可达 (${url})`);
+      }
       this.logger.error(`HTTP GET 请求失败: ${error.message}`);
       throw new Error(`HTTP GET 请求失败: ${error.message}`);
     }
@@ -237,6 +245,10 @@ export class TaskService implements OnModuleInit {
       const response = await axios.post(url, body || {});
       return response.data;
     } catch (error) {
+      if (error.code === 'ECONNREFUSED') {
+        this.logger.warn(`HTTP POST 请求失败: 目标服务未启动或不可达 (${url})`);
+        throw new Error(`目标服务未启动或不可达 (${url})`);
+      }
       this.logger.error(`HTTP POST 请求失败: ${error.message}`);
       throw new Error(`HTTP POST 请求失败: ${error.message}`);
     }
