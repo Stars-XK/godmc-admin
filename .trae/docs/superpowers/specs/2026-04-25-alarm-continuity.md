@@ -22,9 +22,34 @@
 - **String Key**: `alarm:state:{rule_id}:{device_id}`
   - 存储首次异常发生的时间戳。
 
+## 3. 配置存储设计 (Database & UI)
+你提到的非常对，这些连续性参数（N次、M分钟）本质上是**报警规则的一部分**，因此必须存储在 `sys_alarm_rule` 表中，并在前端让用户自由配置。
+
+### 3.1 数据库结构扩展
+我们不需要修改表结构增加新字段，而是直接利用现有的 `rule_actions` 或 `rule_conditions` 这个 JSON 字段来存储防抖策略。
+建议在 `rule_actions` JSON 中新增 `debounce` 节点：
+```json
+{
+  "type": "notify",
+  "debounce": {
+    "enabled": true,
+    "strategy": "count", // 'count' 表示连续N次, 'time' 表示持续M分钟
+    "threshold": 5 // 如果是 count 则为 5 次；如果是 time 则为 5 分钟
+  }
+}
+```
+
+### 3.2 前端配置页面 (RuleBuilder)
+在 `admin/src/views/alarm/rule/index.vue` (或 RuleBuilder 组件) 中，在“报警动作”区域增加以下表单项：
+- **开启连续性防抖** (Switch 开关)
+- **防抖策略** (Select 下拉框: 连续触发次数 / 持续异常时间)
+- **阈值** (InputNumber: N 次 / M 分钟)
+
+当后端 `EngineService` 命中基础规则时，会读取该规则 JSON 中的 `debounce` 配置，决定是立即报警，还是放入 Redis 滑动窗口进行累计。
+
 ---
 
-## 3. 策略实现逻辑
+## 4. 策略实现逻辑
 
 ### 3.1 策略一：连续触发 N 次 (Continuous N Times)
 此策略关注的是**连续的异常次数**。如果有正常的指标上报，应当打断并重置连续性。
