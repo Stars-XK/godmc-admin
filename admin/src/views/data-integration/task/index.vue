@@ -57,20 +57,31 @@
     </el-table>
 
     <!-- 添加或修改任务对话框 -->
-    <el-dialog :title="title" v-model="open" width="600px" append-to-body>
-      <el-form ref="taskRef" :model="form" :rules="rules" label-width="140px">
-        <el-form-item label="任务名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入任务名称" />
-        </el-form-item>
-        <el-form-item label="数据源" prop="sourceId">
-          <el-select v-model="form.sourceId" placeholder="请选择数据源" style="width: 100%" @change="handleSourceChange">
-            <el-option v-for="s in sourceList" :key="s.id" :label="s.name" :value="s.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="Cron表达式" prop="cronExpression" v-if="isTimingTask(form.sourceId)">
-          <el-row :gutter="10" style="width: 100%">
-            <el-col :span="8">
-              <el-select v-model="quickCron" placeholder="点击快速选择周期" @change="val => form.cronExpression = val">
+    <el-dialog :title="title" v-model="open" width="680px" append-to-body custom-class="premium-dialog">
+      <div class="dialog-header-desc" v-if="title === '通过内置模板创建任务'">
+        <el-icon><MagicStick /></el-icon> 您正在使用智能模板，系统已自动填充标准参数，您只需检查确认即可。
+      </div>
+      <el-form ref="taskRef" :model="form" :rules="rules" label-width="140px" label-position="left" class="premium-form">
+        <div class="form-section">
+          <div class="section-title">基本信息</div>
+          <el-form-item label="任务名称" prop="name">
+            <el-input v-model="form.name" placeholder="请输入直观的任务名称，如：分区基础数据同步" />
+          </el-form-item>
+          <el-form-item label="数据源" prop="sourceId">
+            <el-select v-model="form.sourceId" placeholder="请选择来源数据库或中间件" style="width: 100%" @change="handleSourceChange" class="custom-select">
+              <el-option v-for="s in sourceList" :key="s.id" :label="s.name" :value="s.id">
+                <span style="float: left">{{ s.name }}</span>
+                <span style="float: right; color: #8492a6; font-size: 13px">{{ s.type }}</span>
+              </el-option>
+            </el-select>
+          </el-form-item>
+        </div>
+
+        <div class="form-section" v-if="isTimingTask(form.sourceId)">
+          <div class="section-title">调度与提取策略</div>
+          <el-form-item label="Cron表达式" prop="cronExpression">
+            <div class="cron-container">
+              <el-select v-model="quickCron" placeholder="快捷选择执行频率" @change="val => form.cronExpression = val" class="quick-cron-select">
                 <el-option label="每 1 分钟" value="0 * * * * ?" />
                 <el-option label="每 5 分钟" value="0 0/5 * * * ?" />
                 <el-option label="每 10 分钟" value="0 0/10 * * * ?" />
@@ -80,87 +91,103 @@
                 <el-option label="每天凌晨2点" value="0 0 2 * * ?" />
                 <el-option label="每月1号凌晨3点" value="0 0 3 1 * ?" />
               </el-select>
-            </el-col>
-            <el-col :span="16">
-              <el-input v-model="form.cronExpression" placeholder="或者手动输入(如: 0 * * * * ?)" />
-            </el-col>
-          </el-row>
-        </el-form-item>
-        <el-form-item :label="getQueryLabel(form.sourceId)" prop="querySqlOrTopic">
-          <el-input v-model="form.querySqlOrTopic" type="textarea" :rows="3" :placeholder="getQueryPlaceholder(form.sourceId)" />
-          <div class="el-upload__tip text-warning" v-if="isTimingTask(form.sourceId) && (form.querySqlOrTopic && form.querySqlOrTopic.includes('?'))">
-            提示：在 SQL 语句中使用 <code>?</code> 代表上一次任务执行的增量时间戳（如: <code>UPDATE_TIME > ?</code>），引擎会自动替换并管理断点。
-          </div>
-        </el-form-item>
-        <el-form-item label="目标表(Target Entity)" prop="targetEntity">
-          <el-input v-model="form.targetEntity" placeholder="例如：sys_zone、sys_device、tdengine等" />
-          <div class="el-upload__tip">指明数据同步的最终去向。基础数据填写系统表名（如 sys_device），时序数据填写 tdengine 或 revenue 等关键字。</div>
-        </el-form-item>
-        <el-form-item label="自动补录历史" v-if="isTimingTask(form.sourceId) && form.targetEntity === 'tdengine'">
-          <el-switch v-model="form.autoBackfill" active-text="开启" inactive-text="关闭" />
-          <div class="el-upload__tip">开启后，若单次抓取了跨越整点的大量历史数据，引擎将自动触发时序聚合重算。</div>
-        </el-form-item>
-        <el-form-item label="自动插值补全" v-if="isTimingTask(form.sourceId) && form.targetEntity === 'tdengine' && form.autoBackfill">
-          <el-switch v-model="form.interpolation" active-text="开启" inactive-text="关闭" />
-          <div class="el-upload__tip">开启后，回填聚合数据时若存在空洞（如设备断网导致无数据），将使用前值(PREV)或线性(LINEAR)算法自动插值填补。</div>
-        </el-form-item>
-        <el-form-item label="任务状态" prop="status">
-          <el-radio-group v-model="form.status">
-            <el-radio label="0">正常</el-radio>
-            <el-radio label="1">停用</el-radio>
-          </el-radio-group>
-        </el-form-item>
+              <el-input v-model="form.cronExpression" placeholder="自定义 Cron (如: 0 * * * * ?)" class="custom-cron-input" />
+            </div>
+          </el-form-item>
+          <el-form-item :label="getQueryLabel(form.sourceId)" prop="querySqlOrTopic">
+            <el-input v-model="form.querySqlOrTopic" type="textarea" :rows="3" :placeholder="getQueryPlaceholder(form.sourceId)" class="code-textarea" />
+            <div class="form-tip hint-box" v-if="form.querySqlOrTopic && form.querySqlOrTopic.includes('?')">
+              <el-icon><InfoFilled /></el-icon>
+              <span>在 SQL 语句中使用 <code>?</code> 代表上一次任务执行的增量时间戳（如: <code>UPDATE_TIME > ?</code>），引擎会自动替换并管理断点。</span>
+            </div>
+          </el-form-item>
+        </div>
+
+        <div class="form-section">
+          <div class="section-title">目标设置</div>
+          <el-form-item label="目标表(Target)" prop="targetEntity">
+            <el-input v-model="form.targetEntity" placeholder="例如：sys_zone、sys_device、tdengine等" />
+            <div class="form-tip">指明数据同步的最终去向。基础数据填系统表名，时序数据填 tdengine 或 revenue。</div>
+          </el-form-item>
+          <el-form-item label="自动补录历史" v-if="isTimingTask(form.sourceId) && form.targetEntity === 'tdengine'">
+            <el-switch v-model="form.autoBackfill" active-text="开启" inactive-text="关闭" />
+            <div class="form-tip">开启后，若单次抓取了跨越整点的大量历史数据，引擎将自动触发时序聚合重算。</div>
+          </el-form-item>
+          <el-form-item label="自动插值补全" v-if="isTimingTask(form.sourceId) && form.targetEntity === 'tdengine' && form.autoBackfill">
+            <el-switch v-model="form.interpolation" active-text="开启" inactive-text="关闭" />
+            <div class="form-tip">开启后，回填聚合数据时若存在空洞（如设备断网），将使用自动插值填补。</div>
+          </el-form-item>
+          <el-form-item label="任务状态" prop="status">
+            <el-radio-group v-model="form.status" class="custom-radio-group">
+              <el-radio label="0" class="radio-success">正常启动</el-radio>
+              <el-radio label="1" class="radio-danger">暂不启用</el-radio>
+            </el-radio-group>
+          </el-form-item>
+        </div>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
+          <el-button @click="cancel" class="btn-cancel">取 消</el-button>
+          <el-button type="primary" @click="submitForm" class="btn-submit">确 定</el-button>
         </div>
       </template>
     </el-dialog>
 
     <!-- 字段映射配置对话框 -->
-    <el-dialog title="字段映射配置" v-model="mappingOpen" width="700px" append-to-body>
-      <div class="mb8">
-        <el-button type="primary" icon="Plus" @click="addMappingRow">添加映射</el-button>
+    <el-dialog title="字段映射配置 (Field Mapping)" v-model="mappingOpen" width="750px" append-to-body custom-class="premium-dialog">
+      <div class="mapping-header">
+        <div class="mapping-desc">
+          <el-icon><Connection /></el-icon>
+          <span>将外部数据源的字段，映射至系统内部的目标字段。</span>
+        </div>
+        <el-button type="primary" icon="Plus" @click="addMappingRow" class="btn-add-mapping">新增映射</el-button>
       </div>
-      <el-table :data="mappingList" border>
-        <el-table-column label="源字段名" align="center">
-          <template #default="scope">
-            <el-input v-model="scope.row.sourceField" placeholder="JSON/SQL中的字段名" />
-          </template>
-        </el-table-column>
-        <el-table-column label="目标数据库字段" align="center">
-          <template #default="scope">
-            <el-select v-model="scope.row.targetField" placeholder="选择或输入目标字段" filterable allow-create style="width: 100%">
-              <el-option-group label="时序数据 (TDengine)">
-                <el-option label="设备编码 (deviceCode)" value="deviceCode" />
-                <el-option label="测点编码 (pointCode)" value="pointCode" />
-                <el-option label="监测数值 (value)" value="value" />
-                <el-option label="时间戳 (timestamp/ts)" value="timestamp" />
-                <el-option label="营收用量 (val)" value="val" />
-                <el-option label="账单月份 (bill_month)" value="bill_month" />
-              </el-option-group>
-              <el-option-group label="基础数据字典 (按需输入)">
-                <el-option label="业务编码 (code/user_no)" value="code" />
-                <el-option label="名称 (name/user_name)" value="name" />
-                <el-option label="所属分区 (zone_code)" value="zone_code" />
-                <el-option label="状态 (status)" value="status" />
-                <el-option label="更新时间 (update_time)" value="update_time" />
-              </el-option-group>
-            </el-select>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" align="center" width="100">
-          <template #default="scope">
-            <el-button type="danger" link icon="Delete" @click="removeMappingRow(scope.$index)">移除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      
+      <div class="mapping-table-wrapper">
+        <el-table :data="mappingList" style="width: 100%" class="mapping-table">
+          <el-table-column label="源字段名 (Source Field)" align="center">
+            <template #default="scope">
+              <el-input v-model="scope.row.sourceField" placeholder="如: user_id" class="mapping-input" />
+            </template>
+          </el-table-column>
+          <el-table-column width="60" align="center">
+            <template #default>
+              <el-icon class="mapping-arrow"><Right /></el-icon>
+            </template>
+          </el-table-column>
+          <el-table-column label="目标数据库字段 (Target Field)" align="center">
+            <template #default="scope">
+              <el-select v-model="scope.row.targetField" placeholder="选择或输入" filterable allow-create class="mapping-select">
+                <el-option-group label="时序数据 (TDengine)">
+                  <el-option label="设备编码 (deviceCode)" value="deviceCode" />
+                  <el-option label="测点编码 (pointCode)" value="pointCode" />
+                  <el-option label="监测数值 (value)" value="value" />
+                  <el-option label="时间戳 (timestamp/ts)" value="timestamp" />
+                  <el-option label="营收用量 (val)" value="val" />
+                  <el-option label="账单月份 (bill_month)" value="bill_month" />
+                </el-option-group>
+                <el-option-group label="基础数据字典 (按需输入)">
+                  <el-option label="业务编码 (code/user_no)" value="code" />
+                  <el-option label="名称 (name/user_name)" value="name" />
+                  <el-option label="所属分区 (zone_code)" value="zone_code" />
+                  <el-option label="状态 (status)" value="status" />
+                  <el-option label="更新时间 (update_time)" value="update_time" />
+                </el-option-group>
+              </el-select>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" align="center" width="80">
+            <template #default="scope">
+              <el-button type="danger" link icon="Delete" @click="removeMappingRow(scope.$index)" class="btn-delete-icon"></el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitMappingForm">保存映射</el-button>
-          <el-button @click="mappingOpen = false">取 消</el-button>
+          <el-button @click="mappingOpen = false" class="btn-cancel">取 消</el-button>
+          <el-button type="primary" @click="submitMappingForm" class="btn-submit">保存映射关系</el-button>
         </div>
       </template>
     </el-dialog>
@@ -440,4 +467,273 @@ onMounted(() => {
   loadSources();
   getList();
 });
-</script>
+<style lang="scss" scoped>
+.app-container {
+  padding: 24px;
+}
+
+/* Premium Dialog Aesthetics */
+:deep(.premium-dialog) {
+  border-radius: 12px;
+  box-shadow: 0 20px 40px -10px rgba(0,0,0,0.15);
+  overflow: hidden;
+  
+  .el-dialog__header {
+    background: linear-gradient(135deg, #f8fafc 0%, #f3f4f6 100%);
+    margin-right: 0;
+    padding: 24px;
+    border-bottom: 1px solid #e5e7eb;
+    
+    .el-dialog__title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #111827;
+      letter-spacing: -0.01em;
+    }
+  }
+
+  .el-dialog__body {
+    padding: 0;
+    background-color: #fafafa;
+  }
+
+  .el-dialog__footer {
+    padding: 16px 24px;
+    background-color: #ffffff;
+    border-top: 1px solid #e5e7eb;
+  }
+}
+
+.dialog-header-desc {
+  padding: 12px 24px;
+  background-color: #ecfdf5;
+  color: #059669;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #d1fae5;
+  
+  .el-icon {
+    font-size: 16px;
+  }
+}
+
+/* Premium Form Styling */
+.premium-form {
+  padding: 24px;
+  
+  .form-section {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 24px 24px 8px 24px;
+    margin-bottom: 16px;
+    border: 1px solid #f3f4f6;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f3f4f6;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  :deep(.el-form-item__label) {
+    font-weight: 500;
+    color: #4b5563;
+  }
+}
+
+.custom-select, .custom-cron-input, :deep(.el-input__wrapper), :deep(.el-textarea__inner) {
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.code-textarea {
+  :deep(.el-textarea__inner) {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-size: 13px;
+    background-color: #f8fafc;
+    color: #1e293b;
+    border-color: #e2e8f0;
+    
+    &:focus {
+      background-color: #ffffff;
+      border-color: #3b82f6;
+    }
+  }
+}
+
+.cron-container {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  
+  .quick-cron-select {
+    flex: 0 0 180px;
+  }
+  
+  .custom-cron-input {
+    flex: 1;
+  }
+}
+
+.form-tip {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.hint-box {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin-top: 8px;
+  padding: 10px 12px;
+  background-color: #fffbeb;
+  border-radius: 6px;
+  border: 1px solid #fef3c7;
+  color: #b45309;
+  
+  .el-icon {
+    margin-top: 2px;
+  }
+  
+  code {
+    background-color: #fef3c7;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-weight: 600;
+    color: #d97706;
+  }
+}
+
+.custom-radio-group {
+  display: flex;
+  gap: 16px;
+  
+  :deep(.el-radio) {
+    margin-right: 0;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    transition: all 0.2s;
+    
+    &.is-checked {
+      &.radio-success {
+        background-color: #f0fdf4;
+        border-color: #10b981;
+        .el-radio__label { color: #059669; font-weight: 600; }
+      }
+      &.radio-danger {
+        background-color: #fef2f2;
+        border-color: #ef4444;
+        .el-radio__label { color: #dc2626; font-weight: 600; }
+      }
+    }
+  }
+}
+
+/* Button Styles */
+.btn-cancel {
+  border-radius: 6px;
+  font-weight: 500;
+  border-color: #d1d5db;
+  color: #4b5563;
+  
+  &:hover {
+    background-color: #f3f4f6;
+    border-color: #d1d5db;
+    color: #111827;
+  }
+}
+
+.btn-submit {
+  border-radius: 6px;
+  font-weight: 500;
+  background-color: #111827;
+  border-color: #111827;
+  
+  &:hover {
+    background-color: #374151;
+    border-color: #374151;
+  }
+}
+
+/* Mapping Dialog Styles */
+.mapping-header {
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  
+  .mapping-desc {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #4b5563;
+    font-size: 14px;
+    font-weight: 500;
+    
+    .el-icon {
+      font-size: 18px;
+      color: #3b82f6;
+    }
+  }
+}
+
+.mapping-table-wrapper {
+  padding: 24px;
+}
+
+.mapping-table {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border: 1px solid #e5e7eb;
+  
+  :deep(th.el-table__cell) {
+    background-color: #f8fafc;
+    color: #4b5563;
+    font-weight: 600;
+    border-bottom: 1px solid #e5e7eb;
+  }
+}
+
+.mapping-arrow {
+  font-size: 16px;
+  color: #9ca3af;
+  background: #f3f4f6;
+  padding: 4px;
+  border-radius: 50%;
+}
+
+.btn-delete-icon {
+  font-size: 18px;
+  padding: 8px;
+  border-radius: 6px;
+  
+  &:hover {
+    background-color: #fef2f2;
+    color: #ef4444;
+  }
+}
+</style>
