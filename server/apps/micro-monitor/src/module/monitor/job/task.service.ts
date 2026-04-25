@@ -31,17 +31,42 @@ export class TaskService implements OnModuleInit {
     for (const { classOrigin, methodName, metadata } of tasks) {
       try {
         // 获取或创建服务实例
-        let serviceInstance = this.serviceInstances.get(classOrigin.name);
-        if (!serviceInstance) {
-          // 动态获取服务实例
-          serviceInstance = await this.moduleRef.get(classOrigin);
-          this.serviceInstances.set(classOrigin.name, serviceInstance);
+        let serviceInstance;
+        
+        // 1. 如果是在当前服务 (TaskService) 中定义的方法，直接使用 this
+        if (classOrigin.name === 'TaskService') {
+          serviceInstance = this;
+        } else {
+          // 2. 从缓存获取
+          serviceInstance = this.serviceInstances.get(classOrigin.name);
+          if (!serviceInstance) {
+            // 3. 动态获取服务实例，使用 strict: false 以允许从整个微服务容器获取
+            try {
+              serviceInstance = this.moduleRef.get(classOrigin, { strict: false });
+              this.serviceInstances.set(classOrigin.name, serviceInstance);
+            } catch (e) {
+              this.logger.error(`无法从 ModuleRef 中获取服务实例 ${classOrigin.name}: ${e.message}`);
+              continue;
+            }
+          }
         }
 
         // 绑定方法到实例
+        if (typeof serviceInstance[methodName] !== 'function') {
+          throw new Error(`在 ${classOrigin.name} 中找不到方法 ${methodName}`);
+        }
         const method = serviceInstance[methodName].bind(serviceInstance);
+        
+        // 兼容处理：支持 invokeTarget 是类名.方法名的情况 (e.g. statusEngine.checkStatus)
+        const nameParts = metadata.name.split('.');
+        const functionName = nameParts.length > 1 ? nameParts[1] : metadata.name;
+
+        // 注册到 taskMap
+        // 既支持全称 (例如: statusEngine.checkStatus) 又支持短名 (例如: checkStatus)
         this.taskMap.set(metadata.name, method);
-        this.logger.log(`注册任务: ${metadata.name}`);
+        this.taskMap.set(functionName, method);
+        
+        this.logger.log(`注册任务成功: ${metadata.name}`);
       } catch (error) {
         this.logger.error(`注册任务失败 ${metadata.name}: ${error.message}`);
       }
@@ -73,13 +98,23 @@ export class TaskService implements OnModuleInit {
         throw new Error('调用目标格式错误');
       }
 
-      const [, methodName, paramsStr] = match;
+      const [, invokeName, paramsStr] = match;
       const params = paramsStr ? this.parseParams(paramsStr) : [];
 
       // 获取任务方法
-      const taskFn = this.taskMap.get(methodName);
+      let taskFn = this.taskMap.get(invokeName);
+      
+      // 兼容支持传入 `TaskService.httpGet` 这种形式，或者只有 `httpGet` 的形式
       if (!taskFn) {
-        throw new Error(`任务 ${methodName} 不存在`);
+         // 尝试移除对象前缀匹配
+         const parts = invokeName.split('.');
+         if (parts.length > 1) {
+            taskFn = this.taskMap.get(parts[1]);
+         }
+      }
+
+      if (!taskFn) {
+        throw new Error(`任务 ${invokeName} 不存在`);
       }
       // 执行任务
       await taskFn(...params);
