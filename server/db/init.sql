@@ -684,11 +684,15 @@ INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`
 -- 插入子菜单：数据模拟测试
 INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1106, '数据模拟测试', 1094, 3, 'mock', 'data-integration/mock/index', '', '1', '0', 'C', '0', '0', 'data-integration:mock:generate', 'bug', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '', '0');
 
--- 插入子菜单：夜间最小流量 (移至 DMA 业务)
-INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1107, '夜间最小流量', 1108, 1, 'night-flow', 'data-integration/night-flow/index', '', '1', '0', 'C', '0', '0', 'data-integration:night-flow:list', 'chart', 'admin', '2026-04-24 10:00:00.000000', '', NULL, '夜间最小流量分析页面', '0');
-
 -- 插入主菜单：DMA 业务
 INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1108, 'DMA业务', 0, 1, 'dma', 'Layout', '', '1', '0', 'M', '0', '0', '', 'chart', 'admin', '2026-04-24 10:00:00.000000', '', NULL, 'DMA业务管理', '0');
+
+-- 插入子菜单：夜间最小流量 (移至 DMA 业务)
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1107, '夜间最小流量', 1108, 1, 'night-flow', 'data-integration/night-flow/index', '', '1', '0', 'C', '0', '0', 'data-integration:night-flow:list', 'chart', 'admin', '2026-04-24 10:00:00.000000', '', NULL, '夜间最小流量分析页面', '0');
+-- 插入日报表和月报表的菜单
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES
+(3021, '产销差日报表', 1108, 1, 'daily', 'dma/report/daily', 1, 0, 'C', '0', '0', 'dma:report:daily', 'calendar', 'admin', NOW(), '', NULL, '分区产销差日报表'),
+(3022, '产销差月报表', 1108, 2, 'monthly', 'dma/report/monthly', 1, 0, 'C', '0', '0', 'dma:report:monthly', 'date', 'admin', NOW(), '', NULL, '分区产销差月报表');
 
 
 COMMIT; -- 【系统管理模块 - 菜单表】
