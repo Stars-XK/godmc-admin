@@ -114,6 +114,7 @@ async function bootstrap() {
     { path: '/report', target: 'http://127.0.0.1:3007' },
     { path: '/ingestion', target: 'http://127.0.0.1:3007' },
     { path: '/tdengine-agg', target: 'http://127.0.0.1:3007' },
+    { path: '/alarm', target: 'http://127.0.0.1:3008' },
   ];
 
   for (const proxy of proxies) {

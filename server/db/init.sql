@@ -1321,4 +1321,59 @@ CREATE TABLE IF NOT EXISTS `water_data_mapping` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='【数据接入模块 - 字段映射规则表】字段映射规则表';
 COMMIT; -- 【数据接入模块 - 字段映射规则表】
 
+-- ----------------------------
+-- Alarm Module Tables
+-- ----------------------------
+
+-- 报警规则配置表
+CREATE TABLE IF NOT EXISTS `sys_alarm_rule` (
+  `rule_id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '规则ID',
+  `rule_name` varchar(100) NOT NULL COMMENT '规则名称',
+  `rule_type` varchar(2) DEFAULT '1' COMMENT '规则类型(1-设备 2-分区 3-系统)',
+  `rule_conditions` json NOT NULL COMMENT '条件JSON',
+  `rule_actions` json NOT NULL COMMENT '动作JSON',
+  `status` char(1) DEFAULT '0' COMMENT '状态(0正常 1停用)',
+  `create_by` varchar(64) DEFAULT '' COMMENT '创建者',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `update_by` varchar(64) DEFAULT '' COMMENT '更新者',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (`rule_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='报警规则配置表';
+
+-- 报警历史记录表
+CREATE TABLE IF NOT EXISTS `sys_alarm_history` (
+  `alarm_id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '报警ID',
+  `rule_id` bigint(20) NOT NULL COMMENT '规则ID',
+  `rule_name` varchar(100) NOT NULL COMMENT '规则名称',
+  `alarm_level` varchar(2) DEFAULT '3' COMMENT '报警级别(1-紧急 2-重要 3-次要 4-提示)',
+  `alarm_content` varchar(500) NOT NULL COMMENT '报警内容',
+  `alarm_time` datetime NOT NULL COMMENT '报警时间',
+  `alarm_source` varchar(100) DEFAULT NULL COMMENT '报警源(如deviceCode或zoneCode)',
+  `status` char(1) DEFAULT '0' COMMENT '状态(0未处理 1已处理)',
+  `resolve_time` datetime DEFAULT NULL COMMENT '处理时间',
+  `resolve_by` varchar(64) DEFAULT '' COMMENT '处理人',
+  `resolve_remark` varchar(500) DEFAULT NULL COMMENT '处理备注',
+  PRIMARY KEY (`alarm_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='报警历史记录表';
+
+INSERT IGNORE INTO `sys_dict_type` (`dict_name`, `dict_type`, `status`, `create_by`, `create_time`, `remark`) VALUES ('报警规则类型', 'sys_alarm_rule_type', '0', 'admin', sysdate(), '报警规则类型列表');
+INSERT IGNORE INTO `sys_dict_type` (`dict_name`, `dict_type`, `status`, `create_by`, `create_time`, `remark`) VALUES ('报警级别', 'sys_alarm_level', '0', 'admin', sysdate(), '报警级别列表');
+INSERT IGNORE INTO `sys_dict_type` (`dict_name`, `dict_type`, `status`, `create_by`, `create_time`, `remark`) VALUES ('报警处理状态', 'sys_alarm_status', '0', 'admin', sysdate(), '报警处理状态列表');
+
+INSERT IGNORE INTO `sys_dict_data` (`dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `remark`) VALUES 
+(1, '设备报警', '1', 'sys_alarm_rule_type', '', 'primary', 'Y', '0', 'admin', sysdate(), '设备报警'),
+(2, '分区报警', '2', 'sys_alarm_rule_type', '', 'success', 'N', '0', 'admin', sysdate(), '分区报警'),
+(3, '系统报警', '3', 'sys_alarm_rule_type', '', 'warning', 'N', '0', 'admin', sysdate(), '系统报警');
+
+INSERT IGNORE INTO `sys_dict_data` (`dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `remark`) VALUES 
+(1, '紧急', '1', 'sys_alarm_level', '', 'danger', 'N', '0', 'admin', sysdate(), '紧急'),
+(2, '重要', '2', 'sys_alarm_level', '', 'warning', 'N', '0', 'admin', sysdate(), '重要'),
+(3, '次要', '3', 'sys_alarm_level', '', 'primary', 'Y', '0', 'admin', sysdate(), '次要'),
+(4, '提示', '4', 'sys_alarm_level', '', 'info', 'N', '0', 'admin', sysdate(), '提示');
+
+INSERT IGNORE INTO `sys_dict_data` (`dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `remark`) VALUES 
+(1, '未处理', '0', 'sys_alarm_status', '', 'danger', 'Y', '0', 'admin', sysdate(), '未处理'),
+(2, '已处理', '1', 'sys_alarm_status', '', 'success', 'N', '0', 'admin', sysdate(), '已处理');
+
 SET FOREIGN_KEY_CHECKS = 1;-- 插入日报表和月报表的菜单
