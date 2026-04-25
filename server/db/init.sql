@@ -1326,3 +1326,4 @@ INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`
 (3020, 'DMA业务', 0, 1, 'dma', '', 1, 0, 'M', '0', '0', '', 'data-analysis', 'admin', NOW(), '', NULL, 'DMA业务目录'),
 (3021, '产销差日报表', 3020, 1, 'daily', 'dma/report/daily', 1, 0, 'C', '0', '0', 'dma:report:daily', 'calendar', 'admin', NOW(), '', NULL, '分区产销差日报表'),
 (3022, '产销差月报表', 3020, 2, 'monthly', 'dma/report/monthly', 1, 0, 'C', '0', '0', 'dma:report:monthly', 'date', 'admin', NOW(), '', NULL, '分区产销差月报表');
+ALTER TABLE `water_data_task` ADD COLUMN `target_entity` varchar(100) NULL COMMENT '目标实体表名或类别(如 sys_zone, sys_device, tdengine)';
