@@ -49,12 +49,14 @@
   </div>
 </template>
 
-<script setup>
-import { ref, watch, defineOptions } from 'vue';
-
-defineOptions({
+<script>
+export default {
   name: 'RuleBuilder'
-});
+}
+</script>
+
+<script setup>
+import { ref, watch } from 'vue';
 
 const props = defineProps({
   modelValue: {
