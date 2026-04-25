@@ -65,8 +65,6 @@ export class TaskService implements OnModuleInit {
         // 既支持全称 (例如: statusEngine.checkStatus) 又支持短名 (例如: checkStatus)
         this.taskMap.set(metadata.name, method);
         this.taskMap.set(functionName, method);
-        
-        this.logger.log(`注册任务成功: ${metadata.name}`);
       } catch (error) {
         this.logger.error(`注册任务失败 ${metadata.name}: ${error.message}`);
       }
@@ -221,10 +219,8 @@ export class TaskService implements OnModuleInit {
     description: '发送 HTTP GET 请求',
   })
   async httpGet(url: string) {
-    this.logger.log(`执行 HTTP GET 请求: ${url}`);
     try {
       const response = await axios.get(url);
-      this.logger.log(`HTTP GET 请求成功: ${response.status}`);
       return response.data;
     } catch (error) {
       this.logger.error(`HTTP GET 请求失败: ${error.message}`);
@@ -237,10 +233,8 @@ export class TaskService implements OnModuleInit {
     description: '发送 HTTP POST 请求',
   })
   async httpPost(url: string, body?: any) {
-    this.logger.log(`执行 HTTP POST 请求: ${url}`);
     try {
       const response = await axios.post(url, body || {});
-      this.logger.log(`HTTP POST 请求成功: ${response.status}`);
       return response.data;
     } catch (error) {
       this.logger.error(`HTTP POST 请求失败: ${error.message}`);

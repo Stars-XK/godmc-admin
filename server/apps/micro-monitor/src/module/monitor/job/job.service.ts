@@ -179,7 +179,7 @@ export class JobService {
   private addCronJob(name: string, cronTime: string, invokeTarget: string) {
     cronTime = cronTime.replace('?', '*'); // 不支持问号，则将cron的问号转成*
     const job = new CronJob(cronTime, async () => {
-      this.logger.warn(`定时任务 ${name} 正在执行，调用方法: ${invokeTarget}`);
+      // 移除控制台刷屏的 warn 日志，所有执行结果都会存入 job_log 数据库表中供前端查询
       await this.taskService.executeTask(invokeTarget, name);
     });
 
