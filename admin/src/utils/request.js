@@ -109,7 +109,21 @@ service.interceptors.response.use(res => {
     } else if (message.includes("timeout")) {
       message = "系统接口请求超时";
     } else if (message.includes("Request failed with status code")) {
-      message = "系统接口" + message.substr(message.length - 3) + "异常";
+      const code = message.substr(message.length - 3);
+      if (['502', '503', '504'].includes(code)) {
+        const url = error.config?.url || '';
+        if (url.includes('/alarm/') || url.includes('/report/') || url.includes('/data-integration/')) {
+          ElNotification({
+            title: '服务暂时离线',
+            message: `相关服务模块当前离线或重启中，请稍后再试。`,
+            type: 'warning',
+            position: 'bottom-right',
+            duration: 5000
+          });
+          return Promise.resolve({ code: 200, data: [], rows: [], total: 0, msg: 'Service offline fallback' });
+        }
+      }
+      message = "系统接口" + code + "异常";
     }
     ElMessage({ message: message, type: 'error', duration: 5 * 1000 })
     return Promise.reject(error)
