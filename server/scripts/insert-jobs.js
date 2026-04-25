@@ -10,7 +10,7 @@ async function run() {
     port: 3306,
   });
 
-  const sql = fs.readFileSync('/workspace/server/db/init-other-jobs.sql', 'utf8');
+  const sql = fs.readFileSync('/workspace/server/db/init-report-menus.sql', 'utf8');
   
   // ignore insert errors (e.g. duplicate primary key)
   try {
