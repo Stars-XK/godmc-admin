@@ -1376,4 +1376,24 @@ INSERT IGNORE INTO `sys_dict_data` (`dict_sort`, `dict_label`, `dict_value`, `di
 (1, '未处理', '0', 'sys_alarm_status', '', 'danger', 'Y', '0', 'admin', sysdate(), '未处理'),
 (2, '已处理', '1', 'sys_alarm_status', '', 'success', 'N', '0', 'admin', sysdate(), '已处理');
 
-SET FOREIGN_KEY_CHECKS = 1;-- 插入日报表和月报表的菜单
+SET FOREIGN_KEY_CHECKS = 1;
+-- 报警中心菜单
+INSERT IGNORE INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`)
+VALUES
+(1200, '报警中心', 0, 5, 'alarm', NULL, '1', '0', 'M', '0', '0', '', 'bell', 'admin', sysdate(), '', NULL, '报警中心目录'),
+(1201, '报警规则', 1200, 1, 'rule', 'alarm/rule/index', '1', '0', 'C', '0', '0', 'alarm:rule:list', 'setting', 'admin', sysdate(), '', NULL, '报警规则菜单'),
+(1202, '报警历史', 1200, 2, 'history', 'alarm/history/index', '1', '0', 'C', '0', '0', 'alarm:history:list', 'message', 'admin', sysdate(), '', NULL, '报警历史菜单');
+
+-- 报警规则按钮权限
+INSERT IGNORE INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`)
+VALUES
+(1203, '规则查询', 1201, 1, '#', '', '1', '0', 'F', '0', '0', 'alarm:rule:query', '#', 'admin', sysdate(), '', NULL, ''),
+(1204, '规则新增', 1201, 2, '#', '', '1', '0', 'F', '0', '0', 'alarm:rule:add', '#', 'admin', sysdate(), '', NULL, ''),
+(1205, '规则修改', 1201, 3, '#', '', '1', '0', 'F', '0', '0', 'alarm:rule:edit', '#', 'admin', sysdate(), '', NULL, ''),
+(1206, '规则删除', 1201, 4, '#', '', '1', '0', 'F', '0', '0', 'alarm:rule:remove', '#', 'admin', sysdate(), '', NULL, '');
+
+-- 报警历史按钮权限
+INSERT IGNORE INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`)
+VALUES
+(1207, '历史查询', 1202, 1, '#', '', '1', '0', 'F', '0', '0', 'alarm:history:query', '#', 'admin', sysdate(), '', NULL, ''),
+(1208, '报警处理', 1202, 2, '#', '', '1', '0', 'F', '0', '0', 'alarm:history:resolve', '#', 'admin', sysdate(), '', NULL, '');
