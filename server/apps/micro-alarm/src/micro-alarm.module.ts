@@ -14,6 +14,7 @@ import { RegistryModule } from '@app/common';
 import { SysAlarmRuleEntity, SysAlarmHistoryEntity } from '@app/common';
 import { RuleModule } from './rule/rule.module';
 import { EngineModule } from './engine/engine.module';
+import { HistoryModule } from './history/history.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { EngineModule } from './engine/engine.module';
     RegistryModule,
     RuleModule,
     EngineModule,
+    HistoryModule,
   ],
   controllers: [MicroAlarmController],
   providers: [
