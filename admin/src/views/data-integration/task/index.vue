@@ -670,13 +670,6 @@ onMounted(() => {
 .btn-submit {
   border-radius: 6px;
   font-weight: 500;
-  background-color: #111827;
-  border-color: #111827;
-  
-  &:hover {
-    background-color: #374151;
-    border-color: #374151;
-  }
 }
 
 /* Mapping Dialog Styles */

@@ -223,11 +223,7 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background-color: #111827;
-  border-color: #111827;
-  color: #ffffff;
   border-radius: 8px;
   font-weight: 500;
-  &:hover { background-color: #374151; border-color: #374151; }
 }
 </style>

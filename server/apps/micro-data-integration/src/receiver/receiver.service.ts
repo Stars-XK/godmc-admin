@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { TdengineService } from '../tdengine/tdengine.service';
 import { TdengineAggService } from '../tdengine/tdengine-agg.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataIntegrationMappingEntity } from '@app/common';
-import { Repository } from 'typeorm';
+import { DataIntegrationMappingEntity, DataIntegrationTaskEntity } from '@app/common';
+import { Repository, DataSource } from 'typeorm';
 import { RedisService } from '@app/shared/redis/redis.service';
 
 @Injectable()
@@ -16,7 +16,10 @@ export class ReceiverService {
     private readonly tdengineAggService: TdengineAggService,
     @InjectRepository(DataIntegrationMappingEntity)
     private readonly mappingRep: Repository<DataIntegrationMappingEntity>,
+    @InjectRepository(DataIntegrationTaskEntity)
+    private readonly taskRep: Repository<DataIntegrationTaskEntity>,
     private readonly redisService: RedisService,
+    private readonly dataSource: DataSource,
   ) {}
 
   private async markAggDirty(deviceCode: string, pointCode: string, tsMs: number) {
@@ -232,6 +235,12 @@ export class ReceiverService {
     const dataList = Array.isArray(payload) ? payload : [payload];
     if (dataList.length === 0) return { success: 0, failed: 0 };
 
+    const task = await this.taskRep.findOne({ where: { id: taskId } });
+    if (!task) {
+      this.logger.warn(`任务 ${taskId} 不存在`);
+      return { success: 0, failed: 0 };
+    }
+
     const mappings = await this.mappingRep.find({ where: { taskId } });
     if (!mappings || mappings.length === 0) {
       this.logger.warn(`任务 ${taskId} 没有配置字段映射，忽略数据接入`);
@@ -250,53 +259,96 @@ export class ReceiverService {
         extracted[map.targetField] = item[map.sourceField];
       }
 
-      if (!extracted.deviceCode || !extracted.pointCode || extracted.value === undefined) {
-        failedCount++;
-        continue;
-      }
-
-      const deviceCode = String(extracted.deviceCode);
-      const pointCode = String(extracted.pointCode);
-      const val = Number(extracted.value);
-      const ts = extracted.timestamp ? new Date(extracted.timestamp) : new Date();
-
-      try {
-        await this.tdengineService.insertData(deviceCode, pointCode, val, ts);
-        successCount++;
-        await this.markAggDirty(deviceCode, pointCode, ts.getTime());
-
-        // 记录最新活跃时间到 Redis (只更新实时模式的数据，自动回填的历史数据不更新在线状态)
-        if (!autoBackfill) {
-           await this.redisService.getClient().hset('iot:point:active', pointCode, Date.now().toString());
+      // 如果目标是 tdengine
+      if (task.targetEntity === 'tdengine') {
+        if (!extracted.deviceCode || !extracted.pointCode || extracted.value === undefined) {
+          failedCount++;
+          continue;
         }
 
-        // 记录受影响的设备时间范围
-        if (autoBackfill) {
-          const tsTime = ts.getTime();
-          if (!affectedDevices.has(deviceCode)) {
-            affectedDevices.set(deviceCode, { startTs: tsTime, endTs: tsTime, pointCodes: new Set([pointCode]) });
-          } else {
-            const record = affectedDevices.get(deviceCode);
-            record.startTs = Math.min(record.startTs, tsTime);
-            record.endTs = Math.max(record.endTs, tsTime);
-            record.pointCodes.add(pointCode);
+        const deviceCode = String(extracted.deviceCode);
+        const pointCode = String(extracted.pointCode);
+        const val = Number(extracted.value);
+        const ts = extracted.timestamp ? new Date(extracted.timestamp) : new Date();
+
+        try {
+          await this.tdengineService.insertData(deviceCode, pointCode, val, ts);
+          successCount++;
+          await this.markAggDirty(deviceCode, pointCode, ts.getTime());
+
+          if (!autoBackfill) {
+             await this.redisService.getClient().hset('iot:point:active', pointCode, Date.now().toString());
           }
+
+          if (autoBackfill) {
+            const tsTime = ts.getTime();
+            if (!affectedDevices.has(deviceCode)) {
+              affectedDevices.set(deviceCode, { startTs: tsTime, endTs: tsTime, pointCodes: new Set([pointCode]) });
+            } else {
+              const record = affectedDevices.get(deviceCode);
+              record.startTs = Math.min(record.startTs, tsTime);
+              record.endTs = Math.max(record.endTs, tsTime);
+              record.pointCodes.add(pointCode);
+            }
+          }
+        } catch (err) {
+          failedCount++;
+          await this.redisService.getClient().lpush('iot:td:retry:list', JSON.stringify({
+            taskId,
+            deviceCode,
+            pointCode,
+            val,
+            ts: ts.toISOString(),
+          }));
+          this.logger.error(`TDengine 插入失败 (Task: ${taskId})`, err);
         }
-      } catch (err) {
+      } 
+      // 如果目标是 revenue (营收)
+      else if (task.targetEntity === 'revenue') {
+        if (!extracted.user_no || !extracted.zone_code || extracted.val === undefined || !extracted.ts) {
+          failedCount++;
+          continue;
+        }
+        
+        try {
+          const userNo = String(extracted.user_no);
+          const zoneCode = String(extracted.zone_code);
+          const val = Number(extracted.val);
+          const ts = new Date(extracted.ts);
+          // 假设我们这里默认插月度数据，或者根据任务约定
+          await this.tdengineService.insertRevenueData('1mo', userNo, zoneCode, val, ts);
+          successCount++;
+        } catch (err) {
+          failedCount++;
+          this.logger.error(`Revenue 插入失败 (Task: ${taskId})`, err);
+        }
+      }
+      // 如果目标是业务基础表 (MySQL)
+      else if (task.targetEntity) {
+        try {
+          // 动态生成 INSERT ... ON DUPLICATE KEY UPDATE
+          const columns = Object.keys(extracted);
+          if (columns.length === 0) continue;
+
+          const values = Object.values(extracted);
+          const placeholders = columns.map(() => '?').join(', ');
+          const updateStr = columns.map(c => `\`${c}\` = VALUES(\`${c}\`)`).join(', ');
+          
+          const sql = `INSERT INTO \`${task.targetEntity}\` (${columns.map(c => `\`${c}\``).join(', ')}) VALUES (${placeholders}) ON DUPLICATE KEY UPDATE ${updateStr}`;
+          
+          await this.dataSource.query(sql, values);
+          successCount++;
+        } catch (err) {
+          failedCount++;
+          this.logger.error(`基础表写入失败 (Task: ${taskId}, Table: ${task.targetEntity})`, err);
+        }
+      } else {
         failedCount++;
-        await this.redisService.getClient().lpush('iot:td:retry:list', JSON.stringify({
-          taskId,
-          deviceCode,
-          pointCode,
-          val,
-          ts: ts.toISOString(),
-        }));
-        this.logger.error(`TDengine 插入失败 (Task: ${taskId})`, err);
       }
     }
 
     // 执行自动历史补录
-    if (autoBackfill && affectedDevices.size > 0) {
+    if (task.targetEntity === 'tdengine' && autoBackfill && affectedDevices.size > 0) {
       for (const [deviceCode, record] of affectedDevices.entries()) {
         for (const pointCode of record.pointCodes) {
           await this.tdengineAggService.rebuildAggTables(deviceCode, pointCode, record.startTs, record.endTs);
