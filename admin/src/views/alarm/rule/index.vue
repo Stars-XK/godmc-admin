@@ -407,6 +407,8 @@ function handleDelete(row) {
 }
 
 getList();
+</script>
+
 <style scoped>
 .section-title {
   font-size: 15px;
