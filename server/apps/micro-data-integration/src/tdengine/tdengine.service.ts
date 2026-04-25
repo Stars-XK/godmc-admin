@@ -116,6 +116,14 @@ export class TdengineService implements OnModuleInit {
         `CREATE STABLE IF NOT EXISTS ${this.dbName}.revenue_meters_1mo (ts TIMESTAMP, val DOUBLE) TAGS (user_no NCHAR(100), zone_code NCHAR(100))`
       );
 
+      // 产销差报表 - 分区向上聚合结果超级表
+      await this.executeSql(
+        `CREATE STABLE IF NOT EXISTS ${this.dbName}.zone_revenue_1d (ts TIMESTAMP, total_val DOUBLE) TAGS (zone_code NCHAR(100), metric_type NCHAR(100))`
+      );
+      await this.executeSql(
+        `CREATE STABLE IF NOT EXISTS ${this.dbName}.zone_revenue_1mo (ts TIMESTAMP, total_val DOUBLE) TAGS (zone_code NCHAR(100), metric_type NCHAR(100))`
+      );
+
       this.logger.log('TDengine 数据库、超级表与流计算 (5m, 1h, 1d) 初始化成功');
     } catch (error) {
       this.logger.warn('TDengine 初始化被挂起，将在服务可用时再次尝试。');
@@ -181,6 +189,29 @@ export class TdengineService implements OnModuleInit {
     }
 
     const sql = `INSERT INTO ${tableName} USING ${sTable} TAGS ('${userNo}', '${zoneCode}') VALUES (${timeStr}, ${value})`;
+    return this.executeSql(sql);
+  }
+
+  /**
+   * 插入分区产销差聚合数据
+   */
+  async insertZoneRevenueAggData(dataType: '1d' | '1mo', zoneCode: string, value: number, ts: Date | string | number) {
+    const safeZoneCode = zoneCode.replace(/-/g, '_').toLowerCase();
+    const tableName = `${this.dbName}.zr_${dataType}_${safeZoneCode}`;
+    const sTable = `${this.dbName}.zone_revenue_${dataType}`;
+    
+    let timeStr = 'NOW';
+    if (ts) {
+      if (ts instanceof Date) {
+        timeStr = `${ts.getTime()}`;
+      } else if (typeof ts === 'number') {
+        timeStr = `${ts}`;
+      } else {
+        timeStr = `'${ts}'`;
+      }
+    }
+
+    const sql = `INSERT INTO ${tableName} USING ${sTable} TAGS ('${zoneCode}', 'water_sales') VALUES (${timeStr}, ${value})`;
     return this.executeSql(sql);
   }
 
