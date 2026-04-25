@@ -1,0 +1,1 @@
+ALTER TABLE `water_data_task` ADD COLUMN `target_entity` varchar(100) NULL COMMENT '目标实体表名或类别(如 sys_zone, sys_device, tdengine)';

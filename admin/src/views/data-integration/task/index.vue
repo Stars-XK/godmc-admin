@@ -35,6 +35,13 @@
       </el-table-column>
       <el-table-column label="执行频率(Cron)" align="center" prop="cronExpression" />
       <el-table-column label="提取指令" align="center" prop="querySqlOrTopic" show-overflow-tooltip />
+      <el-table-column label="目标表/实体" align="center" prop="targetEntity" width="150" :show-overflow-tooltip="true" />
+      <el-table-column label="自动补全" align="center" prop="autoBackfill" width="100">
+        <template #default="scope">
+          <el-tag :type="scope.row.autoBackfill ? 'success' : 'info'">{{ scope.row.autoBackfill ? '是' : '否' }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="目标表/实体" align="center" prop="targetEntity" width="150" :show-overflow-tooltip="true" />
       <el-table-column label="状态" align="center" prop="status">
         <template #default="scope">
           <el-tag :type="scope.row.status === '0' ? 'success' : 'danger'">{{ scope.row.status === '0' ? '正常' : '停用' }}</el-tag>
@@ -85,11 +92,15 @@
             提示：在 SQL 语句中使用 <code>?</code> 代表上一次任务执行的增量时间戳（如: <code>UPDATE_TIME > ?</code>），引擎会自动替换并管理断点。
           </div>
         </el-form-item>
-        <el-form-item label="自动补录历史">
+        <el-form-item label="目标表/实体名 (Target Entity)" prop="targetEntity">
+          <el-input v-model="form.targetEntity" placeholder="例如：sys_zone、sys_device、tdengine等" />
+          <div class="el-upload__tip">指明数据同步的最终去向。基础数据填写系统表名（如 sys_device），时序数据填写 tdengine 或 revenue 等关键字。</div>
+        </el-form-item>
+        <el-form-item label="自动补录历史" v-if="isTimingTask(form.sourceId) && form.targetEntity === 'tdengine'">
           <el-switch v-model="form.autoBackfill" active-text="开启" inactive-text="关闭" />
           <div class="el-upload__tip">开启后，若单次抓取了跨越整点的大量历史数据，引擎将自动触发时序聚合重算。</div>
         </el-form-item>
-        <el-form-item label="自动插值补全" v-if="form.autoBackfill">
+        <el-form-item label="自动插值补全" v-if="isTimingTask(form.sourceId) && form.targetEntity === 'tdengine' && form.autoBackfill">
           <el-switch v-model="form.interpolation" active-text="开启" inactive-text="关闭" />
           <div class="el-upload__tip">开启后，回填聚合数据时若存在空洞（如设备断网导致无数据），将使用前值(PREV)或线性(LINEAR)算法自动插值填补。</div>
         </el-form-item>
@@ -172,7 +183,9 @@ const data = reactive({
   },
   rules: {
     name: [{ required: true, message: '任务名称不能为空', trigger: 'blur' }],
-    sourceId: [{ required: true, message: '数据源不能为空', trigger: 'change' }]
+    sourceId: [{ required: true, message: '数据源不能为空', trigger: 'change' }],
+    querySqlOrTopic: [{ required: true, message: '提取指令不能为空', trigger: 'blur' }],
+    targetEntity: [{ required: true, message: '目标实体/表名不能为空', trigger: 'blur' }]
   }
 });
 
@@ -257,6 +270,7 @@ function reset() {
   form.sourceId = undefined;
   form.cronExpression = undefined;
   form.querySqlOrTopic = undefined;
+  form.targetEntity = undefined;
   form.status = '0';
   form.autoBackfill = false;
   form.interpolation = false;
@@ -350,31 +364,37 @@ function handleTemplateAdd(command) {
     form.name = '定时同步分区基础数据';
     form.cronExpression = '0 0 2 * * ?'; // 每天凌晨2点
     quickCron.value = '0 0 2 * * ?';
+    form.targetEntity = 'water_zone';
     form.querySqlOrTopic = 'SELECT id, name, parent_id, sort, remark, update_time FROM sys_zone WHERE update_time > ?';
   } else if (command === 'station') {
     form.name = '定时同步站点基础数据';
     form.cronExpression = '0 0 2 * * ?';
     quickCron.value = '0 0 2 * * ?';
+    form.targetEntity = 'water_station';
     form.querySqlOrTopic = 'SELECT id, code, name, zone_code, type, lng, lat, update_time FROM sys_station WHERE update_time > ?';
   } else if (command === 'device') {
     form.name = '定时同步设备基础数据';
     form.cronExpression = '0 0 2 * * ?';
     quickCron.value = '0 0 2 * * ?';
+    form.targetEntity = 'water_device';
     form.querySqlOrTopic = 'SELECT id, code, name, station_code, type, status, expected_cycle, update_time FROM sys_device WHERE update_time > ?';
   } else if (command === 'point') {
     form.name = '定时同步测点(变量)数据';
     form.cronExpression = '0 0 2 * * ?';
     quickCron.value = '0 0 2 * * ?';
+    form.targetEntity = 'water_point';
     form.querySqlOrTopic = 'SELECT id, code, name, device_code, type, unit, expected_cycle, update_time FROM sys_point WHERE update_time > ?';
   } else if (command === 'user') {
     form.name = '定时同步营收用户档案';
     form.cronExpression = '0 0 2 * * ?';
     quickCron.value = '0 0 2 * * ?';
+    form.targetEntity = 'water_revenue_user';
     form.querySqlOrTopic = 'SELECT user_no, user_name, zone_code, address, status, meter_no, install_date, update_time FROM third_revenue_user WHERE update_time > ?';
   } else if (command === 'scada') {
     form.name = 'SCADA 实时时序数据接入';
     form.cronExpression = '0 * * * * ?'; // 每分钟
     quickCron.value = '0 * * * * ?';
+    form.targetEntity = 'tdengine';
     form.querySqlOrTopic = 'SELECT device_code, point_code, val, ts FROM third_scada_history WHERE ts > ?';
     form.autoBackfill = true;
     form.interpolation = true;
@@ -382,6 +402,7 @@ function handleTemplateAdd(command) {
     form.name = '营收水量账单定时抽取';
     form.cronExpression = '0 0 3 1 * ?'; // 每月1号凌晨3点
     quickCron.value = '0 0 3 1 * ?';
+    form.targetEntity = 'revenue';
     form.querySqlOrTopic = 'SELECT user_no, zone_code, total_volume as val, bill_month as ts FROM third_revenue_bill WHERE bill_month > ?';
   }
 }

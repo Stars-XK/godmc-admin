@@ -34,6 +34,10 @@ export class DataIntegrationTaskEntity extends BaseEntity {
   @Column({ name: 'interpolation', type: 'tinyint', default: 0, comment: '是否自动插值补全空洞 (0-否 1-是)' })
   public interpolation: number;
 
+  @ApiProperty({ type: String, description: '目标实体表名或类别' })
+  @Column({ type: 'varchar', name: 'target_entity', length: 100, comment: '目标实体表名或类别(如 sys_zone, sys_device, tdengine)', nullable: true })
+  public targetEntity: string;
+
   @ApiProperty({ type: String, description: '任务状态 (0正常 1停用)' })
   @Column({ type: 'char', name: 'status', length: 1, default: '0', comment: '任务状态 (0正常 1停用)' })
   public status: string;
