@@ -20,7 +20,7 @@ export class TdengineAggScheduler {
     private readonly zoneMetricRep: Repository<WaterZoneMetricCalcEntity>,
   ) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  // @Cron(CronExpression.EVERY_MINUTE) // 已迁移至统一任务管理平台 (HTTP调用)
   async processDirtyPoints() {
     const redis = this.redisService.getClient();
     const members = await redis.smembers(this.dirtySetKey);

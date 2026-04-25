@@ -13,7 +13,7 @@ export class TdengineZoneAggScheduler {
     private readonly zoneAggService: TdengineZoneAggService,
   ) {}
 
-  @Cron('*/2 * * * *') // 每 2 分钟执行一次
+  // @Cron('*/2 * * * *') // 每 2 分钟执行一次 (已迁移至统一任务管理平台 HTTP调用)
   async processDirtyZones() {
     const redis = this.redisService.getClient();
     const members = await redis.smembers(this.dirtySetKey);

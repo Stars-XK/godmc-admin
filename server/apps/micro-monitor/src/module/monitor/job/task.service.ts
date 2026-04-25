@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { Task, TaskRegistry } from '@app/common/decorators/task.decorator';
 import { JobLogService } from './job-log.service';
+import axios from 'axios';
 
 @Injectable()
 export class TaskService implements OnModuleInit {
@@ -178,5 +179,37 @@ export class TaskService implements OnModuleInit {
   async backupDatabase() {
     this.logger.log('执行数据库备份任务');
     // 实现数据库备份的逻辑
+  }
+
+  @Task({
+    name: 'httpTask.get',
+    description: '发送 HTTP GET 请求',
+  })
+  async httpGet(url: string) {
+    this.logger.log(`执行 HTTP GET 请求: ${url}`);
+    try {
+      const response = await axios.get(url);
+      this.logger.log(`HTTP GET 请求成功: ${response.status}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error(`HTTP GET 请求失败: ${error.message}`);
+      throw new Error(`HTTP GET 请求失败: ${error.message}`);
+    }
+  }
+
+  @Task({
+    name: 'httpTask.post',
+    description: '发送 HTTP POST 请求',
+  })
+  async httpPost(url: string, body?: any) {
+    this.logger.log(`执行 HTTP POST 请求: ${url}`);
+    try {
+      const response = await axios.post(url, body || {});
+      this.logger.log(`HTTP POST 请求成功: ${response.status}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error(`HTTP POST 请求失败: ${error.message}`);
+      throw new Error(`HTTP POST 请求失败: ${error.message}`);
+    }
   }
 }

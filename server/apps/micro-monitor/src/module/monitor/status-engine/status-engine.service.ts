@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit, Inject } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Task } from '@app/common/decorators/task.decorator';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ClientProxy } from '@nestjs/microservices';
@@ -32,8 +32,11 @@ export class StatusEngineService implements OnModuleInit {
     }, 5000);
   }
 
-  // 每小时全量刷新一次设备树结构
-  @Cron(CronExpression.EVERY_HOUR)
+  // 每小时全量刷新一次设备树结构 (现已交由任务系统调度)
+  @Task({
+    name: 'statusEngine.refreshAssetTree',
+    description: '刷新设备树',
+  })
   async refreshAssetTree() {
     try {
       // 查出所有未删除且启用(或曾停用但需监控)的资产，此处简化为全量
@@ -55,8 +58,11 @@ export class StatusEngineService implements OnModuleInit {
     }
   }
 
-  // 每分钟执行一次心跳状态检测
-  @Cron(CronExpression.EVERY_MINUTE)
+  // 每分钟执行一次心跳状态检测 (现已交由任务系统调度)
+  @Task({
+    name: 'statusEngine.checkStatus',
+    description: '检测设备在线状态与联动告警',
+  })
   async checkStatus() {
     if (this.pointMap.size === 0) return; // 还没加载完
 

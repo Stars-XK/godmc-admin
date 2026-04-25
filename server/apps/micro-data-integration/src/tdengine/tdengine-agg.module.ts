@@ -7,12 +7,14 @@ import { TdengineAggScheduler } from './tdengine-agg.scheduler';
 import { TdengineRetryScheduler } from './tdengine-retry.scheduler';
 import { TdengineZoneAggService } from './tdengine-zone-agg.service';
 import { TdengineZoneAggScheduler } from './tdengine-zone-agg.scheduler';
+import { TdengineAggController } from './tdengine-agg.controller';
 
 @Module({
   imports: [
     TdengineModule, 
     TypeOrmModule.forFeature([WaterPointEntity, WaterZoneMetricCalcEntity])
   ],
+  controllers: [TdengineAggController],
   providers: [
     TdengineAggService, 
     TdengineAggScheduler, 

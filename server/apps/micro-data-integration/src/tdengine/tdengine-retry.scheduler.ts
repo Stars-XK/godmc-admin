@@ -31,7 +31,7 @@ export class TdengineRetryScheduler {
     });
   }
 
-  @Cron('*/10 * * * * *')
+  // @Cron('*/10 * * * * *') // 已迁移至统一任务管理平台 (HTTP调用)
   async replayFailedInserts() {
     const redis = this.redisService.getClient();
 
