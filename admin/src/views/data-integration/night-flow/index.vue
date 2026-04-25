@@ -170,8 +170,8 @@
 </template>
 
 <script setup name="ZoneNightFlow">
-import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { Search, LocationInformation, Setting, FullScreen } from '@element-plus/icons-vue'
+import { ref, shallowRef, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { Search, LocationInformation, Setting, FullScreen, Location } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { listZoneTree, lazyZoneChildren } from '@/api/water-basic/zone'
 import { getConfigKey } from '@/api/system/config'
@@ -211,7 +211,7 @@ const listContainer = ref(null)
 
 // 地图相关
 const amapKey = ref('')
-const mapInstance = ref(null)
+const mapInstance = shallowRef(null)
 const mapContainer = ref(null)
 let markers = []
 let currentPolygon = null
