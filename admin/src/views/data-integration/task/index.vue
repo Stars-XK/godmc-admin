@@ -198,6 +198,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { listTask, addTask, updateTask, delTask, listMapping, saveMappingBatch, listSource } from '@/api/data-integration/config';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { MagicStick, InfoFilled, Connection, Right, ArrowDown, Plus, DocumentCopy, Setting, Edit, Delete } from '@element-plus/icons-vue';
 
 const taskList = ref([]);
 const sourceList = ref([]);
