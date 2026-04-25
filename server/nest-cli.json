@@ -23,6 +23,15 @@
         "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
       }
     },
+    "micro-alarm": {
+      "type": "application",
+      "root": "apps/micro-alarm",
+      "entryFile": "main",
+      "sourceRoot": "apps/micro-alarm/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/micro-alarm/tsconfig.app.json"
+      }
+    },
     "micro-auth": {
       "type": "application",
       "root": "apps/micro-auth",
@@ -32,13 +41,13 @@
         "tsConfigPath": "apps/micro-auth/tsconfig.app.json"
       }
     },
-    "micro-system": {
+    "micro-data-integration": {
       "type": "application",
-      "root": "apps/micro-system",
+      "root": "apps/micro-data-integration",
       "entryFile": "main",
-      "sourceRoot": "apps/micro-system/src",
+      "sourceRoot": "apps/micro-data-integration/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/micro-system/tsconfig.app.json"
+        "tsConfigPath": "apps/micro-data-integration/tsconfig.app.json"
       }
     },
     "micro-monitor": {
@@ -50,13 +59,13 @@
         "tsConfigPath": "apps/micro-monitor/tsconfig.app.json"
       }
     },
-    "micro-upload": {
+    "micro-system": {
       "type": "application",
-      "root": "apps/micro-upload",
+      "root": "apps/micro-system",
       "entryFile": "main",
-      "sourceRoot": "apps/micro-upload/src",
+      "sourceRoot": "apps/micro-system/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/micro-upload/tsconfig.app.json"
+        "tsConfigPath": "apps/micro-system/tsconfig.app.json"
       }
     },
     "micro-tools": {
@@ -68,6 +77,15 @@
         "tsConfigPath": "apps/micro-tools/tsconfig.app.json"
       }
     },
+    "micro-upload": {
+      "type": "application",
+      "root": "apps/micro-upload",
+      "entryFile": "main",
+      "sourceRoot": "apps/micro-upload/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/micro-upload/tsconfig.app.json"
+      }
+    },
     "micro-water-basic": {
       "type": "application",
       "root": "apps/micro-water-basic",
@@ -75,15 +93,6 @@
       "sourceRoot": "apps/micro-water-basic/src",
       "compilerOptions": {
         "tsConfigPath": "apps/micro-water-basic/tsconfig.app.json"
-      }
-    },
-    "micro-data-integration": {
-      "type": "application",
-      "root": "apps/micro-data-integration",
-      "entryFile": "main",
-      "sourceRoot": "apps/micro-data-integration/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/micro-data-integration/tsconfig.app.json"
       }
     }
   }
