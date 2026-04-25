@@ -249,9 +249,9 @@ async function initMapKey() {
       getConfigKey('gis.map.amap.security')
     ])
     
-    if (resKey.code === 200 && resKey.msg) {
-      amapKey.value = resKey.msg
-      amapSecurity.value = resSecurity.msg || ''
+    if (resKey.code === 200 && resKey.data) {
+      amapKey.value = resKey.data
+      amapSecurity.value = resSecurity.data || ''
       initAMap()
     }
   } catch (error) {
