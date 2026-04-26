@@ -148,6 +148,14 @@ INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_valu
 INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_value`, `config_type`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `status`, `del_flag`) VALUES (21, 'SMTP 服务器', 'sys.mail.smtp', 'smtp.example.com', 'Y', 'admin', '2025-02-28 16:52:10.000000', '', NULL, 'SMTP 发信服务器地址', '0', '0');
 INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_value`, `config_type`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `status`, `del_flag`) VALUES (22, '短信提供商', 'sys.sms.provider', 'aliyun', 'Y', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '短信网关提供商', '0', '0');
 
+-- GIS 地图相关配置初始化
+INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_value`, `config_type`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `status`, `del_flag`) VALUES (23, 'GIS地图来源', 'gis.map.source', 'amap', 'Y', 'admin', '2026-04-26 12:00:00.000000', '', NULL, 'GIS系统自动生成配置', '0', '0');
+INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_value`, `config_type`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `status`, `del_flag`) VALUES (24, '默认坐标转换规则', 'gis.coord.transform', 'custom_proj4', 'Y', 'admin', '2026-04-26 12:00:00.000000', '', NULL, 'GIS系统自动生成配置', '0', '0');
+INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_value`, `config_type`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `status`, `del_flag`) VALUES (25, '自定义Proj4投影参数', 'gis.custom.proj4', '+proj=tmerc +lat_0=0 +lon_0=117 +k=1 +x_0=39500000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs', 'Y', 'admin', '2026-04-26 12:00:00.000000', '', NULL, 'GIS系统自动生成配置', '0', '0');
+INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_value`, `config_type`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `status`, `del_flag`) VALUES (26, '高德地图Key', 'gis.map.amap.key', 'f2ce1125b07fe3e22ebd5924b75ca6d1', 'Y', 'admin', '2026-04-26 12:00:00.000000', '', NULL, 'GIS系统自动生成配置', '0', '0');
+INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_value`, `config_type`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `status`, `del_flag`) VALUES (27, '高德地图安全密钥', 'gis.map.amap.security', '610162c69ef7947baf638e9b445316c5', 'Y', 'admin', '2026-04-26 12:00:00.000000', '', NULL, 'GIS系统自动生成配置', '0', '0');
+INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_value`, `config_type`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `status`, `del_flag`) VALUES (28, 'GIS地图主题风格', 'gis.map.style', 'amap://styles/light', 'Y', 'admin', '2026-04-26 12:00:00.000000', '', NULL, 'GIS系统自动生成配置', '0', '0');
+
 COMMIT; -- 【系统管理模块 - 配置表】
 
 -- ----------------------------
