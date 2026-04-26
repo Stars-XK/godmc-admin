@@ -251,12 +251,12 @@ function loadMapEngine(source, configMap, mapStyle) {
       }).then((AMap) => {
         window.AMap = AMap;
         mapInstance.value = new AMap.Map('map-container', {
-          zoom: 12,
-          center: [118.60, 24.90],
-          mapStyle: mapStyle,
-          viewMode: '3D',
-          pitch: 45 // 倾斜视角，增加科幻感
-        });
+            zoom: 12,
+            center: [118.60, 24.90],
+            mapStyle: mapStyle,
+            viewMode: '3D',
+            pitch: 0 // 去除倾斜视角，恢复正视俯视
+          });
         
         // 初始化图层组
         overlayGroups.zones = new AMap.OverlayGroup();
@@ -908,52 +908,71 @@ function toggleLayer(layerName) {
   &.theme-light {
     background-color: #f3f4f6;
     .screen-header {
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 100%);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%);
       h1 { color: #111827; text-shadow: none; font-weight: bold; }
       .header-subtitle { color: #3b82f6; }
       .time { color: #3b82f6; text-shadow: none; }
       .back-btn { 
-        color: #3b82f6; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3);
-        &:hover { background: rgba(59, 130, 246, 0.2); box-shadow: none; }
+        color: #3b82f6; background: rgba(255, 255, 255, 0.8); border: 1px solid #bfdbfe;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        &:hover { background: #eff6ff; box-shadow: none; }
       }
     }
     .panel-box {
-      background: rgba(255, 255, 255, 0.85);
-      border-color: rgba(229, 231, 235, 1);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
       &::after { background: linear-gradient(90deg, transparent, #3b82f6, transparent); }
-      .panel-title { color: #111827; .el-icon { color: #3b82f6; } }
+      .panel-title { color: #111827; .el-icon { color: #3b82f6; text-shadow: none; } }
       .stat-card {
-        background: rgba(0, 0, 0, 0.02);
-        border-color: rgba(0, 0, 0, 0.05);
-        &:hover { background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.2); }
+        background: #f9fafb;
+        border: 1px solid #f3f4f6;
+        box-shadow: none;
+        &:hover { background: #eff6ff; border-color: #bfdbfe; transform: translateY(-2px); }
         .stat-label { color: #6b7280; }
-        .stat-value { color: #111827; }
+        .stat-value { color: #111827; text-shadow: none; }
         .stat-icon {
-          &.zones { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
-          &.stations { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
-          &.devices { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-          &.alarms { background: rgba(107, 114, 128, 0.1); color: #6b7280; }
+          &.zones { background: #dbeafe; color: #3b82f6; }
+          &.stations { background: #fef3c7; color: #d97706; }
+          &.devices { background: #d1fae5; color: #10b981; }
+          &.alarms { background: #f3f4f6; color: #6b7280; }
+          &.alarms.has-alarm { background: #fee2e2; color: #ef4444; animation: none; }
         }
+        .text-danger { color: #ef4444; text-shadow: none; }
       }
       .alarm-list {
         .empty-state { color: #10b981; }
         .alarm-item {
-          .alarm-header .alarm-time { color: #6b7280; }
+          background: #fff;
+          border: 1px solid #f3f4f6;
+          border-left: 3px solid #ef4444;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+          &:hover { background: #fef2f2; }
+          .alarm-header .alarm-rule { color: #ef4444; }
+          .alarm-header .alarm-time { color: #6b7280; text-shadow: none; }
           .alarm-desc { color: #4b5563; }
           .alarm-source { color: #9ca3af; }
+          .alarm-dot { box-shadow: none; }
         }
       }
       .layer-switch {
-        background: rgba(0, 0, 0, 0.02);
-        &:hover { background: rgba(0, 0, 0, 0.05); }
+        background: #f9fafb;
+        border: 1px solid #f3f4f6;
+        box-shadow: none;
+        &:hover { background: #f3f4f6; border-color: #e5e7eb; }
         .layer-name { color: #374151; }
         .switch-info .color-dot {
           &.zone-dot { background: #3b82f6; box-shadow: none; }
           &.station-dot { background: #f59e0b; box-shadow: none; }
           &.device-dot { background: #10b981; box-shadow: none; }
+          &.alarm-dot-legend { background: #ef4444; box-shadow: none; animation: none; }
         }
       }
+    }
+    .error-alert {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      color: #ef4444;
     }
   }
 }
@@ -1022,6 +1041,15 @@ function toggleLayer(layerName) {
       z-index: 1;
       animation: pulse-red-map 1.5s ease-out infinite;
     }
+  }
+
+  /* 适配浅色主题 */
+  .theme-light & {
+    .core { box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important; border: 1.5px solid #fff; }
+    &.station-marker .core { background: #f59e0b; }
+    &.device-marker .core { background: #10b981; }
+    &.alarming .core { background: #ef4444 !important; border-color: #fca5a5; }
+    &.alarming .pulse { background: rgba(239, 68, 68, 0.3); }
   }
 }
 
