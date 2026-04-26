@@ -18,7 +18,10 @@ export class EngineController {
   @ApiOperation({ summary: '手动立即执行一次接入任务' })
   @Post('task/run/:id')
   async runTask(@Param('id') id: string) {
-    await this.taskSchedulerService.runTaskManually(Number(id));
-    return ResultData.ok(null, '已触发执行');
+    // 异步执行，不阻塞接口返回，避免大数据量同步导致网关超时报错
+    this.taskSchedulerService.runTaskManually(Number(id)).catch(err => {
+      console.error(`手动执行任务 ${id} 失败`, err);
+    });
+    return ResultData.ok(null, '任务已在后台触发执行，请稍后刷新列表查看执行状态');
   }
 }

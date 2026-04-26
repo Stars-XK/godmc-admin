@@ -257,17 +257,42 @@ export class ReceiverService {
       const extracted: any = {};
       for (const map of mappings) {
         const sf = map.sourceField;
+        let val;
+        
         if (sf && sf.startsWith("'") && sf.endsWith("'")) {
           // 固定值（由单引号包裹）
-          extracted[map.targetField] = sf.substring(1, sf.length - 1);
+          val = sf.substring(1, sf.length - 1);
         } else if (sf && sf.toUpperCase() === 'UUID()') {
           // 自动生成 UUID
           const { randomUUID } = require('crypto');
-          extracted[map.targetField] = randomUUID();
+          val = randomUUID();
         } else {
           // 从数据对象中提取
-          extracted[map.targetField] = item[sf];
+          val = item[sf];
         }
+
+        // 应用字典转换规则
+        if (map.transformRule) {
+          try {
+            let ruleObj: Record<string, string> = {};
+            if (map.transformRule.trim().startsWith('{')) {
+               ruleObj = JSON.parse(map.transformRule);
+            } else {
+               // 解析 A=1,B=2 的简写格式
+               map.transformRule.split(',').forEach(pair => {
+                 const [k, v] = pair.split('=');
+                 if (k && v !== undefined) ruleObj[k.trim()] = v.trim();
+               });
+            }
+            if (val !== undefined && val !== null && ruleObj.hasOwnProperty(String(val))) {
+               val = ruleObj[String(val)];
+            }
+          } catch (e) {
+             this.logger.warn(`转换规则解析失败: ${map.transformRule}`, e);
+          }
+        }
+        
+        extracted[map.targetField] = val;
       }
 
       // 如果目标是 tdengine

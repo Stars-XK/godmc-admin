@@ -146,6 +146,7 @@ export class ConfigMgrService {
         entity.sourceField = m.sourceField;
         entity.targetField = m.targetField;
         entity.isUpdateKey = m.isUpdateKey || 0;
+        entity.transformRule = m.transformRule || null;
         return entity;
       });
       await this.mappingRep.save(entities);

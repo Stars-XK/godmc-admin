@@ -25,4 +25,8 @@ export class DataIntegrationMappingEntity extends BaseEntity {
   @ApiProperty({ description: '是否作为更新依据(0否 1是)' })
   @Column({ name: 'is_update_key', type: 'tinyint', default: 0, comment: '是否作为更新依据(0否 1是)' })
   public isUpdateKey: number;
+
+  @ApiProperty({ type: String, description: '值转换规则 (如 A=1,B=2)' })
+  @Column({ name: 'transform_rule', type: 'varchar', length: 500, nullable: true, comment: '字典转换规则' })
+  public transformRule: string;
 }

@@ -1332,6 +1332,7 @@ CREATE TABLE IF NOT EXISTS `water_data_mapping` (
   `source_field` VARCHAR(100) NOT NULL COMMENT '源数据字段名',
   `target_field` VARCHAR(50) NOT NULL COMMENT '目标TDengine字段',
   `is_update_key` TINYINT NOT NULL DEFAULT 0 COMMENT '是否作为更新依据(0否 1是)',
+  `transform_rule` VARCHAR(500) NULL COMMENT '字典转换规则(A=1,B=0)',
   `status` CHAR(1) NOT NULL DEFAULT '0' COMMENT '状态',
   `del_flag` CHAR(1) NOT NULL DEFAULT '0' COMMENT '删除标志',
   `create_by` VARCHAR(64) NOT NULL DEFAULT '' COMMENT '创建者',
