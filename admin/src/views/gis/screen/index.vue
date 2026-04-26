@@ -72,7 +72,8 @@ function goBack() {
 async function initScreen() {
   try {
     // 1. 加载 GIS 配置
-    const { rows } = await listConfig({ pageSize: 500 });
+    const res = await listConfig({ pageSize: 500 });
+    const rows = res.rows || [];
     const configMap = {};
     rows.forEach(item => {
       configMap[item.configKey] = item.configValue;

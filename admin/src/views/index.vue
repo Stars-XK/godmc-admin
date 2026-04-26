@@ -14,8 +14,8 @@
           <el-tag type="danger">免费开源</el-tag>
         </p>
         <p>
-          <el-button type="primary" size="mini" icon="MostlyCloudy" plain @click="goTarget('https://gitee.com/tao-zhi/nest-admin')">访问码云</el-button>
-          <el-button size="mini" icon="HomeFilled" plain @click="goTarget('/docs')">访问文档</el-button>
+          <el-button type="primary" size="small" icon="MostlyCloudy" plain @click="goTarget('https://gitee.com/tao-zhi/nest-admin')">访问码云</el-button>
+          <el-button size="small" icon="HomeFilled" plain @click="goTarget('/docs')">访问文档</el-button>
         </p>
       </el-col>
 
