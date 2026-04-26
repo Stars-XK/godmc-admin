@@ -31,7 +31,7 @@
           <el-input v-model="form.name" placeholder="请输入数据源名称" />
         </el-form-item>
         <el-form-item label="数据源类型" prop="type">
-          <el-select v-model="form.type" placeholder="请选择数据源类型" style="width: 100%">
+          <el-select v-model="form.type" placeholder="请选择数据源类型" style="width: 100%" @change="handleTypeChange">
             <el-option label="HTTP" value="HTTP" />
             <el-option label="MYSQL" value="MYSQL" />
             <el-option label="POSTGRESQL" value="POSTGRESQL" />
@@ -95,6 +95,26 @@ function getConnectionPlaceholder(type) {
       return '输入接收推送的根URL (可选), 如 http://api.example.com';
     default:
       return '请选择数据源类型以查看填写提示';
+  }
+}
+
+function handleTypeChange(type) {
+  const templates = {
+    'MYSQL': 'jdbc:mysql://127.0.0.1:3306/db_name?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai',
+    'POSTGRESQL': 'jdbc:postgresql://127.0.0.1:5432/db_name',
+    'KAFKA': '127.0.0.1:9092',
+    'FILE': '/data/upload/csv/',
+    'HTTP': 'http://api.example.com'
+  };
+  
+  // 只有当当前连接字符串为空，或者等于其他某个类型的默认模板时，才进行替换
+  // 这样可以避免覆盖用户自己辛苦填写的真实连接信息
+  if (templates[type]) {
+    const currentStr = form.connectionStr;
+    const isTemplate = !currentStr || Object.values(templates).includes(currentStr);
+    if (isTemplate) {
+      form.connectionStr = templates[type];
+    }
   }
 }
 
