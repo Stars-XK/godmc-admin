@@ -86,7 +86,8 @@
       <div class="panel-box">
         <h3 class="panel-title"><el-icon><List /></el-icon> 空间图层控制</h3>
         <div class="layer-controls">
-          <div class="layer-group">
+          <!-- 核心图层：单列显示，避免拥挤 -->
+          <div class="layer-group-main">
             <label class="layer-switch">
               <div class="switch-info"><span class="color-dot zone-dot"></span><span class="layer-name">供水管网分区 (Polygons)</span></div>
               <el-switch v-model="layerVisible.zones" @change="toggleLayer('zones')" active-color="#00e5ff" />
@@ -790,7 +791,7 @@ function toggleLayer(layerName) {
     position: absolute;
     top: 110px;
     left: 30px;
-    width: 360px;
+    width: 380px;
     bottom: 30px;
 
     .stat-grid {
@@ -833,7 +834,7 @@ function toggleLayer(layerName) {
           display: flex;
           flex-direction: column;
           .stat-label { font-size: 12px; color: #8bb0d3; margin-bottom: 5px; }
-          .stat-value { font-size: 24px; font-weight: bold; font-family: 'Orbitron', sans-serif; color: #fff; }
+          .stat-value { font-size: 24px; font-weight: bold; font-family: Arial, sans-serif; color: #fff; }
           .text-danger { color: #ff003c; text-shadow: 0 0 10px rgba(255, 0, 60, 0.5); }
         }
       }
@@ -915,7 +916,10 @@ function toggleLayer(layerName) {
     position: absolute;
     top: 110px;
     right: 30px;
-    width: 280px;
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 
     .layer-controls {
       display: flex;
@@ -934,19 +938,24 @@ function toggleLayer(layerName) {
         &:hover { background: rgba(255, 255, 255, 0.05); }
 
         .switch-info {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          .color-dot {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+            .color-dot {
             width: 12px; height: 12px; border-radius: 3px;
             &.zone-dot { background: #00e5ff; box-shadow: 0 0 5px #00e5ff; }
             &.station-dot { background: #ffd700; box-shadow: 0 0 5px #ffd700; border-radius: 50%; }
             &.device-dot { background: #00ffaa; box-shadow: 0 0 5px #00ffaa; border-radius: 50%; }
             &.alarm-dot-legend { background: #ff003c; box-shadow: 0 0 8px #ff003c; border-radius: 50%; animation: pulse-red 2s infinite; }
           }
-          .layer-name { color: #fff; font-size: 14px; font-weight: 500; }
+          .layer-name { color: #fff; font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+          }
+          .el-switch { flex-shrink: 0; margin-left: 5px; }
         }
-      }
     }
   }
 
@@ -1108,6 +1117,12 @@ function toggleLayer(layerName) {
   gap: 10px;
   margin-bottom: 10px;
 }
+.layer-group-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 15px;
+}
 .layer-group-title {
   color: #fff; font-size: 13px; font-weight: bold; margin: 10px 0 5px 0;
   border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;
@@ -1215,7 +1230,7 @@ function toggleLayer(layerName) {
   justify-content: center;
   color: #00ffaa;
   font-weight: bold;
-  font-family: 'Orbitron', sans-serif;
+  font-family: Arial, sans-serif;
   box-shadow: 0 0 15px rgba(0, 255, 170, 0.5);
   
   transition: all 0.3s;
