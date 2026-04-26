@@ -116,6 +116,12 @@
               <span>在 SQL 语句中使用 <code>?</code> 代表上一次任务执行的增量时间戳（如: <code>UPDATE_TIME > ?</code>），引擎会自动替换并管理断点。</span>
             </div>
           </el-form-item>
+          <el-form-item label="分批提取大小" prop="batchSize">
+            <el-input-number v-model="form.batchSize" :min="0" :step="1000" controls-position="right" style="width: 100%" />
+            <div class="form-tip">
+              填写单次拉取的批次大小(如 <code>5000</code>)，防止首次同步十万级数据时引发内存溢出。若不限制(一次性拉取)，请填 <code>0</code>。建议同时在 SQL 中配合 <code>ORDER BY</code> 保证分页排序稳定性。
+            </div>
+          </el-form-item>
         </div>
 
         <div class="form-section">
@@ -161,7 +167,7 @@
     </el-dialog>
 
     <!-- 字段映射配置对话框 -->
-    <el-dialog title="字段映射配置 (Field Mapping)" v-model="mappingOpen" width="750px" append-to-body class="premium-dialog" top="5vh">
+    <el-dialog title="字段映射配置 (Field Mapping)" v-model="mappingOpen" width="1000px" append-to-body class="premium-dialog" top="5vh">
       <div class="mapping-header">
         <div class="mapping-desc">
           <el-icon><Connection /></el-icon>
@@ -357,6 +363,7 @@ function reset() {
   form.status = '0';
   form.autoBackfill = false;
   form.interpolation = false;
+  form.batchSize = 0;
   quickCron.value = null;
   if (taskRef.value) taskRef.value.resetFields();
 }
@@ -381,6 +388,7 @@ function handleUpdate(row) {
       form.targetEntity = data.targetEntity;
       form.autoBackfill = data.autoBackfill === 1;
       form.interpolation = data.interpolation === 1;
+      form.batchSize = data.batchSize || 0;
       form.status = data.status;
       form.remark = data.remark;
       open.value = true;
@@ -397,6 +405,7 @@ function submitForm() {
         autoBackfill: form.autoBackfill ? 1 : 0,
         interpolation: form.interpolation ? 1 : 0 
       };
+      
       if (form.id != null) {
         updateTask(submitData).then(() => {
           ElMessage.success('修改成功');
