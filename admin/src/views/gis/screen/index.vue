@@ -965,8 +965,11 @@ function toggleLayer(layerName) {
         border: 1px solid #f3f4f6;
         box-shadow: none;
         &:hover { background: #eff6ff; border-color: #bfdbfe; transform: translateY(-2px); }
-        .stat-label { color: #6b7280; }
-        .stat-value { color: #111827; text-shadow: none; }
+        .stat-info {
+          .stat-label { color: #6b7280; }
+          .stat-value { color: #111827; text-shadow: none; }
+          .text-danger { color: #ef4444; text-shadow: none; }
+        }
         .stat-icon {
           &.zones { background: #dbeafe; color: #3b82f6; }
           &.stations { background: #fef3c7; color: #d97706; }
@@ -974,7 +977,6 @@ function toggleLayer(layerName) {
           &.alarms { background: #f3f4f6; color: #6b7280; }
           &.alarms.has-alarm { background: #fee2e2; color: #ef4444; animation: none; }
         }
-        .text-danger { color: #ef4444; text-shadow: none; }
       }
       .alarm-list {
         .empty-state { color: #10b981; }
@@ -996,12 +998,14 @@ function toggleLayer(layerName) {
         border: 1px solid #f3f4f6;
         box-shadow: none;
         &:hover { background: #f3f4f6; border-color: #e5e7eb; }
-        .layer-name { color: #374151; }
-        .switch-info .color-dot {
-          &.zone-dot { background: #3b82f6; box-shadow: none; }
-          &.station-dot { background: #f59e0b; box-shadow: none; }
-          &.device-dot { background: #10b981; box-shadow: none; }
-          &.alarm-dot-legend { background: #ef4444; box-shadow: none; animation: none; }
+        .switch-info {
+          .layer-name { color: #374151; font-weight: 500; }
+          .color-dot {
+            &.zone-dot { background: #3b82f6; box-shadow: none; }
+            &.station-dot { background: #f59e0b; box-shadow: none; }
+            &.device-dot { background: #10b981; box-shadow: none; }
+            &.alarm-dot-legend { background: #ef4444; box-shadow: none; animation: none; }
+          }
         }
       }
     }
