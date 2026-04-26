@@ -475,7 +475,7 @@ async function loadAndScatterData() {
               }); // end of polygon.on('mouseout')
 
               overlayGroups.zones.addOverlay(polygon);
-              fitViewOverlays.push(polygon);
+              // fitViewOverlays.push(polygon); // 注释掉，防止面内异常顶点导致视角错乱
             } // end of if (path.length > 2)
           } // end of if (coordsArray && coordsArray.length > 0)
         }); // end of features.forEach
@@ -487,7 +487,7 @@ async function loadAndScatterData() {
       // 其次绘制中心点作为标签
       if (zone.longitude && zone.latitude) {
         const pt = processCoord(zone.longitude, zone.latitude);
-        if (pt) {
+        if (pt && pt[0] > 70 && pt[0] < 140 && pt[1] > 10 && pt[1] < 60) {
           const marker = new AMap.Marker({
             position: pt,
             content: `<div class="cyber-label zone-label">${zone.name}</div>`,
@@ -524,7 +524,6 @@ async function loadAndScatterData() {
           });
           marker.on('mouseout', () => { marker.setLabel(null); });
           overlayGroups.alarms.addOverlay(marker);
-          fitViewOverlays.push(marker); // 告警点参与视野自适应
         } else {
           // 正常点塞入原始数据，交给 Cluster 批量按需渲染
           stationDataList.push({ lnglat: pt, extData: s });
@@ -581,7 +580,6 @@ async function loadAndScatterData() {
           });
           marker.on('mouseout', () => { marker.setLabel(null); });
           overlayGroups.alarms.addOverlay(marker);
-          fitViewOverlays.push(marker); // 告警点参与视野自适应
         } else {
           deviceDataList.push({ lnglat: pt, extData: d });
         }
@@ -614,13 +612,13 @@ async function loadAndScatterData() {
       overlayGroups.devices = cluster; 
     }
 
-    // 自适应视野，但仅根据 "管网分区" (Polygons) 或者是 "有告警的设备" 的位置自适应
-    // 防止某些游离的非法坐标 [0, 0] 把地图拉到了非洲/全世界
+    // 彻底移除 setFitView 的自动缩放逻辑，完全信任并在初始化时使用系统后台配置的默认中心点
+    // 防止因为任何异常坐标或 Cluster 边界计算错误导致地图平移
+    /*
     if (fitViewOverlays.length > 0) {
-      // 检查是否有异常坐标拉远了视野，我们简单过滤掉太离谱的点（仅在非全局自适应时有用）
-      // 实际上 AMap.setFitView 接受 overlays，我们只把分区和告警的 overlay 传进去即可
-      mapInstance.value.setFitView(fitViewOverlays, false, [100, 100, 100, 400]); // 留出左侧面板的 padding
+      mapInstance.value.setFitView(fitViewOverlays, false, [100, 100, 100, 400]); 
     }
+    */
 
   } catch (error) {
     console.error('拉取数据失败:', error);
