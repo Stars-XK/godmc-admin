@@ -480,12 +480,12 @@ function handleMapping(row) {
 
   listMapping(row.id).then(response => {
     mappingList.value = response.data || [];
-    
+
     // 如果是本地表，则请求后端加载该表的全部字段供下拉选择，并在没有映射配置时自动初始化所有字段
-    if (currentTargetEntity.value && currentTargetEntity.value !== 'tdengine' && currentTargetEntity.value !== 'revenue') {
+    if (currentTargetEntity.value && currentTargetEntity.value !== 'tdengine' && currentTargetEntity.value !== 'sys_revenue' && currentTargetEntity.value !== 'revenue') {
       listLocalColumns(currentTargetEntity.value).then(res => {
         localColumns.value = res.data || [];
-        
+
         // 如果后端返回的映射为空，自动根据表的所有非自增字段生成默认映射行
         if (mappingList.value.length === 0 && localColumns.value.length > 0) {
           mappingList.value = localColumns.value
@@ -497,9 +497,11 @@ function handleMapping(row) {
               transformRule: ''
             }));
         }
+      }).catch(err => {
+        console.error('获取本地表结构失败', err);
       });
     } else if (mappingList.value.length === 0) {
-      // 给出一些基础模板提示（针对 tdengine / revenue 等内置引擎）
+      // 给出一些基础模板提示（针对 tdengine / sys_revenue 等内置引擎）
       mappingList.value = [
         { sourceField: 'id', targetField: 'code', isUpdateKey: 1, transformRule: '' },
         { sourceField: 'name', targetField: 'name', isUpdateKey: 0, transformRule: '' }
