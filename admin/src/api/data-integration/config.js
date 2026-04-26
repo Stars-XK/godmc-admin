@@ -93,3 +93,18 @@ export function saveMappingBatch(taskId, mappings) {
     data: { mappings }
   })
 }
+
+// --- 本地系统表与字段元数据 ---
+export function listLocalTables() {
+  return request({
+    url: '/data-integration/config/local/tables',
+    method: 'get'
+  })
+}
+
+export function listLocalColumns(tableName) {
+  return request({
+    url: `/data-integration/config/local/columns/${tableName}`,
+    method: 'get'
+  })
+}

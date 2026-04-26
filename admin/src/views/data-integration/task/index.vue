@@ -106,7 +106,18 @@
         <div class="form-section">
           <div class="section-title">目标设置</div>
           <el-form-item label="目标表(Target)" prop="targetEntity">
-            <el-input v-model="form.targetEntity" placeholder="例如：sys_zone、sys_device、tdengine等" />
+            <el-select v-model="form.targetEntity" placeholder="选择或输入：sys_zone、tdengine等" filterable allow-create clearable style="width: 100%">
+              <el-option-group label="内置目标引擎">
+                <el-option label="tdengine (时序数据库引擎)" value="tdengine" />
+                <el-option label="revenue (内置营收引擎)" value="revenue" />
+              </el-option-group>
+              <el-option-group label="系统本地业务表">
+                <el-option v-for="table in localTables" :key="table.tableName" :label="`${table.tableName} (${table.tableComment || '无注释'})`" :value="table.tableName">
+                  <span style="float: left">{{ table.tableName }}</span>
+                  <span style="float: right; color: #8492a6; font-size: 13px">{{ table.tableComment }}</span>
+                </el-option>
+              </el-option-group>
+            </el-select>
             <div class="form-tip">指明数据同步的最终去向。基础数据填系统表名，时序数据填 tdengine 或 revenue。</div>
           </el-form-item>
           <el-form-item label="自动补录历史" v-if="isTimingTask(form.sourceId) && form.targetEntity === 'tdengine'">
@@ -158,20 +169,22 @@
           <el-table-column label="目标数据库字段 (Target Field)" align="center">
             <template #default="scope">
               <el-select v-model="scope.row.targetField" placeholder="选择或输入" filterable allow-create class="mapping-select">
-                <el-option-group label="时序数据 (TDengine)">
+                <el-option-group label="时序数据 (TDengine)" v-if="currentTargetEntity === 'tdengine'">
                   <el-option label="设备编码 (deviceCode)" value="deviceCode" />
                   <el-option label="测点编码 (pointCode)" value="pointCode" />
                   <el-option label="监测数值 (value)" value="value" />
                   <el-option label="时间戳 (timestamp/ts)" value="timestamp" />
+                </el-option-group>
+                <el-option-group label="营收引擎 (Revenue)" v-if="currentTargetEntity === 'revenue'">
+                  <el-option label="业务编号 (user_no)" value="user_no" />
                   <el-option label="营收用量 (val)" value="val" />
                   <el-option label="账单月份 (bill_month)" value="bill_month" />
                 </el-option-group>
-                <el-option-group label="基础数据字典 (按需输入)">
-                  <el-option label="业务编码 (code/user_no)" value="code" />
-                  <el-option label="名称 (name/user_name)" value="name" />
-                  <el-option label="所属分区 (zone_code)" value="zone_code" />
-                  <el-option label="状态 (status)" value="status" />
-                  <el-option label="更新时间 (update_time)" value="update_time" />
+                <el-option-group :label="`目标表 ${currentTargetEntity} 字段`" v-if="localColumns.length > 0">
+                  <el-option v-for="col in localColumns" :key="col.columnName" :label="`${col.columnName} (${col.columnComment || '无注释'})`" :value="col.columnName">
+                    <span style="float: left">{{ col.columnName }}</span>
+                    <span style="float: right; color: #8492a6; font-size: 13px">{{ col.columnComment }}</span>
+                  </el-option>
                 </el-option-group>
               </el-select>
             </template>
@@ -196,12 +209,14 @@
 
 <script setup name="DataTask">
 import { ref, reactive, onMounted } from 'vue';
-import { listTask, addTask, updateTask, delTask, listMapping, saveMappingBatch, listSource } from '@/api/data-integration/config';
+import { listTask, addTask, updateTask, delTask, listMapping, saveMappingBatch, listSource, listLocalTables, listLocalColumns } from '@/api/data-integration/config';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { MagicStick, InfoFilled, Connection, Right, ArrowDown, Plus, DocumentCopy, Setting, Edit, Delete } from '@element-plus/icons-vue';
 
 const taskList = ref([]);
 const sourceList = ref([]);
+const localTables = ref([]);
+const localColumns = ref([]);
 const open = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
@@ -210,6 +225,7 @@ const title = ref('');
 const mappingOpen = ref(false);
 const mappingList = ref([]);
 const currentTaskId = ref(null);
+const currentTargetEntity = ref('');
 const quickCron = ref(null);
 
 const data = reactive({
@@ -240,6 +256,12 @@ function getList() {
 function loadSources() {
   listSource().then(response => {
     sourceList.value = response.data;
+  });
+}
+
+function loadLocalTables() {
+  listLocalTables().then(response => {
+    localTables.value = response.data || [];
   });
 }
 
@@ -376,6 +398,18 @@ function handleDelete(row) {
 // 映射配置相关
 function handleMapping(row) {
   currentTaskId.value = row.id;
+  currentTargetEntity.value = row.targetEntity || '';
+  
+  // 清空上一次的字段列表
+  localColumns.value = [];
+  
+  // 如果是本地表，则请求后端加载该表的全部字段供下拉选择
+  if (currentTargetEntity.value && currentTargetEntity.value !== 'tdengine' && currentTargetEntity.value !== 'revenue') {
+    listLocalColumns(currentTargetEntity.value).then(res => {
+      localColumns.value = res.data || [];
+    });
+  }
+
   listMapping(row.id).then(response => {
     mappingList.value = response.data || [];
     if (mappingList.value.length === 0) {
@@ -466,6 +500,7 @@ function submitMappingForm() {
 
 onMounted(() => {
   loadSources();
+  loadLocalTables();
   getList();
 });
 </script>
