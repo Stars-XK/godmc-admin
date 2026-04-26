@@ -156,6 +156,11 @@ INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_valu
 INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_value`, `config_type`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `status`, `del_flag`) VALUES (27, '高德地图安全密钥', 'gis.map.amap.security', '610162c69ef7947baf638e9b445316c5', 'Y', 'admin', '2026-04-26 12:00:00.000000', '', NULL, 'GIS系统自动生成配置', '0', '0');
 INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_value`, `config_type`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `status`, `del_flag`) VALUES (28, 'GIS地图主题风格', 'gis.map.style', 'amap://styles/light', 'Y', 'admin', '2026-04-26 12:00:00.000000', '', NULL, 'GIS系统自动生成配置', '0', '0');
 
+-- DMA 业务相关配置初始化
+INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_value`, `config_type`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `status`, `del_flag`) VALUES (29, '夜间最小流量起始时间', 'zone.night.flow.start', '02:00', 'Y', 'admin', '2026-04-26 12:00:00.000000', '', NULL, 'DMA业务自动生成配置', '0', '0');
+INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_value`, `config_type`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `status`, `del_flag`) VALUES (30, '夜间最小流量结束时间', 'zone.night.flow.end', '04:00', 'Y', 'admin', '2026-04-26 12:00:00.000000', '', NULL, 'DMA业务自动生成配置', '0', '0');
+INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_value`, `config_type`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `status`, `del_flag`) VALUES (31, '营收计算策略', 'revenue.calc.strategy', 'month_to_day', 'Y', 'admin', '2026-04-26 12:00:00.000000', '', NULL, 'DMA业务自动生成配置', '0', '0');
+
 COMMIT; -- 【系统管理模块 - 配置表】
 
 -- ----------------------------
