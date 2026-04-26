@@ -393,51 +393,87 @@ async function loadAndScatterData() {
       if (zone.boundary) {
         try {
           const geoData = JSON.parse(zone.boundary);
-          // 假设标准的 GeoJSON 或直接的坐标数组
-          let coordsArray = [];
-          if (geoData.type === 'Feature' && geoData.geometry) {
-            coordsArray = geoData.geometry.coordinates[0]; // Polygon 第一层
-          } else if (Array.isArray(geoData)) {
-            coordsArray = geoData;
-          }
           
-          if (coordsArray.length > 0) {
-            const path = [];
-            coordsArray.forEach(coord => {
-               // 可能是 [lng, lat] 或 {lng, lat}
-               let lng = Array.isArray(coord) ? coord[0] : coord.lng;
-               let lat = Array.isArray(coord) ? coord[1] : coord.lat;
-               const pt = processCoord(lng, lat);
-               if (pt) path.push(pt);
-            });
+          let features = [];
+          if (geoData.type === 'FeatureCollection' && Array.isArray(geoData.features)) {
+            features = geoData.features;
+          } else if (geoData.type === 'Feature') {
+            features = [geoData];
+          } else if (Array.isArray(geoData)) {
+            // 兼容直接存坐标数组的旧格式
+            features = [{
+              geometry: { type: 'Polygon', coordinates: [geoData] },
+              properties: {}
+            }];
+          }
+
+          // 如果顶级带有 properties（如你提供的JSON结构），把它作为默认属性
+          const globalProps = geoData.properties || {};
+
+          features.forEach(feature => {
+            if (!feature.geometry) return;
             
-            if (path.length > 2) {
-              const polygon = new AMap.Polygon({
-                path: path,
-                strokeColor: isDarkTheme.value ? '#00e5ff' : '#3b82f6',
-                strokeWeight: 2,
-                strokeOpacity: 0.8,
-                fillColor: isDarkTheme.value ? '#0044ff' : '#3b82f6',
-                fillOpacity: 0.15,
-                extData: zone
+            let coordsArray = [];
+            if (feature.geometry.type === 'Polygon') {
+              coordsArray = feature.geometry.coordinates[0]; // Polygon 的第一层外圈
+            } else if (feature.geometry.type === 'MultiPolygon') {
+              // 简单处理：取第一个 Polygon 的外圈
+              coordsArray = feature.geometry.coordinates[0][0]; 
+            }
+
+            if (coordsArray && coordsArray.length > 0) {
+              const path = [];
+              coordsArray.forEach(coord => {
+                 let lng = Array.isArray(coord) ? coord[0] : coord.lng;
+                 let lat = Array.isArray(coord) ? coord[1] : coord.lat;
+                 const pt = processCoord(lng, lat);
+                 if (pt) path.push(pt);
               });
               
-              // 悬浮交互
+              if (path.length > 2) {
+                // 尝试读取颜色配置 (优先 feature 自身，其次 global)
+                const props = feature.properties || globalProps;
+                
+                let fillColor = props.fill || '';
+                let strokeColor = props.stroke || '';
+                let fillOpacity = 0.15; // 默认透明度
+
+                // 如果带了 rgba 的透明度，提取出来以便交互时变化
+                if (fillColor && fillColor.startsWith('rgba')) {
+                  const match = fillColor.match(/rgba\((.*),\s*([0-9.]+)\)/);
+                  if (match) {
+                    fillOpacity = parseFloat(match[2]);
+                    // AMap.Polygon 的 fillColor 支持 rgba，但分开设置更容易控制
+                  }
+                }
+
+                const polygon = new AMap.Polygon({
+            path: path,
+            strokeColor: strokeColor || (isDarkTheme.value ? '#00e5ff' : '#3b82f6'),
+            strokeWeight: 2,
+            strokeOpacity: 0.8,
+            fillColor: fillColor || (isDarkTheme.value ? '#0044ff' : '#3b82f6'),
+            fillOpacity: fillOpacity,
+            extData: zone
+          });
+          
+          // 悬浮交互
               polygon.on('mouseover', () => {
-                polygon.setOptions({ fillOpacity: 0.4, fillColor: isDarkTheme.value ? '#00e5ff' : '#3b82f6' });
+                polygon.setOptions({ fillOpacity: fillOpacity + 0.3, fillColor: isDarkTheme.value ? '#00e5ff' : '#2563eb' });
               });
               polygon.on('mouseout', () => {
-                polygon.setOptions({ fillOpacity: 0.15, fillColor: isDarkTheme.value ? '#0044ff' : '#3b82f6' });
-              });
+                polygon.setOptions({ fillOpacity: fillOpacity, fillColor: fillColor || (isDarkTheme.value ? '#0044ff' : '#3b82f6') });
+              }); // end of polygon.on('mouseout')
 
               overlayGroups.zones.addOverlay(polygon);
               fitViewOverlays.push(polygon);
-            }
-          }
-        } catch (e) {
-          console.warn('解析分区边界失败', zone.name, e);
-        }
+            } // end of if (path.length > 2)
+          } // end of if (coordsArray && coordsArray.length > 0)
+        }); // end of features.forEach
+      } catch (e) {
+        console.warn('解析分区边界失败', zone.name, e);
       }
+    } // end of if (zone.boundary)
       
       // 其次绘制中心点作为标签
       if (zone.longitude && zone.latitude) {
