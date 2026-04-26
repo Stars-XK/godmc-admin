@@ -240,14 +240,15 @@ function loadMapEngine(source, configMap, mapStyle) {
   return new Promise((resolve, reject) => {
     if (source === 'amap') {
       const key = configMap['gis.map.amap.key'] || 'f2ce1125b07fe3e22ebd5924b75ca6d1';
+      const securityCode = configMap['gis.map.amap.security'] || '610162c69ef7947baf638e9b445316c5';
       
-      if (!window._AMapSecurityConfig) {
-        window._AMapSecurityConfig = { securityJsCode: configMap['gis.map.amap.security'] || '610162c69ef7947baf638e9b445316c5' };
-      }
+      // 解决安全码配置在某些情况下被覆盖或未生效的问题，强制重置
+      window._AMapSecurityConfig = { securityJsCode: securityCode };
+      
       AMapLoader.load({
         key: key,
         version: '2.0',
-        plugins: ['AMap.Marker', 'AMap.Polygon', 'AMap.OverlayGroup', 'AMap.InfoWindow']
+        plugins: ['AMap.Marker', 'AMap.Polygon', 'AMap.OverlayGroup', 'AMap.InfoWindow', 'AMap.MarkerCluster']
       }).then((AMap) => {
         window.AMap = AMap;
         mapInstance.value = new AMap.Map('map-container', {
@@ -519,8 +520,8 @@ async function loadAndScatterData() {
     });
 
     // 3. 绘制设备 (Devices)
-    // 如果数量极大，这里可以引入点聚合 AMap.MarkerCluster
-    // 由于我们配置了 concurrent 拉取 2000，直接散点在性能可接受范围，但做轻量化渲染
+    // 引入点聚合 (MarkerCluster) 解决 2000 个设备点导致性能卡顿和重绘掉帧的问题
+    const deviceMarkers = [];
     devices.forEach(d => {
       const pt = processCoord(d.longitude, d.latitude);
       if (pt) {
@@ -534,7 +535,6 @@ async function loadAndScatterData() {
           offset: new AMap.Pixel(-6, -6),
           extData: d
         });
-        // 设备太多不默认展示 label，悬浮才展示（可通过 AMap.InfoWindow 优化）
         marker.on('mouseover', () => {
           marker.setLabel({ content: `<div class="cyber-label device-label">${d.name}</div>`, direction: 'top' });
         });
@@ -545,11 +545,27 @@ async function loadAndScatterData() {
         if (hasAlarm) {
           overlayGroups.alarms.addOverlay(marker);
         } else {
-          overlayGroups.devices.addOverlay(marker);
+          deviceMarkers.push(marker);
         }
         fitViewOverlays.push(marker);
       }
     });
+
+    // 将普通设备使用点聚合进行渲染
+    if (deviceMarkers.length > 0) {
+      const cluster = new AMap.MarkerCluster(mapInstance.value, deviceMarkers, {
+        gridSize: 60,
+        maxZoom: 17, // 放大到 17 级时完全展开
+        renderClusterMarker: (context) => {
+          const count = context.count;
+          const content = `<div class="cluster-marker"><div>${count}</div></div>`;
+          context.marker.setContent(content);
+          context.marker.setOffset(new AMap.Pixel(-20, -20));
+        }
+      });
+      // 将 cluster 实例挂载到 overlayGroups 以便开关图层
+      overlayGroups.devices = cluster; 
+    }
 
     // 自适应视野
     if (fitViewOverlays.length > 0) {
@@ -565,10 +581,18 @@ function toggleLayer(layerName) {
   const isVisible = layerVisible[layerName];
   const group = overlayGroups[layerName];
   if (group) {
-    if (isVisible) {
-      group.show();
+    if (layerName === 'devices' && group instanceof window.AMap.MarkerCluster) {
+      if (isVisible) {
+        group.setMap(mapInstance.value);
+      } else {
+        group.setMap(null);
+      }
     } else {
-      group.hide();
+      if (isVisible) {
+        group.show();
+      } else {
+        group.hide();
+      }
     }
   }
 }
@@ -1098,7 +1122,36 @@ function toggleLayer(layerName) {
   100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
 }
 
-/* 隐藏高德地图logo */
+.cluster-marker {
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 255, 170, 0.2);
+  border: 2px solid #00ffaa;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00ffaa;
+  font-weight: bold;
+  font-family: 'Orbitron', sans-serif;
+  box-shadow: 0 0 15px rgba(0, 255, 170, 0.5);
+  backdrop-filter: blur(4px);
+  transition: all 0.3s;
+
+  &:hover {
+    transform: scale(1.1);
+    background: rgba(0, 255, 170, 0.4);
+  }
+
+  /* 适配浅色主题 */
+  .theme-light & {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: #10b981;
+    color: #10b981;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    &:hover { background: rgba(16, 185, 129, 0.2); }
+  }
+}
 .amap-logo, .amap-copyright {
   display: none !important;
 }
