@@ -338,12 +338,15 @@ function processCoord(lng, lat) {
   // console.log(`[processCoord] 原始lng=${lng}, lat=${lat} | transformMode=${transformMode} | customProj4Str=${customProj4Str}`);
 
   // 1. 如果坐标是千万级别的投影坐标 (如 39666720)，则使用 proj4 转换为 WGS84 经纬度
-  if (transformMode === 'custom_proj4' && customProj4Str && (lng > 1000 || lat > 1000)) {
+  // 强制兼容：如果坐标 > 1000，绝对不可能是正常的经纬度，强制应用投影转换！
+  let isProj4Converted = false;
+  if ((lng > 1000 || lat > 1000) && customProj4Str) {
     try {
       const wgs84 = window.proj4 ? window.proj4(customProj4Str, 'WGS84', [lng, lat]) : window.proj4Instance(customProj4Str, 'WGS84', [lng, lat]);
       // 由于没有全局注册 proj4，如果在 vue 中引入，需要确保能调用到
       lng = wgs84[0];
       lat = wgs84[1];
+      isProj4Converted = true;
       // console.log(`[processCoord] proj4转换后: lng=${lng}, lat=${lat}`);
     } catch (e) {
       console.warn('[processCoord] proj4 转换失败', lng, lat, e);
@@ -351,7 +354,8 @@ function processCoord(lng, lat) {
   }
 
   // 2. 如果配置了 WGS84_to_GCJ02，则将 WGS84 转换为高德需要的 GCJ02 (火星坐标系)
-  if (transformMode === 'WGS84_to_GCJ02' || transformMode === 'custom_proj4') {
+  // 如果刚才进行了投影转换，或者配置明确要求，则统一转换为高德火星坐标系，以防街道和点位发生几百米的偏移
+  if (transformMode === 'WGS84_to_GCJ02' || transformMode === 'custom_proj4' || isProj4Converted) {
     const gcj = wgs84togcj02(lng, lat);
     return [gcj[0], gcj[1]];
   }
