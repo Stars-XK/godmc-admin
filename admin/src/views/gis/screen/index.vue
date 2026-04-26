@@ -409,20 +409,15 @@ async function loadAndScatterData() {
 
     // 1. 绘制分区 (Polygons)
     zones.forEach(zone => {
-      // ---- [新增调试日志] 打印每个分区的原始地理信息 ----
-      const lngRaw = zone.longitude;
-      const latRaw = zone.latitude;
-      const boundRaw = zone.boundary;
-      
-      let hasPoint = !!(lngRaw && latRaw && String(lngRaw).trim() !== '' && String(latRaw).trim() !== '');
-      let hasPolygon = !!(boundRaw && String(boundRaw).trim() !== '' && String(boundRaw).trim() !== '[]');
-      
-      console.log(`[分区数据检查] ${zone.name}: `, 
-                  `中心点[Lng: ${lngRaw || '空'}, Lat: ${latRaw || '空'}] -> ${hasPoint ? '✅' : '❌'}`,
-                  `| 边界(Boundary)长度: ${boundRaw ? String(boundRaw).length : 0} -> ${hasPolygon ? '✅' : '❌'}`);
-      
-      if (!hasPoint && !hasPolygon) {
-          console.log(`[分区跳过] ${zone.name} 既无中心点也无边界数据，跳过渲染。`);
+      // ---- 检查每个分区的原始地理信息 ----
+        const lngRaw = zone.longitude;
+        const latRaw = zone.latitude;
+        const boundRaw = zone.boundary;
+        
+        let hasPoint = !!(lngRaw && latRaw && String(lngRaw).trim() !== '' && String(latRaw).trim() !== '');
+        let hasPolygon = !!(boundRaw && String(boundRaw).trim() !== '' && String(boundRaw).trim() !== '[]');
+        
+        if (!hasPoint && !hasPolygon) {
           return;
         }
         
@@ -469,31 +464,19 @@ async function loadAndScatterData() {
             }
 
             if (coordsArray && coordsArray.length > 0) {
-              const path = [];
-              let validCount = 0;
-              let outOfBoundsCount = 0;
-              
-              coordsArray.forEach(coord => {
-                 let lng = Array.isArray(coord) ? coord[0] : coord.lng;
-                 let lat = Array.isArray(coord) ? coord[1] : coord.lat;
-                 const pt = processCoord(lng, lat);
-                 if (pt) {
-                   // 过滤异常坐标：如果你的坐标原本是类似 39666690 这种超大数值，
-                   // 说明这是 2000 国家大地坐标系等投影坐标，但 processCoord 可能没有配置 proj4 参数或者转换失败了！
-                   // 我们依然要进行 WGS84 的中国边界保护，防止把地图拉飞
-                   if (pt[0] > 70 && pt[0] < 140 && pt[1] > 10 && pt[1] < 60) {
-                     path.push(pt);
-                     validCount++;
-                   } else {
-                     outOfBoundsCount++;
+                const path = [];
+                coordsArray.forEach(coord => {
+                   let lng = Array.isArray(coord) ? coord[0] : coord.lng;
+                   let lat = Array.isArray(coord) ? coord[1] : coord.lat;
+                   const pt = processCoord(lng, lat);
+                   if (pt) {
+                     if (pt[0] > 70 && pt[0] < 140 && pt[1] > 10 && pt[1] < 60) {
+                       path.push(pt);
+                     }
                    }
-                 }
-              });
-              
-              console.log(`[分区渲染调试] ${zone.name} - 提取特征 ${index}: 原始坐标点数=${coordsArray.length}, 有效经纬度点数=${validCount}, 越界被丢弃点数=${outOfBoundsCount}`, 
-                validCount > 0 ? path[0] : '无合法坐标');
+                });
 
-              if (path.length > 2) {
+                if (path.length > 2) {
                 // 尝试读取颜色配置 (优先 feature 自身，其次 global)
                 const props = feature.properties || globalProps;
                 
@@ -550,8 +533,6 @@ async function loadAndScatterData() {
             zooms: polyZooms // 标签文字也跟随其所属层级进行显隐
           });
           overlayGroups.zones.addOverlay(marker);
-        } else {
-           console.log(`[分区中心点越界拦截] ${zone.name} 的坐标(${zone.longitude}, ${zone.latitude}) 经转换后为 [${pt ? pt.join(', ') : 'null'}]，超出了中国的合法经纬度范围。`);
         }
       }
     });
