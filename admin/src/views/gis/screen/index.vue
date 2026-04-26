@@ -86,34 +86,32 @@
       <div class="panel-box">
         <h3 class="panel-title"><el-icon><List /></el-icon> 空间图层控制</h3>
         <div class="layer-controls">
-          <label class="layer-switch">
-            <div class="switch-info">
-              <span class="color-dot zone-dot"></span>
-              <span class="layer-name">供水管网分区 (Polygons)</span>
-            </div>
-            <el-switch v-model="layerVisible.zones" @change="toggleLayer('zones')" active-color="#00e5ff" />
-          </label>
-          <label class="layer-switch">
-            <div class="switch-info">
-              <span class="color-dot station-dot"></span>
-              <span class="layer-name">核心监测站点 (Stations)</span>
-            </div>
-            <el-switch v-model="layerVisible.stations" @change="toggleLayer('stations')" active-color="#ffd700" />
-          </label>
-          <label class="layer-switch">
-            <div class="switch-info">
-              <span class="color-dot device-dot"></span>
-              <span class="layer-name">智能物联设备 (Devices)</span>
-            </div>
-            <el-switch v-model="layerVisible.devices" @change="toggleLayer('devices')" active-color="#00ffaa" />
-          </label>
-          <label class="layer-switch">
-            <div class="switch-info">
-              <span class="color-dot alarm-dot-legend"></span>
-              <span class="layer-name">实时告警事件 (Alarms)</span>
-            </div>
-            <el-switch v-model="layerVisible.alarms" @change="toggleLayer('alarms')" active-color="#ff003c" />
-          </label>
+          <div class="layer-group">
+            <label class="layer-switch">
+              <div class="switch-info"><span class="color-dot zone-dot"></span><span class="layer-name">供水管网分区 (Polygons)</span></div>
+              <el-switch v-model="layerVisible.zones" @change="toggleLayer('zones')" active-color="#00e5ff" />
+            </label>
+            <label class="layer-switch">
+              <div class="switch-info"><span class="color-dot alarm-dot-legend"></span><span class="layer-name">实时告警事件 (Alarms)</span></div>
+              <el-switch v-model="layerVisible.alarms" @change="toggleLayer('alarms')" active-color="#ff003c" />
+            </label>
+          </div>
+
+          <div class="layer-group-title">监测站点</div>
+          <div class="layer-group">
+            <label class="layer-switch mini" v-for="cat in stationCategories" :key="cat.value">
+              <div class="switch-info"><span class="color-dot" :style="{background: cat.color}"></span><span class="layer-name">{{ cat.label }}</span></div>
+              <el-switch v-model="layerVisible['station_' + cat.value]" @change="toggleLayer('station_' + cat.value)" :active-color="cat.color" size="small" />
+            </label>
+          </div>
+
+          <div class="layer-group-title">物联设备</div>
+          <div class="layer-group">
+            <label class="layer-switch mini" v-for="cat in deviceCategories" :key="cat.value">
+              <div class="switch-info"><span class="color-dot" :style="{background: cat.color}"></span><span class="layer-name">{{ cat.label }}</span></div>
+              <el-switch v-model="layerVisible['device_' + cat.value]" @change="toggleLayer('device_' + cat.value)" :active-color="cat.color" size="small" />
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -141,6 +139,22 @@ const currentTime = ref('');
 const initErrorMsg = ref('');
 let timer = null;
 
+
+const stationCategories = [
+  { value: '1', label: '水厂', color: '#3b82f6' },
+  { value: '2', label: '泵站', color: '#f59e0b' },
+  { value: '3', label: '二次供水', color: '#10b981' },
+  { value: '4', label: '管网监测点', color: '#8b5cf6' },
+  { value: '5', label: '污水处理厂', color: '#ec4899' }
+];
+
+const deviceCategories = [
+  { value: '1', label: '水泵', color: '#06b6d4' },
+  { value: '2', label: '阀门', color: '#f97316' },
+  { value: '3', label: '流量计', color: '#14b8a6' },
+  { value: '4', label: '压力计', color: '#6366f1' }
+];
+
 const stats = reactive({
   zones: 0,
   stations: 0,
@@ -152,9 +166,9 @@ const activeAlarms = ref([]);
 
 const layerVisible = reactive({
   zones: true,
-  stations: true,
-  devices: true,
-  alarms: true
+  alarms: true,
+  ...stationCategories.reduce((acc, c) => ({...acc, ['station_' + c.value]: true}), {}),
+  ...deviceCategories.reduce((acc, c) => ({...acc, ['device_' + c.value]: true}), {})
 });
 
 const isDarkTheme = ref(true);
@@ -165,8 +179,6 @@ let currentMapType = '';
 // 高德地图图层组
 const overlayGroups = {
   zones: null,
-  stations: null,
-  devices: null,
   alarms: null
 };
 
@@ -267,13 +279,9 @@ function loadMapEngine(source, configMap, mapStyle) {
         
         // 初始化图层组
         overlayGroups.zones = new AMap.OverlayGroup();
-        overlayGroups.stations = new AMap.OverlayGroup();
-        overlayGroups.devices = new AMap.OverlayGroup();
         overlayGroups.alarms = new AMap.OverlayGroup();
         
         mapInstance.value.add(overlayGroups.zones);
-        mapInstance.value.add(overlayGroups.stations);
-        mapInstance.value.add(overlayGroups.devices);
         mapInstance.value.add(overlayGroups.alarms);
 
         resolve();
@@ -498,68 +506,61 @@ async function loadAndScatterData() {
       }
     });
 
-    // 2. 绘制站点 (Stations)
-    // 采用数据驱动的 MarkerCluster (极大提升 5000+ 点位的初始化性能)
-    const stationDataList = [];
+
+    // 2. 绘制分类站点 (Stations)
+    const stationDataMap = {};
+    stationCategories.forEach(c => stationDataMap[c.value] = []);
     stations.forEach(s => {
       const pt = processCoord(s.longitude, s.latitude);
-      // 过滤掉非中国的异常坐标，防止 setFitView 拉到非洲 [0, 0] 导致显示全世界
       if (pt && pt[0] > 70 && pt[0] < 140 && pt[1] > 10 && pt[1] < 60) {
         const hasAlarm = alarmSourceMap[s.code];
-        
         if (hasAlarm) {
-          // 告警的点独立绘制，为了能有脉冲特效和悬浮框
           const marker = new AMap.Marker({
             position: pt,
             content: `
-              <div class="cyber-marker station-marker alarming">
+              <div class="cyber-marker alarming">
                 <div class="core"></div>
                 <div class="pulse"></div>
               </div>`,
             offset: new AMap.Pixel(-12, -12),
             extData: s
           });
-          marker.on('mouseover', () => {
-            marker.setLabel({ content: `<div class="cyber-label station-label">${s.name}</div>`, direction: 'right' });
-          });
-          marker.on('mouseout', () => { marker.setLabel(null); });
+          marker.on('mouseover', () => marker.setLabel({ content: `<div class="cyber-label">${s.name}</div>`, direction: 'right' }));
+          marker.on('mouseout', () => marker.setLabel(null));
           overlayGroups.alarms.addOverlay(marker);
         } else {
-          // 正常点塞入原始数据，交给 Cluster 批量按需渲染
-          stationDataList.push({ lnglat: pt, extData: s });
+          if (stationDataMap[s.type]) {
+            stationDataMap[s.type].push({ lnglat: pt, extData: s });
+          }
         }
       }
     });
 
-    if (stationDataList.length > 0) {
-      const cluster = new AMap.MarkerCluster(mapInstance.value, stationDataList, {
-        gridSize: 70,
-        maxZoom: 16, // 放大到 16 级时完全展开
-        renderClusterMarker: (context) => {
-          const count = context.count;
-          const content = `<div class="cluster-marker station-cluster"><div>${count}</div></div>`;
-          context.marker.setContent(content);
-          context.marker.setOffset(new AMap.Pixel(-25, -25));
-        },
-        renderMarker: (context) => {
-          const s = context.data[0].extData;
-          context.marker.setContent(`
-            <div class="cyber-marker station-marker">
-              <div class="core"></div>
-            </div>`);
-          context.marker.setOffset(new AMap.Pixel(-12, -12));
-          context.marker.on('mouseover', () => {
-            context.marker.setLabel({ content: `<div class="cyber-label station-label">${s.name}</div>`, direction: 'right' });
-          });
-          context.marker.on('mouseout', () => { context.marker.setLabel(null); });
-        }
-      });
-      overlayGroups.stations = cluster; 
-    }
+    stationCategories.forEach(cat => {
+      const dataList = stationDataMap[cat.value];
+      if (dataList.length > 0) {
+        const cluster = new AMap.MarkerCluster(mapInstance.value, dataList, {
+          gridSize: 70, maxZoom: 16,
+          renderClusterMarker: (context) => {
+            const count = context.count;
+            context.marker.setContent(`<div class="cluster-marker" style="background: rgba(255,255,255,0.85); border: 2px solid ${cat.color}; color: ${cat.color};">${count}</div>`);
+            context.marker.setOffset(new AMap.Pixel(-20, -20));
+          },
+          renderMarker: (context) => {
+            const s = context.data[0].extData;
+            context.marker.setContent(`<div class="simple-marker" style="background: ${cat.color}"></div>`);
+            context.marker.setOffset(new AMap.Pixel(-6, -6));
+            context.marker.on('mouseover', () => context.marker.setLabel({ content: `<div class="simple-label">${s.name}</div>`, direction: 'right' }));
+            context.marker.on('mouseout', () => context.marker.setLabel(null));
+          }
+        });
+        overlayGroups['station_' + cat.value] = cluster;
+      }
+    });
 
-    // 3. 绘制设备 (Devices)
-    // 同样采用数据驱动
-    const deviceDataList = [];
+    // 3. 绘制分类设备 (Devices)
+    const deviceDataMap = {};
+    deviceCategories.forEach(c => deviceDataMap[c.value] = []);
     devices.forEach(d => {
       const pt = processCoord(d.longitude, d.latitude);
       if (pt && pt[0] > 70 && pt[0] < 140 && pt[1] > 10 && pt[1] < 60) {
@@ -568,49 +569,46 @@ async function loadAndScatterData() {
           const marker = new AMap.Marker({
             position: pt,
             content: `
-              <div class="cyber-marker device-marker alarming">
-                <div class="core"></div>
+              <div class="cyber-marker alarming">
+                <div class="core" style="width:10px;height:10px;"></div>
                 <div class="pulse"></div>
               </div>`,
-            offset: new AMap.Pixel(-6, -6),
+            offset: new AMap.Pixel(-5, -5),
             extData: d
           });
-          marker.on('mouseover', () => {
-            marker.setLabel({ content: `<div class="cyber-label device-label">${d.name}</div>`, direction: 'top' });
-          });
-          marker.on('mouseout', () => { marker.setLabel(null); });
+          marker.on('mouseover', () => marker.setLabel({ content: `<div class="cyber-label">${d.name}</div>`, direction: 'top' }));
+          marker.on('mouseout', () => marker.setLabel(null));
           overlayGroups.alarms.addOverlay(marker);
         } else {
-          deviceDataList.push({ lnglat: pt, extData: d });
+          if (deviceDataMap[d.type]) {
+            deviceDataMap[d.type].push({ lnglat: pt, extData: d });
+          }
         }
       }
     });
 
-    if (deviceDataList.length > 0) {
-      const cluster = new AMap.MarkerCluster(mapInstance.value, deviceDataList, {
-        gridSize: 60,
-        maxZoom: 17,
-        renderClusterMarker: (context) => {
-          const count = context.count;
-          const content = `<div class="cluster-marker"><div>${count}</div></div>`;
-          context.marker.setContent(content);
-          context.marker.setOffset(new AMap.Pixel(-20, -20));
-        },
-        renderMarker: (context) => {
-          const d = context.data[0].extData;
-          context.marker.setContent(`
-            <div class="cyber-marker device-marker">
-              <div class="core"></div>
-            </div>`);
-          context.marker.setOffset(new AMap.Pixel(-6, -6));
-          context.marker.on('mouseover', () => {
-            context.marker.setLabel({ content: `<div class="cyber-label device-label">${d.name}</div>`, direction: 'top' });
-          });
-          context.marker.on('mouseout', () => { context.marker.setLabel(null); });
-        }
-      });
-      overlayGroups.devices = cluster; 
-    }
+    deviceCategories.forEach(cat => {
+      const dataList = deviceDataMap[cat.value];
+      if (dataList.length > 0) {
+        const cluster = new AMap.MarkerCluster(mapInstance.value, dataList, {
+          gridSize: 60, maxZoom: 17,
+          renderClusterMarker: (context) => {
+            const count = context.count;
+            context.marker.setContent(`<div class="cluster-marker" style="background: rgba(255,255,255,0.85); border: 2px solid ${cat.color}; color: ${cat.color};">${count}</div>`);
+            context.marker.setOffset(new AMap.Pixel(-15, -15));
+          },
+          renderMarker: (context) => {
+            const d = context.data[0].extData;
+            context.marker.setContent(`<div class="simple-marker mini" style="background: ${cat.color}"></div>`);
+            context.marker.setOffset(new AMap.Pixel(-4, -4));
+            context.marker.on('mouseover', () => context.marker.setLabel({ content: `<div class="simple-label">${d.name}</div>`, direction: 'top' }));
+            context.marker.on('mouseout', () => context.marker.setLabel(null));
+          }
+        });
+        overlayGroups['device_' + cat.value] = cluster;
+      }
+    });
+
 
     // 彻底移除 setFitView 的自动缩放逻辑，完全信任并在初始化时使用系统后台配置的默认中心点
     // 防止因为任何异常坐标或 Cluster 边界计算错误导致地图平移
@@ -629,7 +627,7 @@ function toggleLayer(layerName) {
   const isVisible = layerVisible[layerName];
   const group = overlayGroups[layerName];
   if (group) {
-    if ((layerName === 'devices' || layerName === 'stations') && group instanceof window.AMap.MarkerCluster) {
+    if ((layerName.startsWith('device_') || layerName.startsWith('station_')) && group instanceof window.AMap.MarkerCluster) {
       if (isVisible) {
         group.setMap(mapInstance.value);
       } else {
@@ -1088,6 +1086,42 @@ function toggleLayer(layerName) {
     }
   }
 }
+
+.simple-marker {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.simple-marker.mini {
+  width: 8px; height: 8px;
+}
+.simple-label {
+  background: rgba(255,255,255,0.9); color: #333; padding: 2px 6px; border-radius: 4px;
+  border: 1px solid #ccc; font-size: 12px; white-space: nowrap; font-weight: bold;
+}
+.theme-dark .simple-label {
+  background: rgba(10,20,40,0.9); color: #fff; border-color: #555;
+}
+
+.layer-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.layer-group-title {
+  color: #fff; font-size: 13px; font-weight: bold; margin: 10px 0 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;
+}
+.theme-light .layer-group-title {
+  color: #111827; border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+.layer-switch.mini {
+  padding: 5px 8px;
+}
+.layer-switch.mini .layer-name {
+  font-size: 12px;
+}
+
 </style>
 
 <style lang="scss">
@@ -1101,7 +1135,7 @@ function toggleLayer(layerName) {
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
-  backdrop-filter: blur(4px);
+  
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
 
   &.zone-label { border-color: #00e5ff; color: #00e5ff; box-shadow: 0 0 10px rgba(0, 229, 255, 0.2); }
@@ -1183,7 +1217,7 @@ function toggleLayer(layerName) {
   font-weight: bold;
   font-family: 'Orbitron', sans-serif;
   box-shadow: 0 0 15px rgba(0, 255, 170, 0.5);
-  backdrop-filter: blur(4px);
+  
   transition: all 0.3s;
 
   &:hover {
