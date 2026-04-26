@@ -1303,6 +1303,7 @@ CREATE TABLE IF NOT EXISTS `water_data_task` (
   `name` VARCHAR(100) NOT NULL COMMENT '任务名称',
   `source_id` BIGINT NOT NULL COMMENT '绑定的数据源ID',
   `cron_expression` VARCHAR(100) NULL COMMENT '执行频率 (Cron表达式)',
+  `batch_size` INT DEFAULT 0 COMMENT '单次拉取批次大小(0为不限制)',
   `query_sql_or_topic` TEXT NULL COMMENT '提取指令 (SQL/Topic/FilePath)',
   `auto_backfill` TINYINT NOT NULL DEFAULT 0 COMMENT '是否自动触发历史补录 (0-否 1-是)',
   `interpolation` VARCHAR(32) NULL COMMENT '插值策略',

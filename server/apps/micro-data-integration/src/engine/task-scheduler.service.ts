@@ -109,12 +109,14 @@ export class TaskSchedulerService implements OnModuleInit {
   private async executeDbTask(task: DataIntegrationTaskEntity, source: DataIntegrationSourceEntity) {
     if (!task.querySqlOrTopic) return;
 
-    let rows = [];
+    let connection;
+    let pgClient;
+
+    // 连接初始化
     if (source.type === 'MYSQL') {
       const connStr = source.connectionStr || '';
       const match = connStr.match(/mysql:\/\/(.*?):(.*?)@(.*?):(\d+)\/(.*)/);
 
-      let connection;
       if (match) {
         connection = await mysql.createConnection({
           host: match[3],
@@ -124,7 +126,6 @@ export class TaskSchedulerService implements OnModuleInit {
           database: match[5],
         });
       } else {
-        // 退化为尝试直接用 host 解析
         connection = await mysql.createConnection({
           host: source.connectionStr,
           user: source.username,
@@ -132,8 +133,6 @@ export class TaskSchedulerService implements OnModuleInit {
           database: 'dma' // fallback
         });
       }
-      [rows] = await connection.execute(task.querySqlOrTopic);
-      await connection.end();
     } else if (source.type === 'POSTGRESQL') {
       const { Client } = require('pg');
       let str = source.connectionStr.replace('jdbc:postgresql://', '');
@@ -144,17 +143,49 @@ export class TaskSchedulerService implements OnModuleInit {
       const port = parseInt(hostPort[1] || '5432', 10);
       const database = parts[1];
       
-      const client = new Client({
+      pgClient = new Client({
         host, port, user: source.username, password: source.password, database
       });
-      await client.connect();
-      const result = await client.query(task.querySqlOrTopic);
-      rows = result.rows;
-      await client.end();
+      await pgClient.connect();
     }
 
-    if (Array.isArray(rows) && rows.length > 0) {
-      await this.receiverService.receiveData(task.id, rows, task.autoBackfill === 1, task.interpolation === 1);
+    try {
+      const batchSize = task.batchSize || 0;
+      let offset = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        let finalSql = task.querySqlOrTopic;
+        if (batchSize > 0) {
+          // 为了安全分页，建议用户SQL中最好有 ORDER BY
+          finalSql = `SELECT * FROM (${task.querySqlOrTopic}) AS tmp LIMIT ${batchSize} OFFSET ${offset}`;
+        }
+
+        let rows = [];
+        if (source.type === 'MYSQL') {
+          [rows] = await connection.execute(finalSql);
+        } else if (source.type === 'POSTGRESQL') {
+          const result = await pgClient.query(finalSql);
+          rows = result.rows;
+        }
+
+        if (Array.isArray(rows) && rows.length > 0) {
+          await this.receiverService.receiveData(task.id, rows, task.autoBackfill === 1, task.interpolation === 1);
+          offset += rows.length;
+          
+          // 如果开启了分批且拉取到的数据刚好等于批次大小，说明可能还有下一批
+          if (batchSize > 0 && rows.length === batchSize) {
+            hasMore = true;
+          } else {
+            hasMore = false;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+    } finally {
+      if (connection) await connection.end();
+      if (pgClient) await pgClient.end();
     }
   }
 

@@ -22,6 +22,10 @@ export class DataIntegrationTaskEntity extends BaseEntity {
   @Column({ type: 'varchar', name: 'cron_expression', length: 100, comment: '执行频率 (Cron表达式)', nullable: true })
   public cronExpression: string;
 
+  @ApiProperty({ type: Number, description: '单次拉取批次大小(0为不限制)' })
+  @Column({ type: 'int', name: 'batch_size', default: 0, comment: '单次拉取批次大小(0为不限制)' })
+  public batchSize: number;
+
   @ApiProperty({ type: String, description: '提取指令 (SQL/Topic/FilePath)' })
   @Column({ type: 'text', name: 'query_sql_or_topic', comment: '提取指令 (SQL/Topic/FilePath)', nullable: true })
   public querySqlOrTopic: string;
