@@ -36,6 +36,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
+import AMapLoader from '@amap/amap-jsapi-loader';
 import { useRouter } from 'vue-router';
 import { listConfig } from '@/api/system/config';
 import { listStation, listDevice } from '@/api/water-basic/equipment';
@@ -63,6 +64,9 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (timer) clearInterval(timer);
+  if (mapInstance.value && currentMapType === 'amap') {
+    mapInstance.value.destroy();
+  }
 });
 
 function goBack() {
@@ -98,21 +102,24 @@ async function initScreen() {
 function loadMapEngine(source, configMap) {
   return new Promise((resolve, reject) => {
     if (source === 'amap') {
-      window._AMapSecurityConfig = {
-        securityJsCode: configMap['gis.map.amap.security'] || '',
-      };
       const key = configMap['gis.map.amap.key'] || '';
-      loadScript(`https://webapi.amap.com/maps?v=2.0&key=${key}`)
-        .then(() => {
-          mapInstance.value = new window.AMap.Map('map-container', {
-            zoom: 12,
-            center: [118.60, 24.90], // 默认泉州附近，后续会根据点位自适应
-            mapStyle: 'amap://styles/darkblue', // 科技蓝风格
-            viewMode: '3D'
-          });
-          resolve();
-        }).catch(reject);
-
+      if (!window._AMapSecurityConfig) {
+        window._AMapSecurityConfig = { securityJsCode: configMap['gis.map.amap.security'] || '' };
+      }
+      AMapLoader.load({
+        key: key,
+        version: '2.0',
+        plugins: ['AMap.Marker']
+      }).then((AMap) => {
+        window.AMap = AMap; // 挂载到全局供撒点使用
+        mapInstance.value = new AMap.Map('map-container', {
+          zoom: 12,
+          center: [118.60, 24.90], // 默认泉州附近，后续会根据点位自适应
+          mapStyle: 'amap://styles/darkblue', // 科技蓝风格
+          viewMode: '3D'
+        });
+        resolve();
+      }).catch(reject);
     } else if (source === 'baidu') {
       const key = configMap['gis.map.baidu.key'] || '';
       window.initBMapCallback = () => {
@@ -193,14 +200,18 @@ async function loadAndScatterPoints() {
     // 根据不同地图引擎渲染点位
     if (currentMapType === 'amap' && window.AMap) {
       const markers = points.map(p => {
-        return new window.AMap.Marker({
+        const marker = new window.AMap.Marker({
           position: [p.lng, p.lat],
-          title: p.name,
-          label: {
-            content: `<div class="map-label ${p.type}">${p.name}</div>`,
-            direction: 'right'
-          }
+          title: p.name
         });
+        
+        // 在 v2.0 API 中，建议使用 content 属性来设置自定义标签
+        const labelContent = `<div class="map-label ${p.type}">${p.name}</div>`;
+        marker.setLabel({
+          content: labelContent,
+          direction: 'right'
+        });
+        return marker;
       });
       mapInstance.value.add(markers);
       if (markers.length > 0) {
@@ -242,35 +253,28 @@ async function loadAndScatterPoints() {
 }
 </script>
 
-<style lang="scss">
-/* 全局样式防止出现滚动条 */
-body, html {
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-}
-
+<style lang="scss" scoped>
 .gis-screen-container {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
   background-color: #030b14;
-  overflow: hidden;
   z-index: 9999;
-}
+  overflow: hidden;
 
-.map-container {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 1;
-}
+  .map-container {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      overflow: hidden;
+    }
 
-.screen-header {
+    .screen-header {
   position: absolute;
   top: 0;
   left: 0;
@@ -324,86 +328,95 @@ body, html {
   }
 }
 
-.panel-left {
-  position: absolute;
-  top: 100px;
-  left: 20px;
-  width: 350px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-
-  .panel-box {
-    background: rgba(10, 25, 51, 0.7);
-    border: 1px solid rgba(0, 229, 255, 0.3);
-    border-radius: 8px;
-    padding: 20px;
-    backdrop-filter: blur(10px);
-    box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.1);
-
-    .panel-title {
-      color: #fff;
-      font-size: 18px;
-      margin: 0 0 20px 0;
-      padding-left: 15px;
-      position: relative;
-      &::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 4px;
-        height: 16px;
-        background: #00e5ff;
-        border-radius: 2px;
-      }
-    }
-
-    .stat-items {
+    .panel-left {
+      position: absolute;
+      top: 100px;
+      left: 20px;
+      width: 350px;
+      z-index: 10;
       display: flex;
-      justify-content: space-between;
-      
-      .stat-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        flex: 1;
+      flex-direction: column;
+      gap: 20px;
 
-        .stat-label {
-          color: #8bb0d3;
-          font-size: 14px;
-          margin-bottom: 10px;
+      .panel-box {
+        background: rgba(10, 25, 51, 0.7);
+        border: 1px solid rgba(0, 229, 255, 0.3);
+        border-radius: 8px;
+        padding: 20px;
+        backdrop-filter: blur(10px);
+        box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.1);
+
+        .panel-title {
+          color: #fff;
+          font-size: 18px;
+          margin: 0 0 20px 0;
+          padding-left: 15px;
+          position: relative;
+          &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 16px;
+            background: #00e5ff;
+            border-radius: 2px;
+          }
         }
 
-        .stat-value {
-          font-size: 32px;
-          font-weight: bold;
-          font-family: 'Courier New', Courier, monospace;
+        .stat-items {
+          display: flex;
+          justify-content: space-between;
+          
+          .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
 
-          &.text-blue { color: #00e5ff; text-shadow: 0 0 10px rgba(0, 229, 255, 0.5); }
-          &.text-green { color: #00ffaa; text-shadow: 0 0 10px rgba(0, 255, 170, 0.5); }
+            .stat-label {
+              color: #8bb0d3;
+              font-size: 14px;
+              margin-bottom: 10px;
+            }
+
+            .stat-value {
+              font-size: 32px;
+              font-weight: bold;
+              font-family: 'Courier New', Courier, monospace;
+
+              &.text-blue { color: #00e5ff; text-shadow: 0 0 10px rgba(0, 229, 255, 0.5); }
+              &.text-green { color: #00ffaa; text-shadow: 0 0 10px rgba(0, 255, 170, 0.5); }
+            }
+          }
         }
       }
     }
+
+  /* 高德地图标记标签样式 */
+  :deep(.map-label) {
+    background: rgba(10, 25, 51, 0.8);
+    border: 1px solid rgba(0, 229, 255, 0.5);
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+
+    &.station { border-color: #00e5ff; color: #00e5ff; }
+    &.device { border-color: #00ffaa; color: #00ffaa; }
   }
 }
 
-/* 高德地图标记标签样式 */
-.map-label {
-  background: rgba(10, 25, 51, 0.8);
-  border: 1px solid rgba(0, 229, 255, 0.5);
-  color: #fff;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  white-space: nowrap;
-
-  &.station { border-color: #00e5ff; color: #00e5ff; }
-  &.device { border-color: #00ffaa; color: #00ffaa; }
+</style>
+<style>
+body, html {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100%;
 }
-
 /* 隐藏百度地图等logo */
 .BMap_cpyCtrl, .anchorBL, .amap-logo, .amap-copyright {
   display: none !important;
