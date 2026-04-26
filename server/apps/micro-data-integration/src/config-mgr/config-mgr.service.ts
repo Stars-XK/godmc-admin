@@ -145,6 +145,7 @@ export class ConfigMgrService {
         entity.taskId = taskId;
         entity.sourceField = m.sourceField;
         entity.targetField = m.targetField;
+        entity.isUpdateKey = m.isUpdateKey || 0;
         return entity;
       });
       await this.mappingRep.save(entities);
