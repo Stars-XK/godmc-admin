@@ -106,8 +106,9 @@ export class ZoneService {
 
     // 如果有查询条件（名称、编码、状态），则说明用户在搜索，为了保证搜索结果能被看到，不限制层级；
     // 如果是无条件默认加载首屏，为了性能，仅返回前3层，剩下的让前端懒加载
+    // GIS 大屏等场景可以通过 fetchAll=true 强制返回全量树
     const hasSearchFilter = query.name || query.code || query.status;
-    if (!hasSearchFilter) {
+    if (!hasSearchFilter && query.fetchAll !== 'true' && query.fetchAll !== true) {
       entity.andWhere('zone.level <= 3');
     }
 
