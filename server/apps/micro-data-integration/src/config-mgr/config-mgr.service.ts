@@ -1,18 +1,22 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DataIntegrationSourceEntity, DataIntegrationTaskEntity, DataIntegrationMappingEntity } from '@app/common';
 import { ResultData } from '@app/common/utils/result';
+import { TaskSchedulerService } from '../engine/task-scheduler.service';
 
 @Injectable()
 export class ConfigMgrService {
+  private readonly logger = new Logger(ConfigMgrService.name);
+
   constructor(
     @InjectRepository(DataIntegrationSourceEntity)
-    private readonly sourceRep: Repository<DataIntegrationSourceEntity>,
+    private sourceRep: Repository<DataIntegrationSourceEntity>,
     @InjectRepository(DataIntegrationTaskEntity)
-    private readonly taskRep: Repository<DataIntegrationTaskEntity>,
+    private taskRep: Repository<DataIntegrationTaskEntity>,
     @InjectRepository(DataIntegrationMappingEntity)
-    private readonly mappingRep: Repository<DataIntegrationMappingEntity>,
+    private mappingRep: Repository<DataIntegrationMappingEntity>,
+    private readonly taskSchedulerService: TaskSchedulerService,
   ) {}
 
   // --- DataSource ---
@@ -109,11 +113,13 @@ export class ConfigMgrService {
 
   async taskAdd(data: Partial<DataIntegrationTaskEntity>) {
     const res = await this.taskRep.save(data);
+    this.taskSchedulerService.reloadAllTasks(); // 新增任务后重新加载调度器
     return ResultData.ok(res);
   }
 
   async taskUpdate(data: Partial<DataIntegrationTaskEntity>) {
     await this.taskRep.update(data.id, data);
+    this.taskSchedulerService.reloadAllTasks(); // 更新任务后重新加载调度器
     return ResultData.ok();
   }
 
@@ -121,6 +127,7 @@ export class ConfigMgrService {
     await this.taskRep.delete(id);
     // 级联删除映射
     await this.mappingRep.delete({ taskId: id });
+    this.taskSchedulerService.reloadAllTasks(); // 删除任务后重新加载调度器
     return ResultData.ok();
   }
 

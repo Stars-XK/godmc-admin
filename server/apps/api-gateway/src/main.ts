@@ -112,6 +112,7 @@ async function bootstrap() {
     { path: '/water-basic', target: 'http://127.0.0.1:3006' },
     { path: '/data-integration', target: 'http://127.0.0.1:3007' },
     { path: '/report', target: 'http://127.0.0.1:3007' },
+    { path: '/engine', target: 'http://127.0.0.1:3007' },
     { path: '/ingestion', target: 'http://127.0.0.1:3007' },
     { path: '/tdengine-agg', target: 'http://127.0.0.1:3007' },
     { path: '/alarm', target: 'http://127.0.0.1:3008' },
