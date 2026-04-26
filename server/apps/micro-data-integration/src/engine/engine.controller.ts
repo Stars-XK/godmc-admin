@@ -1,4 +1,4 @@
-import { Controller, Post } from '@nestjs/common';
+import { Controller, Post, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { TaskSchedulerService } from './task-scheduler.service';
 import { ResultData } from '@app/common/utils/result';
@@ -13,5 +13,12 @@ export class EngineController {
   async reloadTasks() {
     await this.taskSchedulerService.reloadAllTasks();
     return ResultData.ok();
+  }
+
+  @ApiOperation({ summary: '手动立即执行一次接入任务' })
+  @Post('task/run/:id')
+  async runTask(@Param('id') id: string) {
+    await this.taskSchedulerService.runTaskManually(Number(id));
+    return ResultData.ok(null, '已触发执行');
   }
 }

@@ -256,7 +256,14 @@ export class ReceiverService {
     for (const item of dataList) {
       const extracted: any = {};
       for (const map of mappings) {
-        extracted[map.targetField] = item[map.sourceField];
+        const sf = map.sourceField;
+        if (sf && sf.startsWith("'") && sf.endsWith("'")) {
+          // 固定值（由单引号包裹）
+          extracted[map.targetField] = sf.substring(1, sf.length - 1);
+        } else {
+          // 从数据对象中提取
+          extracted[map.targetField] = item[sf];
+        }
       }
 
       // 如果目标是 tdengine

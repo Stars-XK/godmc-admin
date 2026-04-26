@@ -41,4 +41,16 @@ export class DataIntegrationTaskEntity extends BaseEntity {
   @ApiProperty({ type: String, description: '任务状态 (0正常 1停用)' })
   @Column({ type: 'char', name: 'status', length: 1, default: '0', comment: '任务状态 (0正常 1停用)' })
   public status: string;
+
+  @ApiProperty({ type: Date, description: '最后执行时间' })
+  @Column({ type: 'datetime', name: 'last_run_time', nullable: true, comment: '最后执行时间' })
+  public lastRunTime: Date;
+
+  @ApiProperty({ type: String, description: '最后执行状态 (0-成功 1-失败)' })
+  @Column({ type: 'char', name: 'last_run_status', length: 1, nullable: true, comment: '最后执行状态 (0-成功 1-失败)' })
+  public lastRunStatus: string;
+
+  @ApiProperty({ type: String, description: '最后执行日志信息' })
+  @Column({ type: 'text', name: 'last_run_msg', nullable: true, comment: '最后执行日志信息' })
+  public lastRunMsg: string;
 }

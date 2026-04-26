@@ -66,16 +66,7 @@ export class TaskSchedulerService implements OnModuleInit {
   private addCronJob(task: DataIntegrationTaskEntity, source: DataIntegrationSourceEntity) {
     const jobName = `task_${task.id}`;
     const job = new CronJob(task.cronExpression, async () => {
-      this.logger.debug(`开始执行定时任务: ${task.name}`);
-      try {
-        if (source.type === 'MYSQL') {
-          await this.executeDbTask(task, source);
-        } else if (source.type === 'FILE') {
-          await this.executeFileTask(task, source);
-        }
-      } catch (err) {
-        this.logger.error(`任务 ${task.name} 执行失败`, err);
-      }
+      await this.runTaskManually(task.id);
     });
 
     this.schedulerRegistry.addCronJob(jobName, job as any);
@@ -83,34 +74,84 @@ export class TaskSchedulerService implements OnModuleInit {
     this.logger.log(`定时任务 ${task.name} 已加载，Cron: ${task.cronExpression}`);
   }
 
-  private async executeDbTask(task: DataIntegrationTaskEntity, source: DataIntegrationSourceEntity) {
-    if (!task.querySqlOrTopic) return;
+  /**
+   * 手动或定时执行任务，并记录执行日志
+   */
+  async runTaskManually(taskId: number) {
+    const task = await this.taskRep.findOne({ where: { id: taskId } });
+    if (!task) return;
+    const source = await this.sourceRep.findOne({ where: { id: task.sourceId } });
+    if (!source) return;
+
+    this.logger.debug(`开始执行任务: ${task.name}`);
+    task.lastRunTime = new Date();
     
-    // 解析 mysql 连接串，比如 mysql://user:pass@host:port/dbname
-    // 这里简单处理，真实生产应使用更完善的解析或存储独立字段
-    const connStr = source.connectionStr || '';
-    const match = connStr.match(/mysql:\/\/(.*?):(.*?)@(.*?):(\d+)\/(.*)/);
-    
-    let connection;
-    if (match) {
-      connection = await mysql.createConnection({
-        host: match[3],
-        port: Number(match[4]),
-        user: match[1] || source.username,
-        password: match[2] || source.password,
-        database: match[5],
-      });
-    } else {
-      // 退化为尝试直接用 host 解析
-      connection = await mysql.createConnection({
-        host: source.connectionStr,
-        user: source.username,
-        password: source.password,
-      });
+    try {
+      if (source.type === 'MYSQL' || source.type === 'POSTGRESQL') {
+        await this.executeDbTask(task, source);
+      } else if (source.type === 'FILE') {
+        await this.executeFileTask(task, source);
+      }
+      task.lastRunStatus = '0';
+      task.lastRunMsg = '执行成功';
+    } catch (err) {
+      this.logger.error(`任务 ${task.name} 执行失败`, err);
+      task.lastRunStatus = '1';
+      task.lastRunMsg = err.message ? err.message.substring(0, 500) : '未知错误';
     }
 
-    const [rows] = await connection.execute(task.querySqlOrTopic);
-    await connection.end();
+    // 保存执行状态，这里包裹在 try-catch 中防止表字段还没加导致的报错崩溃
+    try {
+      await this.taskRep.save(task);
+    } catch (e) {}
+  }
+
+  private async executeDbTask(task: DataIntegrationTaskEntity, source: DataIntegrationSourceEntity) {
+    if (!task.querySqlOrTopic) return;
+
+    let rows = [];
+    if (source.type === 'MYSQL') {
+      const connStr = source.connectionStr || '';
+      const match = connStr.match(/mysql:\/\/(.*?):(.*?)@(.*?):(\d+)\/(.*)/);
+
+      let connection;
+      if (match) {
+        connection = await mysql.createConnection({
+          host: match[3],
+          port: Number(match[4]),
+          user: match[1] || source.username,
+          password: match[2] || source.password,
+          database: match[5],
+        });
+      } else {
+        // 退化为尝试直接用 host 解析
+        connection = await mysql.createConnection({
+          host: source.connectionStr,
+          user: source.username,
+          password: source.password,
+          database: 'dma' // fallback
+        });
+      }
+      [rows] = await connection.execute(task.querySqlOrTopic);
+      await connection.end();
+    } else if (source.type === 'POSTGRESQL') {
+      const { Client } = require('pg');
+      let str = source.connectionStr.replace('jdbc:postgresql://', '');
+      str = str.split('?')[0];
+      const parts = str.split('/');
+      const hostPort = parts[0].split(':');
+      const host = hostPort[0];
+      const port = parseInt(hostPort[1] || '5432', 10);
+      const database = parts[1];
+      
+      const client = new Client({
+        host, port, user: source.username, password: source.password, database
+      });
+      await client.connect();
+      const result = await client.query(task.querySqlOrTopic);
+      rows = result.rows;
+      await client.end();
+    }
 
     if (Array.isArray(rows) && rows.length > 0) {
       await this.receiverService.receiveData(task.id, rows, task.autoBackfill === 1, task.interpolation === 1);
