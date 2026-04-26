@@ -364,9 +364,9 @@ async function loadAndScatterData() {
   try {
     const [zoneRes, stationRes, deviceRes, alarmRes] = await Promise.all([
       listZoneTree({}),
-      listStation({ pageNum: 1, pageSize: 2000 }),
-      listDevice({ pageNum: 1, pageSize: 2000 }),
-      listHistory({ status: '0', pageNum: 1, pageSize: 100 }) // 未处理告警
+      listStation({ pageNum: 1, pageSize: 10000 }), // 获取尽可能多的点位用于全网展示
+      listDevice({ pageNum: 1, pageSize: 10000 }),
+      listHistory({ status: '0', pageNum: 1, pageSize: 500 }) // 未处理告警
     ]);
 
     const zones = flattenTree(zoneRes.data || []);
@@ -374,10 +374,12 @@ async function loadAndScatterData() {
     const devices = deviceRes.data?.list || deviceRes.rows || [];
     const alarms = alarmRes.data?.list || alarmRes.rows || [];
 
+    // 读取真实的统计总数
     stats.zones = zones.length;
-    stats.stations = stations.length;
-    stats.devices = devices.length;
-    stats.alarms = alarms.length;
+    stats.stations = stationRes.data?.total || stationRes.total || stations.length;
+    stats.devices = deviceRes.data?.total || deviceRes.total || devices.length;
+    stats.alarms = alarmRes.data?.total || alarmRes.total || alarms.length;
+    
     activeAlarms.value = alarms;
 
     // 建立源到告警的映射 (让产生告警的设备特殊显示)
@@ -494,108 +496,127 @@ async function loadAndScatterData() {
     });
 
     // 2. 绘制站点 (Stations)
-    // 性能优化：数量庞大的站点同样引入点聚合 (MarkerCluster) 解决掉帧和事件监听器阻塞警告
-    const stationMarkers = [];
+    // 采用数据驱动的 MarkerCluster (极大提升 5000+ 点位的初始化性能)
+    const stationDataList = [];
     stations.forEach(s => {
       const pt = processCoord(s.longitude, s.latitude);
-      if (pt) {
+      // 过滤掉非中国的异常坐标，防止 setFitView 拉到非洲 [0, 0] 导致显示全世界
+      if (pt && pt[0] > 70 && pt[0] < 140 && pt[1] > 10 && pt[1] < 60) {
         const hasAlarm = alarmSourceMap[s.code];
-        const marker = new AMap.Marker({
-          position: pt,
-          content: `
-            <div class="cyber-marker station-marker ${hasAlarm ? 'alarming' : ''}">
-              <div class="core"></div>
-              <div class="pulse"></div>
-            </div>`,
-          offset: new AMap.Pixel(-12, -12),
-          extData: s
-        });
-        
-        // 优化：只有鼠标放上去才显示复杂 DOM 的 Label，减少同时存在的 DOM 数量
-        marker.on('mouseover', () => {
-          marker.setLabel({
-            content: `<div class="cyber-label station-label">${s.name}</div>`,
-            direction: 'right'
-          });
-        });
-        marker.on('mouseout', () => {
-          marker.setLabel(null);
-        });
         
         if (hasAlarm) {
-          overlayGroups.alarms.addOverlay(marker); // 归入告警图层
+          // 告警的点独立绘制，为了能有脉冲特效和悬浮框
+          const marker = new AMap.Marker({
+            position: pt,
+            content: `
+              <div class="cyber-marker station-marker alarming">
+                <div class="core"></div>
+                <div class="pulse"></div>
+              </div>`,
+            offset: new AMap.Pixel(-12, -12),
+            extData: s
+          });
+          marker.on('mouseover', () => {
+            marker.setLabel({ content: `<div class="cyber-label station-label">${s.name}</div>`, direction: 'right' });
+          });
+          marker.on('mouseout', () => { marker.setLabel(null); });
+          overlayGroups.alarms.addOverlay(marker);
+          fitViewOverlays.push(marker); // 告警点参与视野自适应
         } else {
-          stationMarkers.push(marker);
+          // 正常点塞入原始数据，交给 Cluster 批量按需渲染
+          stationDataList.push({ lnglat: pt, extData: s });
         }
-        fitViewOverlays.push(marker);
       }
     });
 
-    if (stationMarkers.length > 0) {
-      const cluster = new AMap.MarkerCluster(mapInstance.value, stationMarkers, {
+    if (stationDataList.length > 0) {
+      const cluster = new AMap.MarkerCluster(mapInstance.value, stationDataList, {
         gridSize: 70,
-        maxZoom: 16, // 放大到 16 级时展开站点
+        maxZoom: 16, // 放大到 16 级时完全展开
         renderClusterMarker: (context) => {
           const count = context.count;
           const content = `<div class="cluster-marker station-cluster"><div>${count}</div></div>`;
           context.marker.setContent(content);
           context.marker.setOffset(new AMap.Pixel(-25, -25));
+        },
+        renderMarker: (context) => {
+          const s = context.data[0].extData;
+          context.marker.setContent(`
+            <div class="cyber-marker station-marker">
+              <div class="core"></div>
+            </div>`);
+          context.marker.setOffset(new AMap.Pixel(-12, -12));
+          context.marker.on('mouseover', () => {
+            context.marker.setLabel({ content: `<div class="cyber-label station-label">${s.name}</div>`, direction: 'right' });
+          });
+          context.marker.on('mouseout', () => { context.marker.setLabel(null); });
         }
       });
       overlayGroups.stations = cluster; 
     }
 
     // 3. 绘制设备 (Devices)
-    // 引入点聚合 (MarkerCluster) 解决 2000 个设备点导致性能卡顿和重绘掉帧的问题
-    const deviceMarkers = [];
+    // 同样采用数据驱动
+    const deviceDataList = [];
     devices.forEach(d => {
       const pt = processCoord(d.longitude, d.latitude);
-      if (pt) {
+      if (pt && pt[0] > 70 && pt[0] < 140 && pt[1] > 10 && pt[1] < 60) {
         const hasAlarm = alarmSourceMap[d.code];
-        const marker = new AMap.Marker({
-          position: pt,
-          content: `
-            <div class="cyber-marker device-marker ${hasAlarm ? 'alarming' : ''}">
-              <div class="core"></div>
-            </div>`,
-          offset: new AMap.Pixel(-6, -6),
-          extData: d
-        });
-        marker.on('mouseover', () => {
-          marker.setLabel({ content: `<div class="cyber-label device-label">${d.name}</div>`, direction: 'top' });
-        });
-        marker.on('mouseout', () => {
-          marker.setLabel(null);
-        });
-
         if (hasAlarm) {
+          const marker = new AMap.Marker({
+            position: pt,
+            content: `
+              <div class="cyber-marker device-marker alarming">
+                <div class="core"></div>
+                <div class="pulse"></div>
+              </div>`,
+            offset: new AMap.Pixel(-6, -6),
+            extData: d
+          });
+          marker.on('mouseover', () => {
+            marker.setLabel({ content: `<div class="cyber-label device-label">${d.name}</div>`, direction: 'top' });
+          });
+          marker.on('mouseout', () => { marker.setLabel(null); });
           overlayGroups.alarms.addOverlay(marker);
+          fitViewOverlays.push(marker); // 告警点参与视野自适应
         } else {
-          deviceMarkers.push(marker);
+          deviceDataList.push({ lnglat: pt, extData: d });
         }
-        fitViewOverlays.push(marker);
       }
     });
 
-    // 将普通设备使用点聚合进行渲染
-    if (deviceMarkers.length > 0) {
-      const cluster = new AMap.MarkerCluster(mapInstance.value, deviceMarkers, {
+    if (deviceDataList.length > 0) {
+      const cluster = new AMap.MarkerCluster(mapInstance.value, deviceDataList, {
         gridSize: 60,
-        maxZoom: 17, // 放大到 17 级时完全展开
+        maxZoom: 17,
         renderClusterMarker: (context) => {
           const count = context.count;
           const content = `<div class="cluster-marker"><div>${count}</div></div>`;
           context.marker.setContent(content);
           context.marker.setOffset(new AMap.Pixel(-20, -20));
+        },
+        renderMarker: (context) => {
+          const d = context.data[0].extData;
+          context.marker.setContent(`
+            <div class="cyber-marker device-marker">
+              <div class="core"></div>
+            </div>`);
+          context.marker.setOffset(new AMap.Pixel(-6, -6));
+          context.marker.on('mouseover', () => {
+            context.marker.setLabel({ content: `<div class="cyber-label device-label">${d.name}</div>`, direction: 'top' });
+          });
+          context.marker.on('mouseout', () => { context.marker.setLabel(null); });
         }
       });
-      // 将 cluster 实例挂载到 overlayGroups 以便开关图层
       overlayGroups.devices = cluster; 
     }
 
-    // 自适应视野
+    // 自适应视野，但仅根据 "管网分区" (Polygons) 或者是 "有告警的设备" 的位置自适应
+    // 防止某些游离的非法坐标 [0, 0] 把地图拉到了非洲/全世界
     if (fitViewOverlays.length > 0) {
-      mapInstance.value.setFitView(fitViewOverlays, false, [50, 50, 50, 350]); // 留出左侧面板的 padding
+      // 检查是否有异常坐标拉远了视野，我们简单过滤掉太离谱的点（仅在非全局自适应时有用）
+      // 实际上 AMap.setFitView 接受 overlays，我们只把分区和告警的 overlay 传进去即可
+      mapInstance.value.setFitView(fitViewOverlays, false, [100, 100, 100, 400]); // 留出左侧面板的 padding
     }
 
   } catch (error) {
