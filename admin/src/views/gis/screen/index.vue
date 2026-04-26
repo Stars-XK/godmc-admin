@@ -30,6 +30,15 @@
           </div>
         </div>
       </div>
+      <div class="panel-box">
+        <h3 class="panel-title">系统告警</h3>
+        <div v-if="initErrorMsg" class="error-alert">
+          <el-icon><Warning /></el-icon> {{ initErrorMsg }}
+        </div>
+        <div v-else class="stat-items" style="opacity: 0.5">
+          <span style="color: #fff">系统运行正常，无告警</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -40,12 +49,13 @@ import AMapLoader from '@amap/amap-jsapi-loader';
 import { useRouter } from 'vue-router';
 import { listConfig } from '@/api/system/config';
 import { listStation, listDevice } from '@/api/water-basic/equipment';
-import { ArrowLeft } from '@element-plus/icons-vue';
+import { ArrowLeft, Warning } from '@element-plus/icons-vue';
 import dayjs from 'dayjs';
 
 const router = useRouter();
 const loading = ref(true);
 const currentTime = ref('');
+const initErrorMsg = ref('');
 let timer = null;
 
 const stationCount = ref(0);
@@ -75,9 +85,14 @@ function goBack() {
 
 async function initScreen() {
   try {
-    // 1. 加载 GIS 配置
-    const res = await listConfig({ pageSize: 500 });
-    const rows = res.rows || [];
+    // 1. 加载 GIS 配置 (如果未登录等原因请求失败，提供兜底配置)
+    let rows = [];
+    try {
+      const res = await listConfig({ pageSize: 500 });
+      rows = res.rows || [];
+    } catch (e) {
+      console.warn('获取配置失败，使用默认配置', e);
+    }
     const configMap = {};
     rows.forEach(item => {
       configMap[item.configKey] = item.configValue;
@@ -95,6 +110,7 @@ async function initScreen() {
     loading.value = false;
   } catch (error) {
     console.error('地图初始化失败:', error);
+    initErrorMsg.value = error.message || '地图初始化失败';
     loading.value = false;
   }
 }
@@ -102,10 +118,17 @@ async function initScreen() {
 function loadMapEngine(source, configMap) {
   return new Promise((resolve, reject) => {
     if (source === 'amap') {
-      const key = configMap['gis.map.amap.key'] || '';
+      const key = configMap['gis.map.amap.key'] || 'f2ce1125b07fe3e22ebd5924b75ca6d1'; // 增加默认硬编码兜底
       const mapStyle = configMap['gis.map.style'] || 'amap://styles/light';
+      
+      if (!key) {
+        console.error('地图初始化失败: 请填写高德地图 Key');
+        reject(new Error('请填写高德地图 Key'));
+        return;
+      }
+      
       if (!window._AMapSecurityConfig) {
-        window._AMapSecurityConfig = { securityJsCode: configMap['gis.map.amap.security'] || '' };
+        window._AMapSecurityConfig = { securityJsCode: configMap['gis.map.amap.security'] || '610162c69ef7947baf638e9b445316c5' };
       }
       AMapLoader.load({
         key: key,
@@ -399,7 +422,17 @@ async function loadAndScatterPoints() {
       }
     }
 
-  /* 高德地图标记标签样式 */
+  .error-alert {
+  color: #f56c6c;
+  background: rgba(245, 108, 108, 0.1);
+  border: 1px solid rgba(245, 108, 108, 0.3);
+  padding: 10px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
   :deep(.map-label) {
     background: rgba(10, 25, 51, 0.8);
     border: 1px solid rgba(0, 229, 255, 0.5);
