@@ -366,9 +366,9 @@ async function loadAndScatterData() {
     ]);
 
     const zones = flattenTree(zoneRes.data || []);
-    const stations = stationRes.rows || [];
-    const devices = deviceRes.rows || [];
-    const alarms = alarmRes.rows || [];
+    const stations = stationRes.data?.list || stationRes.rows || [];
+    const devices = deviceRes.data?.list || deviceRes.rows || [];
+    const alarms = alarmRes.data?.list || alarmRes.rows || [];
 
     stats.zones = zones.length;
     stats.stations = stations.length;
