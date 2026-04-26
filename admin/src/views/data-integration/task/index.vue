@@ -41,7 +41,6 @@
           <el-tag :type="scope.row.autoBackfill ? 'success' : 'info'">{{ scope.row.autoBackfill ? '是' : '否' }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="目标表/实体" align="center" prop="targetEntity" width="150" :show-overflow-tooltip="true" />
       <el-table-column label="状态" align="center" prop="status">
         <template #default="scope">
           <el-tag :type="scope.row.status === '0' ? 'success' : 'danger'">{{ scope.row.status === '0' ? '正常' : '停用' }}</el-tag>
