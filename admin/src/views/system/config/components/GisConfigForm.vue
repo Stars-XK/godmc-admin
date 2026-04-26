@@ -1,10 +1,15 @@
 <template>
   <div class="config-form-container">
     <div class="form-header">
-      <h3>GIS 地图配置</h3>
-      <p>设置系统 WebGIS 模块使用的底图来源以及相关的地理坐标系转换规则。</p>
+      <div class="header-left">
+        <h3>GIS 地图配置</h3>
+        <p>设置系统 WebGIS 模块使用的底图来源以及相关的地理坐标系转换规则。</p>
+      </div>
+      <div class="header-right">
+        <el-button type="primary" @click="handleSave" :loading="saving" class="btn-primary">保存地图配置</el-button>
+      </div>
     </div>
-    
+
     <el-form ref="formRef" :model="formData" label-position="top" class="premium-form" v-loading="loading">
       <el-row :gutter="24">
         <el-col :span="24">
@@ -105,10 +110,6 @@
         </el-col>
 
       </el-row>
-      
-      <div class="form-actions">
-        <el-button type="primary" size="large" @click="handleSave" :loading="saving" class="btn-primary">保存地图配置</el-button>
-      </div>
     </el-form>
   </div>
 </template>
@@ -199,7 +200,7 @@ onMounted(() => {
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  padding: 32px;
+  padding: 10px 20px;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
 }
 
@@ -207,9 +208,14 @@ onMounted(() => {
   margin-bottom: 24px;
   padding-bottom: 16px;
   border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   
-  h3 { font-size: 18px; font-weight: 600; color: #111827; margin: 0 0 8px 0; }
-  p { color: #6b7280; font-size: 14px; margin: 0; }
+  .header-left {
+    h3 { font-size: 18px; font-weight: 600; color: #111827; margin: 0 0 8px 0; }
+    p { color: #6b7280; font-size: 14px; margin: 0; }
+  }
 }
 
 .premium-form {
@@ -267,15 +273,12 @@ onMounted(() => {
 :deep(.is-active) .radio-content .el-icon { color: #0369a1; }
 
 .form-actions {
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid #f3f4f6;
-  display: flex;
-  justify-content: flex-end;
+  display: none;
 }
 
 .btn-primary {
-  border-radius: 8px;
+  border-radius: 6px;
   font-weight: 500;
+  padding: 8px 20px;
 }
 </style>
