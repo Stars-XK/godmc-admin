@@ -167,7 +167,7 @@
           <el-icon><Connection /></el-icon>
           <span>将外部数据源的字段，映射至系统内部的目标字段。</span>
           <span style="color: #E6A23C; margin-left: 10px; font-size: 13px;">
-            <el-icon><InfoFilled /></el-icon> 提示：若源字段名使用单引号包裹(如 <code>'1'</code>)，则表示将固定值 1 写入该列。
+            <el-icon><InfoFilled /></el-icon> 提示：1. 使用单引号包裹(如 <code>'1'</code>)写入固定值；2. 填写 <code>UUID()</code> 自动生成主键；3. 目标表的自增主键无需映射。
           </span>
         </div>
         <el-button type="primary" icon="Plus" @click="addMappingRow" class="btn-add-mapping">新增映射</el-button>
@@ -202,8 +202,11 @@
                 </el-option-group>
                 <el-option-group :label="`目标表 ${currentTargetEntity} 字段`" v-if="localColumns.length > 0">
                   <el-option v-for="col in localColumns" :key="col.columnName" :label="`${col.columnName}`" :value="col.columnName">
-                    <span style="float: left">{{ col.columnName }}</span>
-                    <span style="float: right; color: #8492a6; font-size: 13px">{{ col.columnComment }}</span>
+                    <span style="float: left">{{ col.columnName }} <el-tag size="small" type="info" style="margin-left: 5px; transform: scale(0.9);">{{ col.columnType }}</el-tag></span>
+                    <span style="float: right; color: #8492a6; font-size: 13px">
+                      <el-tag size="small" type="warning" v-if="col.columnKey === 'PRI'" style="margin-right: 5px; transform: scale(0.9);">主键</el-tag>
+                      {{ col.columnComment }}
+                    </span>
                   </el-option>
                 </el-option-group>
               </el-select>
@@ -455,12 +458,14 @@ function handleMapping(row) {
       listLocalColumns(currentTargetEntity.value).then(res => {
         localColumns.value = res.data || [];
         
-        // 如果后端返回的映射为空，自动根据表的所有字段生成默认映射行
+        // 如果后端返回的映射为空，自动根据表的所有非自增字段生成默认映射行
         if (mappingList.value.length === 0 && localColumns.value.length > 0) {
-          mappingList.value = localColumns.value.map(col => ({
-            sourceField: col.columnName,
-            targetField: col.columnName
-          }));
+          mappingList.value = localColumns.value
+            .filter(col => col.extra !== 'auto_increment')
+            .map(col => ({
+              sourceField: col.columnName,
+              targetField: col.columnName
+            }));
         }
       });
     } else if (mappingList.value.length === 0) {
