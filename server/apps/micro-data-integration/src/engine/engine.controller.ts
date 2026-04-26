@@ -4,7 +4,7 @@ import { TaskSchedulerService } from './task-scheduler.service';
 import { ResultData } from '@app/common/utils/result';
 
 @ApiTags('任务调度控制')
-@Controller('engine')
+@Controller('data-integration/engine')
 export class EngineController {
   constructor(private readonly taskSchedulerService: TaskSchedulerService) {}
 

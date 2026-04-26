@@ -26,7 +26,7 @@
     </el-row>
 
     <el-table v-loading="loading" :data="taskList">
-      <el-table-column label="任务ID" align="center" prop="id" />
+      <el-table-column label="任务ID" align="center" prop="id" width="80" />
       <el-table-column label="任务名称" align="center" prop="name" />
       <el-table-column label="数据源" align="center" prop="sourceId">
         <template #default="scope">
@@ -60,7 +60,7 @@
           <span v-else style="color: #999; font-size: 12px;">暂无执行记录</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width" width="300">
+      <el-table-column label="操作" align="center" class-name="small-padding fixed-width" width="380">
         <template #default="scope">
           <el-button type="success" link icon="VideoPlay" @click="handleRun(scope.row)">立即执行</el-button>
           <el-button type="success" link icon="Setting" @click="handleMapping(scope.row)" v-hasPermi="['data-integration:task:mapping']">字段映射</el-button>
