@@ -71,14 +71,16 @@
           </el-table-column>
         </el-table>
 
-        <pagination v-show="total>0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
+          <div class="pagination-container">
+            <pagination v-show="total>0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
+          </div>
+        </el-col>
+      </el-row>
 
-        <!-- 数据视图抽屉 -->
+      <!-- 数据视图抽屉 -->
         <el-drawer v-model="drawerOpen" :title="drawerTitle" size="50%">
           <DataViewer v-if="drawerOpen" viewType="device" :code="drawerCode" :name="drawerName" />
         </el-drawer>
-      </el-col>
-    </el-row>
 
     <!-- 添加或修改设备对话框 -->
     <el-dialog :title="title" v-model="open" width="700px" append-to-body>
@@ -492,18 +494,28 @@ onMounted(() => {
 .flex-table {
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pagination-container {
+  padding-top: 10px;
+  flex-shrink: 0;
 }
 
 :deep(.el-table) {
+  flex: 1;
   height: 100% !important;
 }
 
 :deep(.el-table__inner-wrapper) {
   height: 100% !important;
+  display: flex;
+  flex-direction: column;
 }
 
 :deep(.el-table__body-wrapper) {
-  height: calc(100% - 40px) !important;
+  flex: 1;
   overflow-y: auto !important;
 }
 

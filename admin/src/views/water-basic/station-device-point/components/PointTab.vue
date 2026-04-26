@@ -75,16 +75,18 @@
               <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['water-basic:point:remove']">删除</el-button>
             </template>
           </el-table-column>
-        </el-table>
+  </el-table>
 
-    <pagination v-show="total>0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
+          <div class="pagination-container">
+            <pagination v-show="total>0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
+          </div>
+        </el-col>
+      </el-row>
 
-    <!-- 数据视图抽屉 -->
-    <el-drawer v-model="drawerOpen" :title="drawerTitle" size="60%">
-      <DataViewer v-if="drawerOpen" viewType="point" :code="drawerCode" :parentCode="drawerDeviceCode" :name="drawerName" />
-    </el-drawer>
-  </el-col>
-    </el-row>
+      <!-- 数据视图抽屉 -->
+      <el-drawer v-model="drawerOpen" :title="drawerTitle" size="60%">
+        <DataViewer v-if="drawerOpen" viewType="point" :code="drawerCode" :parentCode="drawerDeviceCode" :name="drawerName" />
+      </el-drawer>
 
     <!-- 添加或修改测点对话框 -->
     <el-dialog :title="title" v-model="open" width="700px" append-to-body>
@@ -502,18 +504,28 @@ onMounted(() => {
 .flex-table {
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pagination-container {
+  padding-top: 10px;
+  flex-shrink: 0;
 }
 
 :deep(.el-table) {
+  flex: 1;
   height: 100% !important;
 }
 
 :deep(.el-table__inner-wrapper) {
   height: 100% !important;
+  display: flex;
+  flex-direction: column;
 }
 
 :deep(.el-table__body-wrapper) {
-  height: calc(100% - 40px) !important;
+  flex: 1;
   overflow-y: auto !important;
 }
 

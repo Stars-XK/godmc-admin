@@ -75,9 +75,11 @@
             </template>
           </el-table-column>
         </el-table>
-
-        <pagination v-show="total>0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
-      </el-col>
+          
+          <div class="pagination-container">
+            <pagination v-show="total>0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
+          </div>
+        </el-col>
     </el-row>
 
     <!-- 实时数据抽屉 -->
@@ -509,18 +511,28 @@ onMounted(() => {
 .flex-table {
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pagination-container {
+  padding-top: 10px;
+  flex-shrink: 0;
 }
 
 :deep(.el-table) {
+  flex: 1;
   height: 100% !important;
 }
 
 :deep(.el-table__inner-wrapper) {
   height: 100% !important;
+  display: flex;
+  flex-direction: column;
 }
 
 :deep(.el-table__body-wrapper) {
-  height: calc(100% - 40px) !important; /* 减去表头高度 */
+  flex: 1;
   overflow-y: auto !important;
 }
 
