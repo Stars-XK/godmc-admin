@@ -233,7 +233,7 @@ async function initScreen() {
     currentMapType = source;
     
     transformMode = configMap['gis.coord.transform'] || 'none';
-    customProj4Str = configMap['gis.custom.proj4'];
+    customProj4Str = configMap['gis.custom.proj4'] || '+proj=tmerc +lat_0=0 +lon_0=117 +k=1 +x_0=39500000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs';
 
     const mapStyle = configMap['gis.map.style'] || 'amap://styles/light';
     isDarkTheme.value = mapStyle.includes('dark');
@@ -329,36 +329,28 @@ function wgs84togcj02(lng, lat) {
 }
 
 function processCoord(lng, lat) {
-  let x = Number(lng);
-  let y = Number(lat);
-  if (isNaN(x) || isNaN(y) || x === 0 || y === 0) return null;
+  lng = Number(lng);
+  lat = Number(lat);
+  if (isNaN(lng) || isNaN(lat)) return null;
 
-  // 智能判断：如果已经在正常的中国经纬度范围内 (70~140, 10~60)
-  // 说明它本来就是经纬度，绝对不能再做 Proj4 投影转换，否则会变成乱码坐标
-  const isAlreadyLatLng = (x > 70 && x < 140 && y > 10 && y < 60);
-
-  // 1. Proj4 投影转换 (仅对非经纬度的大数值投影系坐标，如 x=39500000 进行转换)
-  if (transformMode === 'custom_proj4' && customProj4Str && !isAlreadyLatLng) {
+  // 1. 如果坐标是千万级别的投影坐标 (如 39666720)，则使用 proj4 转换为 WGS84 经纬度
+  if (transformMode === 'custom_proj4' && customProj4Str && (lng > 1000 || lat > 1000)) {
     try {
-      const res = proj4(customProj4Str, 'WGS84', [x, y]);
-      x = res[0];
-      y = res[1];
+      const wgs84 = proj4(customProj4Str, 'WGS84', [lng, lat]);
+      lng = wgs84[0];
+      lat = wgs84[1];
     } catch (e) {
-      // 忽略转换失败
+      console.warn('proj4 转换失败', e);
     }
   }
 
-  // 2. WGS84 -> GCJ02 (针对高德)
-  if (currentMapType === 'amap') {
-    // 只有明确配置了 WGS84_to_GCJ02，或者我们刚刚从 Proj4 转换出 WGS84，才进行纠偏。
-    // 如果它本来就是 isAlreadyLatLng，通常意味着在系统里录入的就是准确的底图经纬度（如 GCJ02），
-    // 所以不强制纠偏，除非用户强制选了 'WGS84_to_GCJ02'。
-    if (transformMode === 'WGS84_to_GCJ02' || (transformMode === 'custom_proj4' && !isAlreadyLatLng)) {
-      return wgs84togcj02(x, y);
-    }
+  // 2. 如果配置了 WGS84_to_GCJ02，则将 WGS84 转换为高德需要的 GCJ02 (火星坐标系)
+  if (transformMode === 'WGS84_to_GCJ02' || transformMode === 'custom_proj4') {
+    const gcj = wgs84togcj02(lng, lat);
+    return [gcj[0], gcj[1]];
   }
   
-  return [x, y];
+  return [lng, lat];
 }
 
 // 扁平化树
