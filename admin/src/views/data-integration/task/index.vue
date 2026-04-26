@@ -180,7 +180,8 @@
               <strong>配置提示：</strong><br/>
               1. <strong>固定值：</strong>在源字段中使用英文单引号包裹(如 <code>'1'</code> 或 <code>'sys'</code>)，将把该固定值写入目标列。<br/>
               2. <strong>UUID主键：</strong>在源字段中填写 <code>UUID()</code>，将自动生成36位唯一字符串主键。<br/>
-              3. <strong>自增主键：</strong>目标表如果自带 <code>auto_increment</code> 自增主键，无需在此处进行映射配置。
+              3. <strong>自增主键：</strong>目标表如果自带 <code>auto_increment</code> 自增主键，无需在此处进行映射配置。<br/>
+              4. <strong>字典转换：</strong>在"值转换"列填入如 <code>开启=1,关闭=0</code> 将自动翻译。
             </div>
           </div>
         </div>
@@ -229,6 +230,11 @@
           <el-table-column label="设为更新依据(主键)" align="center" width="160">
             <template #default="scope">
               <el-switch v-model="scope.row.isUpdateKey" :active-value="1" :inactive-value="0" active-text="是" inactive-text="否" />
+            </template>
+          </el-table-column>
+          <el-table-column label="值转换(字典)" align="center" width="180">
+            <template #default="scope">
+              <el-input v-model="scope.row.transformRule" placeholder="例如: 开启=1,关闭=0" />
             </template>
           </el-table-column>
           <el-table-column label="操作" align="center" width="80">
@@ -487,15 +493,16 @@ function handleMapping(row) {
             .map(col => ({
               sourceField: col.columnName,
               targetField: col.columnName,
-              isUpdateKey: col.columnKey === 'PRI' ? 1 : 0
+              isUpdateKey: col.columnKey === 'PRI' ? 1 : 0,
+              transformRule: ''
             }));
         }
       });
     } else if (mappingList.value.length === 0) {
       // 给出一些基础模板提示（针对 tdengine / revenue 等内置引擎）
       mappingList.value = [
-        { sourceField: 'id', targetField: 'code', isUpdateKey: 1 },
-        { sourceField: 'name', targetField: 'name', isUpdateKey: 0 }
+        { sourceField: 'id', targetField: 'code', isUpdateKey: 1, transformRule: '' },
+        { sourceField: 'name', targetField: 'name', isUpdateKey: 0, transformRule: '' }
       ];
     }
     
@@ -559,7 +566,7 @@ function handleTemplateAdd(command) {
 }
 
 function addMappingRow() {
-  mappingList.value.push({ sourceField: '', targetField: '', isUpdateKey: 0 });
+  mappingList.value.push({ sourceField: '', targetField: '', isUpdateKey: 0, transformRule: '' });
 }
 
 function removeMappingRow(index) {
