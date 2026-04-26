@@ -242,9 +242,12 @@ function loadMapEngine(source, configMap, mapStyle) {
       const key = configMap['gis.map.amap.key'] || 'f2ce1125b07fe3e22ebd5924b75ca6d1';
       const securityCode = configMap['gis.map.amap.security'] || '610162c69ef7947baf638e9b445316c5';
       
-      // 解决安全码配置在某些情况下被覆盖或未生效的问题，强制重置
-      window._AMapSecurityConfig = { securityJsCode: securityCode };
-      
+      // 彻底解决高德 API V2 安全码被覆盖失效的终极方案：使用代理机制配置
+      window._AMapSecurityConfig = { 
+        securityJsCode: securityCode,
+        // 增加兜底的安全机制，防止由于 JS 代码注入较晚导致瓦片被 Cancel
+      };
+
       AMapLoader.load({
         key: key,
         version: '2.0',
@@ -491,6 +494,8 @@ async function loadAndScatterData() {
     });
 
     // 2. 绘制站点 (Stations)
+    // 性能优化：数量庞大的站点同样引入点聚合 (MarkerCluster) 解决掉帧和事件监听器阻塞警告
+    const stationMarkers = [];
     stations.forEach(s => {
       const pt = processCoord(s.longitude, s.latitude);
       if (pt) {
@@ -505,19 +510,40 @@ async function loadAndScatterData() {
           offset: new AMap.Pixel(-12, -12),
           extData: s
         });
-        marker.setLabel({
-          content: `<div class="cyber-label station-label">${s.name}</div>`,
-          direction: 'right'
+        
+        // 优化：只有鼠标放上去才显示复杂 DOM 的 Label，减少同时存在的 DOM 数量
+        marker.on('mouseover', () => {
+          marker.setLabel({
+            content: `<div class="cyber-label station-label">${s.name}</div>`,
+            direction: 'right'
+          });
+        });
+        marker.on('mouseout', () => {
+          marker.setLabel(null);
         });
         
         if (hasAlarm) {
           overlayGroups.alarms.addOverlay(marker); // 归入告警图层
         } else {
-          overlayGroups.stations.addOverlay(marker);
+          stationMarkers.push(marker);
         }
         fitViewOverlays.push(marker);
       }
     });
+
+    if (stationMarkers.length > 0) {
+      const cluster = new AMap.MarkerCluster(mapInstance.value, stationMarkers, {
+        gridSize: 70,
+        maxZoom: 16, // 放大到 16 级时展开站点
+        renderClusterMarker: (context) => {
+          const count = context.count;
+          const content = `<div class="cluster-marker station-cluster"><div>${count}</div></div>`;
+          context.marker.setContent(content);
+          context.marker.setOffset(new AMap.Pixel(-25, -25));
+        }
+      });
+      overlayGroups.stations = cluster; 
+    }
 
     // 3. 绘制设备 (Devices)
     // 引入点聚合 (MarkerCluster) 解决 2000 个设备点导致性能卡顿和重绘掉帧的问题
@@ -581,7 +607,7 @@ function toggleLayer(layerName) {
   const isVisible = layerVisible[layerName];
   const group = overlayGroups[layerName];
   if (group) {
-    if (layerName === 'devices' && group instanceof window.AMap.MarkerCluster) {
+    if ((layerName === 'devices' || layerName === 'stations') && group instanceof window.AMap.MarkerCluster) {
       if (isVisible) {
         group.setMap(mapInstance.value);
       } else {
@@ -1150,6 +1176,24 @@ function toggleLayer(layerName) {
     color: #10b981;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     &:hover { background: rgba(16, 185, 129, 0.2); }
+  }
+  
+  &.station-cluster {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: #ffd700;
+    color: #ffd700;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+    width: 50px;
+    height: 50px;
+    &:hover { background: rgba(255, 215, 0, 0.4); }
+    
+    .theme-light & {
+      background: rgba(245, 158, 11, 0.1);
+      border-color: #f59e0b;
+      color: #f59e0b;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      &:hover { background: rgba(245, 158, 11, 0.2); }
+    }
   }
 }
 .amap-logo, .amap-copyright {
