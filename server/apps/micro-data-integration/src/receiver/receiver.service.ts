@@ -253,163 +253,170 @@ export class ReceiverService {
     // 用于记录这批数据影响到的设备和起止时间（用于回填）
     const affectedDevices = new Map<string, { startTs: number, endTs: number, pointCodes: Set<string> }>();
 
-    for (const item of dataList) {
-      const extracted: any = {};
-      for (const map of mappings) {
-        const sf = map.sourceField;
-        let val;
-        
-        if (sf && sf.startsWith("'") && sf.endsWith("'")) {
-          // 固定值（由单引号包裹）
-          val = sf.substring(1, sf.length - 1);
-        } else if (sf && sf.toUpperCase() === 'UUID()') {
-          // 自动生成 UUID
-          const { randomUUID } = require('crypto');
-          val = randomUUID();
-        } else {
-          // 从数据对象中提取
-          val = item[sf];
-        }
-
-        // 应用字典转换规则
-        if (map.transformRule) {
-          try {
-            let ruleObj: Record<string, string> = {};
-            if (map.transformRule.trim().startsWith('{')) {
-               ruleObj = JSON.parse(map.transformRule);
-            } else {
-               // 解析 A=1,B=2 的简写格式
-               map.transformRule.split(',').forEach(pair => {
-                 const [k, v] = pair.split('=');
-                 if (k && v !== undefined) ruleObj[k.trim()] = v.trim();
-               });
-            }
-            if (val !== undefined && val !== null && ruleObj.hasOwnProperty(String(val))) {
-               val = ruleObj[String(val)];
-            }
-          } catch (e) {
-             this.logger.warn(`转换规则解析失败: ${map.transformRule}`, e);
-          }
-        }
-        
-        extracted[map.targetField] = val;
-      }
-
-      // 如果目标是 tdengine
-      if (task.targetEntity === 'tdengine') {
-        if (!extracted.deviceCode || !extracted.pointCode || extracted.value === undefined) {
-          failedCount++;
-          continue;
-        }
-
-        const deviceCode = String(extracted.deviceCode);
-        const pointCode = String(extracted.pointCode);
-        const val = Number(extracted.value);
-        const ts = extracted.timestamp ? new Date(extracted.timestamp) : new Date();
-
-        try {
-          await this.tdengineService.insertData(deviceCode, pointCode, val, ts);
-          successCount++;
-          await this.markAggDirty(deviceCode, pointCode, ts.getTime());
-
-          if (!autoBackfill) {
-             await this.redisService.getClient().hset('iot:point:active', pointCode, Date.now().toString());
+    // 控制并发度，防止连接池耗尽
+    const concurrency = 50;
+    for (let i = 0; i < dataList.length; i += concurrency) {
+      const chunk = dataList.slice(i, i + concurrency);
+      
+      await Promise.all(chunk.map(async (item) => {
+        const extracted: any = {};
+        for (const map of mappings) {
+          const sf = map.sourceField;
+          let val;
+          
+          if (sf && sf.startsWith("'") && sf.endsWith("'")) {
+            // 固定值（由单引号包裹）
+            val = sf.substring(1, sf.length - 1);
+          } else if (sf && sf.toUpperCase() === 'UUID()') {
+            // 自动生成 UUID
+            const { randomUUID } = require('crypto');
+            val = randomUUID();
+          } else {
+            // 从数据对象中提取
+            val = item[sf];
           }
 
-          if (autoBackfill) {
-            const tsTime = ts.getTime();
-            if (!affectedDevices.has(deviceCode)) {
-              affectedDevices.set(deviceCode, { startTs: tsTime, endTs: tsTime, pointCodes: new Set([pointCode]) });
-            } else {
-              const record = affectedDevices.get(deviceCode);
-              record.startTs = Math.min(record.startTs, tsTime);
-              record.endTs = Math.max(record.endTs, tsTime);
-              record.pointCodes.add(pointCode);
-            }
-          }
-        } catch (err) {
-          failedCount++;
-          await this.redisService.getClient().lpush('iot:td:retry:list', JSON.stringify({
-            taskId,
-            deviceCode,
-            pointCode,
-            val,
-            ts: ts.toISOString(),
-          }));
-          this.logger.error(`TDengine 插入失败 (Task: ${taskId})`, err);
-        }
-      } 
-      // 如果目标是 revenue (营收)
-      else if (task.targetEntity === 'revenue') {
-        if (!extracted.user_no || !extracted.zone_code || extracted.val === undefined || !extracted.ts) {
-          failedCount++;
-          continue;
-        }
-        
-        try {
-          const userNo = String(extracted.user_no);
-          const zoneCode = String(extracted.zone_code);
-          const val = Number(extracted.val);
-          const ts = new Date(extracted.ts);
-          // 假设我们这里默认插月度数据，或者根据任务约定
-          await this.tdengineService.insertRevenueData('1mo', userNo, zoneCode, val, ts);
-          successCount++;
-        } catch (err) {
-          failedCount++;
-          this.logger.error(`Revenue 插入失败 (Task: ${taskId})`, err);
-        }
-      }
-      // 如果目标是业务基础表 (MySQL)
-      else if (task.targetEntity) {
-        try {
-          const columns = Object.keys(extracted);
-          if (columns.length === 0) continue;
-
-          // 找出被标记为“更新依据”的字段
-          const updateKeys = mappings.filter(m => m.isUpdateKey === 1).map(m => m.targetField);
-
-          if (updateKeys.length > 0) {
-            // 如果指定了更新主键，我们采用 先 SELECT 判断，再 UPDATE 或 INSERT 的稳妥策略
-            const whereClauses = updateKeys.map(k => `\`${k}\` = ?`).join(' AND ');
-            const keyValues = updateKeys.map(k => extracted[k]);
-            
-            const exist = await this.dataSource.query(`SELECT 1 FROM \`${task.targetEntity}\` WHERE ${whereClauses} LIMIT 1`, keyValues);
-            
-            if (exist.length > 0) {
-              // 执行 UPDATE
-              const updateCols = columns.filter(c => !updateKeys.includes(c));
-              if (updateCols.length > 0) {
-                const updateSet = updateCols.map(c => `\`${c}\` = ?`).join(', ');
-                const updateVals = updateCols.map(c => extracted[c]);
-                await this.dataSource.query(`UPDATE \`${task.targetEntity}\` SET ${updateSet} WHERE ${whereClauses}`, [...updateVals, ...keyValues]);
+          // 应用字典转换规则
+          if (map.transformRule) {
+            try {
+              let ruleObj: Record<string, string> = {};
+              if (map.transformRule.trim().startsWith('{')) {
+                 ruleObj = JSON.parse(map.transformRule);
+              } else {
+                 // 解析 A=1,B=2 的简写格式
+                 map.transformRule.split(',').forEach(pair => {
+                   const [k, v] = pair.split('=');
+                   if (k && v !== undefined) ruleObj[k.trim()] = v.trim();
+                 });
               }
-              successCount++;
+              if (val !== undefined && val !== null && ruleObj.hasOwnProperty(String(val))) {
+                 val = ruleObj[String(val)];
+              }
+            } catch (e) {
+               this.logger.warn(`转换规则解析失败: ${map.transformRule}`, e);
+            }
+          }
+          
+          extracted[map.targetField] = val;
+        }
+
+        // 如果目标是 tdengine
+        if (task.targetEntity === 'tdengine') {
+          if (!extracted.deviceCode || !extracted.pointCode || extracted.value === undefined) {
+            failedCount++;
+            return;
+          }
+
+          const deviceCode = String(extracted.deviceCode);
+          const pointCode = String(extracted.pointCode);
+          const val = Number(extracted.value);
+          const ts = extracted.timestamp ? new Date(extracted.timestamp) : new Date();
+
+          try {
+            await this.tdengineService.insertData(deviceCode, pointCode, val, ts);
+            successCount++;
+            await this.markAggDirty(deviceCode, pointCode, ts.getTime());
+
+            if (!autoBackfill) {
+               await this.redisService.getClient().hset('iot:point:active', pointCode, Date.now().toString());
+            }
+
+            if (autoBackfill) {
+              const tsTime = ts.getTime();
+              // Promise.all 下操作 Map 需要注意并发，虽然 Node.js 是单线程，Map 是同步操作没问题
+              if (!affectedDevices.has(deviceCode)) {
+                affectedDevices.set(deviceCode, { startTs: tsTime, endTs: tsTime, pointCodes: new Set([pointCode]) });
+              } else {
+                const record = affectedDevices.get(deviceCode);
+                record.startTs = Math.min(record.startTs, tsTime);
+                record.endTs = Math.max(record.endTs, tsTime);
+                record.pointCodes.add(pointCode);
+              }
+            }
+          } catch (err) {
+            failedCount++;
+            await this.redisService.getClient().lpush('iot:td:retry:list', JSON.stringify({
+              taskId,
+              deviceCode,
+              pointCode,
+              val,
+              ts: ts.toISOString(),
+            }));
+            this.logger.error(`TDengine 插入失败 (Task: ${taskId})`, err);
+          }
+        } 
+        // 如果目标是 revenue (营收)
+        else if (task.targetEntity === 'revenue') {
+          if (!extracted.user_no || !extracted.zone_code || extracted.val === undefined || !extracted.ts) {
+            failedCount++;
+            return;
+          }
+          
+          try {
+            const userNo = String(extracted.user_no);
+            const zoneCode = String(extracted.zone_code);
+            const val = Number(extracted.val);
+            const ts = new Date(extracted.ts);
+            // 假设我们这里默认插月度数据，或者根据任务约定
+            await this.tdengineService.insertRevenueData('1mo', userNo, zoneCode, val, ts);
+            successCount++;
+          } catch (err) {
+            failedCount++;
+            this.logger.error(`Revenue 插入失败 (Task: ${taskId})`, err);
+          }
+        }
+        // 如果目标是业务基础表 (MySQL)
+        else if (task.targetEntity) {
+          try {
+            const columns = Object.keys(extracted);
+            if (columns.length === 0) return;
+
+            // 找出被标记为“更新依据”的字段
+            const updateKeys = mappings.filter(m => m.isUpdateKey === 1).map(m => m.targetField);
+
+            if (updateKeys.length > 0) {
+              // 如果指定了更新主键，我们采用 先 SELECT 判断，再 UPDATE 或 INSERT 的稳妥策略
+              const whereClauses = updateKeys.map(k => `\`${k}\` = ?`).join(' AND ');
+              const keyValues = updateKeys.map(k => extracted[k]);
+              
+              const exist = await this.dataSource.query(`SELECT 1 FROM \`${task.targetEntity}\` WHERE ${whereClauses} LIMIT 1`, keyValues);
+              
+              if (exist.length > 0) {
+                // 执行 UPDATE
+                const updateCols = columns.filter(c => !updateKeys.includes(c));
+                if (updateCols.length > 0) {
+                  const updateSet = updateCols.map(c => `\`${c}\` = ?`).join(', ');
+                  const updateVals = updateCols.map(c => extracted[c]);
+                  await this.dataSource.query(`UPDATE \`${task.targetEntity}\` SET ${updateSet} WHERE ${whereClauses}`, [...updateVals, ...keyValues]);
+                }
+                successCount++;
+              } else {
+                // 不存在，执行 INSERT
+                const values = Object.values(extracted);
+                const placeholders = columns.map(() => '?').join(', ');
+                const sql = `INSERT INTO \`${task.targetEntity}\` (${columns.map(c => `\`${c}\``).join(', ')}) VALUES (${placeholders})`;
+                await this.dataSource.query(sql, values);
+                successCount++;
+              }
             } else {
-              // 不存在，执行 INSERT
+              // 没有指定主键，则降级为原来的 INSERT ... ON DUPLICATE KEY UPDATE (依赖数据库唯一索引)
               const values = Object.values(extracted);
               const placeholders = columns.map(() => '?').join(', ');
-              const sql = `INSERT INTO \`${task.targetEntity}\` (${columns.map(c => `\`${c}\``).join(', ')}) VALUES (${placeholders})`;
+              const updateStr = columns.map(c => `\`${c}\` = VALUES(\`${c}\`)`).join(', ');
+
+              const sql = `INSERT INTO \`${task.targetEntity}\` (${columns.map(c => `\`${c}\``).join(', ')}) VALUES (${placeholders}) ON DUPLICATE KEY UPDATE ${updateStr}`;
+
               await this.dataSource.query(sql, values);
               successCount++;
             }
-          } else {
-            // 没有指定主键，则降级为原来的 INSERT ... ON DUPLICATE KEY UPDATE (依赖数据库唯一索引)
-            const values = Object.values(extracted);
-            const placeholders = columns.map(() => '?').join(', ');
-            const updateStr = columns.map(c => `\`${c}\` = VALUES(\`${c}\`)`).join(', ');
-
-            const sql = `INSERT INTO \`${task.targetEntity}\` (${columns.map(c => `\`${c}\``).join(', ')}) VALUES (${placeholders}) ON DUPLICATE KEY UPDATE ${updateStr}`;
-
-            await this.dataSource.query(sql, values);
-            successCount++;
+          } catch (err) {
+            failedCount++;
+            this.logger.error(`基础表写入失败 (Task: ${taskId}, Table: ${task.targetEntity})`, err);
           }
-        } catch (err) {
+        } else {
           failedCount++;
-          this.logger.error(`基础表写入失败 (Task: ${taskId}, Table: ${task.targetEntity})`, err);
         }
-      } else {
-        failedCount++;
-      }
+      }));
     }
 
     // 执行自动历史补录
