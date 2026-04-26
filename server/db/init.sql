@@ -711,6 +711,8 @@ INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`
 -- 报警历史按钮权限
 INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1118, '历史查询', 1113, 1, '', '', '', '1', '0', 'F', '0', '0', 'alarm:history:query', '#', 'admin', '2026-04-24 10:00:00.000000', '', NULL, '', '0');
 INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1119, '报警处理', 1113, 2, '', '', '', '1', '0', 'F', '0', '0', 'alarm:history:resolve', '#', 'admin', '2026-04-24 10:00:00.000000', '', NULL, '', '0');
+-- 综合水务GIS大屏监控
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1120, 'GIS大屏监控', 0, 6, 'gis/screen', 'gis/screen/index', '', '1', '0', 'C', '0', '0', 'gis:screen:view', 'monitor', 'admin', '2026-04-26 10:00:00.000000', '', NULL, '全屏GIS大屏监控', '0');
 
 COMMIT; -- 【系统管理模块 - 菜单表】
 
