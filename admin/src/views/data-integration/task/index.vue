@@ -399,26 +399,34 @@ function handleDelete(row) {
 function handleMapping(row) {
   currentTaskId.value = row.id;
   currentTargetEntity.value = row.targetEntity || '';
-  
+
   // 清空上一次的字段列表
   localColumns.value = [];
-  
-  // 如果是本地表，则请求后端加载该表的全部字段供下拉选择
-  if (currentTargetEntity.value && currentTargetEntity.value !== 'tdengine' && currentTargetEntity.value !== 'revenue') {
-    listLocalColumns(currentTargetEntity.value).then(res => {
-      localColumns.value = res.data || [];
-    });
-  }
 
   listMapping(row.id).then(response => {
     mappingList.value = response.data || [];
-    if (mappingList.value.length === 0) {
-      // 给出一些基础模板提示
+    
+    // 如果是本地表，则请求后端加载该表的全部字段供下拉选择，并在没有映射配置时自动初始化所有字段
+    if (currentTargetEntity.value && currentTargetEntity.value !== 'tdengine' && currentTargetEntity.value !== 'revenue') {
+      listLocalColumns(currentTargetEntity.value).then(res => {
+        localColumns.value = res.data || [];
+        
+        // 如果后端返回的映射为空，自动根据表的所有字段生成默认映射行
+        if (mappingList.value.length === 0 && localColumns.value.length > 0) {
+          mappingList.value = localColumns.value.map(col => ({
+            sourceField: col.columnName,
+            targetField: col.columnName
+          }));
+        }
+      });
+    } else if (mappingList.value.length === 0) {
+      // 给出一些基础模板提示（针对 tdengine / revenue 等内置引擎）
       mappingList.value = [
         { sourceField: 'id', targetField: 'code' },
         { sourceField: 'name', targetField: 'name' }
       ];
     }
+    
     mappingOpen.value = true;
   });
 }
