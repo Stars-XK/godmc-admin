@@ -67,6 +67,19 @@
         </el-col>
         
         <el-col :span="24">
+          <el-form-item label="GIS地图主题风格 (Map Style)">
+            <el-select v-model="formData['gis.map.style']" size="large" style="width: 100%" placeholder="请选择或输入主题风格" allow-create filterable>
+              <el-option label="默认白色/浅色 (Light)" value="amap://styles/light" />
+              <el-option label="暗黑科技蓝 (Dark Blue)" value="amap://styles/darkblue" />
+              <el-option label="经典暗黑 (Dark)" value="amap://styles/dark" />
+              <el-option label="远山黛 (Fresh)" value="amap://styles/fresh" />
+              <el-option label="马卡龙 (Macaron)" value="amap://styles/macaron" />
+            </el-select>
+            <div class="el-upload__tip">设置地图的主题风格。高德地图默认提供 light/dark/darkblue 等，也可直接输入自定义的主题ID。</div>
+          </el-form-item>
+        </el-col>
+        
+        <el-col :span="24">
           <el-form-item label="默认坐标转换规则">
             <el-select v-model="formData['gis.coord.transform']" size="large" style="width: 100%">
               <el-option label="无转换 (直接使用原始坐标)" value="none" />
@@ -110,7 +123,7 @@ const saving = ref(false)
 
 const targetKeys = [
   'gis.map.source', 'gis.coord.transform', 'gis.custom.proj4',
-  'gis.map.amap.key', 'gis.map.amap.security', 'gis.map.baidu.key', 'gis.map.tianditu.key'
+  'gis.map.amap.key', 'gis.map.amap.security', 'gis.map.baidu.key', 'gis.map.tianditu.key', 'gis.map.style'
 ]
 
 const formData = ref({})
@@ -129,6 +142,7 @@ function loadData() {
     
     // 初始化默认值
     if (formData.value['gis.map.source'] === undefined) formData.value['gis.map.source'] = 'amap'
+    if (formData.value['gis.map.style'] === undefined) formData.value['gis.map.style'] = 'amap://styles/light'
     if (formData.value['gis.coord.transform'] === undefined) formData.value['gis.coord.transform'] = 'none'
     if (formData.value['gis.custom.proj4'] === undefined) formData.value['gis.custom.proj4'] = '+proj=tmerc +lat_0=0 +lon_0=117 +k=1 +x_0=39500000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs'
     if (formData.value['gis.map.amap.key'] === undefined) formData.value['gis.map.amap.key'] = ''
@@ -158,6 +172,7 @@ function handleSave() {
       if (key === 'gis.map.amap.security') name = '高德地图安全密钥'
       if (key === 'gis.map.baidu.key') name = '百度地图AK'
       if (key === 'gis.map.tianditu.key') name = '天地图Key'
+      if (key === 'gis.map.style') name = 'GIS地图主题风格'
       
       payload = { configName: name, configKey: key, configValue: formData.value[key], configType: 'Y', remark: 'GIS系统自动生成配置' }
       promises.push(addConfig(payload))

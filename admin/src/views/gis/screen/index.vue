@@ -103,6 +103,7 @@ function loadMapEngine(source, configMap) {
   return new Promise((resolve, reject) => {
     if (source === 'amap') {
       const key = configMap['gis.map.amap.key'] || '';
+      const mapStyle = configMap['gis.map.style'] || 'amap://styles/light';
       if (!window._AMapSecurityConfig) {
         window._AMapSecurityConfig = { securityJsCode: configMap['gis.map.amap.security'] || '' };
       }
@@ -113,25 +114,29 @@ function loadMapEngine(source, configMap) {
       }).then((AMap) => {
         window.AMap = AMap; // 挂载到全局供撒点使用
         mapInstance.value = new AMap.Map('map-container', {
-          zoom: 12,
-          center: [118.60, 24.90], // 默认泉州附近，后续会根据点位自适应
-          mapStyle: 'amap://styles/darkblue', // 科技蓝风格
-          viewMode: '3D'
-        });
+            zoom: 12,
+            center: [118.60, 24.90], // 默认泉州附近，后续会根据点位自适应
+            mapStyle: mapStyle,
+            viewMode: '3D'
+          });
         resolve();
       }).catch(reject);
     } else if (source === 'baidu') {
       const key = configMap['gis.map.baidu.key'] || '';
+      const mapStyle = configMap['gis.map.style'] || '';
       window.initBMapCallback = () => {
         const BMap = window.BMap || window.BMapGL;
         if (BMap) {
-          mapInstance.value = new BMap.Map('map-container');
-          mapInstance.value.centerAndZoom(new BMap.Point(118.60, 24.90), 12);
-          mapInstance.value.enableScrollWheelZoom(true);
-          // 设置暗黑风格
-          mapInstance.value.setMapStyleV2({ styleId: '3d71dc3a4ce48cb06bb049edc275b111' });
-          resolve();
-        } else {
+            mapInstance.value = new BMap.Map('map-container');
+            mapInstance.value.centerAndZoom(new BMap.Point(118.60, 24.90), 12);
+            mapInstance.value.enableScrollWheelZoom(true);
+            if (mapStyle && mapStyle.includes('3d')) {
+              mapInstance.value.setMapStyleV2({ styleId: mapStyle });
+            } else if (mapStyle) {
+              mapInstance.value.setMapStyle({ style: mapStyle });
+            }
+            resolve();
+          } else {
           reject(new Error('百度地图加载失败'));
         }
       };
