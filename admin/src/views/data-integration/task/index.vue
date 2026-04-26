@@ -218,6 +218,11 @@
               </el-select>
             </template>
           </el-table-column>
+          <el-table-column label="设为更新依据(主键)" align="center" width="160">
+            <template #default="scope">
+              <el-switch v-model="scope.row.isUpdateKey" :active-value="1" :inactive-value="0" active-text="是" inactive-text="否" />
+            </template>
+          </el-table-column>
           <el-table-column label="操作" align="center" width="80">
             <template #default="scope">
               <el-button type="danger" link icon="Delete" @click="removeMappingRow(scope.$index)" class="btn-delete-icon"></el-button>
@@ -473,15 +478,16 @@ function handleMapping(row) {
             .filter(col => col.extra !== 'auto_increment')
             .map(col => ({
               sourceField: col.columnName,
-              targetField: col.columnName
+              targetField: col.columnName,
+              isUpdateKey: col.columnKey === 'PRI' ? 1 : 0
             }));
         }
       });
     } else if (mappingList.value.length === 0) {
       // 给出一些基础模板提示（针对 tdengine / revenue 等内置引擎）
       mappingList.value = [
-        { sourceField: 'id', targetField: 'code' },
-        { sourceField: 'name', targetField: 'name' }
+        { sourceField: 'id', targetField: 'code', isUpdateKey: 1 },
+        { sourceField: 'name', targetField: 'name', isUpdateKey: 0 }
       ];
     }
     
@@ -545,7 +551,7 @@ function handleTemplateAdd(command) {
 }
 
 function addMappingRow() {
-  mappingList.value.push({ sourceField: '', targetField: '' });
+  mappingList.value.push({ sourceField: '', targetField: '', isUpdateKey: 0 });
 }
 
 function removeMappingRow(index) {

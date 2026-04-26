@@ -337,18 +337,47 @@ export class ReceiverService {
       // 如果目标是业务基础表 (MySQL)
       else if (task.targetEntity) {
         try {
-          // 动态生成 INSERT ... ON DUPLICATE KEY UPDATE
           const columns = Object.keys(extracted);
           if (columns.length === 0) continue;
 
-          const values = Object.values(extracted);
-          const placeholders = columns.map(() => '?').join(', ');
-          const updateStr = columns.map(c => `\`${c}\` = VALUES(\`${c}\`)`).join(', ');
-          
-          const sql = `INSERT INTO \`${task.targetEntity}\` (${columns.map(c => `\`${c}\``).join(', ')}) VALUES (${placeholders}) ON DUPLICATE KEY UPDATE ${updateStr}`;
-          
-          await this.dataSource.query(sql, values);
-          successCount++;
+          // 找出被标记为“更新依据”的字段
+          const updateKeys = mappings.filter(m => m.isUpdateKey === 1).map(m => m.targetField);
+
+          if (updateKeys.length > 0) {
+            // 如果指定了更新主键，我们采用 先 SELECT 判断，再 UPDATE 或 INSERT 的稳妥策略
+            const whereClauses = updateKeys.map(k => `\`${k}\` = ?`).join(' AND ');
+            const keyValues = updateKeys.map(k => extracted[k]);
+            
+            const exist = await this.dataSource.query(`SELECT 1 FROM \`${task.targetEntity}\` WHERE ${whereClauses} LIMIT 1`, keyValues);
+            
+            if (exist.length > 0) {
+              // 执行 UPDATE
+              const updateCols = columns.filter(c => !updateKeys.includes(c));
+              if (updateCols.length > 0) {
+                const updateSet = updateCols.map(c => `\`${c}\` = ?`).join(', ');
+                const updateVals = updateCols.map(c => extracted[c]);
+                await this.dataSource.query(`UPDATE \`${task.targetEntity}\` SET ${updateSet} WHERE ${whereClauses}`, [...updateVals, ...keyValues]);
+              }
+              successCount++;
+            } else {
+              // 不存在，执行 INSERT
+              const values = Object.values(extracted);
+              const placeholders = columns.map(() => '?').join(', ');
+              const sql = `INSERT INTO \`${task.targetEntity}\` (${columns.map(c => `\`${c}\``).join(', ')}) VALUES (${placeholders})`;
+              await this.dataSource.query(sql, values);
+              successCount++;
+            }
+          } else {
+            // 没有指定主键，则降级为原来的 INSERT ... ON DUPLICATE KEY UPDATE (依赖数据库唯一索引)
+            const values = Object.values(extracted);
+            const placeholders = columns.map(() => '?').join(', ');
+            const updateStr = columns.map(c => `\`${c}\` = VALUES(\`${c}\`)`).join(', ');
+
+            const sql = `INSERT INTO \`${task.targetEntity}\` (${columns.map(c => `\`${c}\``).join(', ')}) VALUES (${placeholders}) ON DUPLICATE KEY UPDATE ${updateStr}`;
+
+            await this.dataSource.query(sql, values);
+            successCount++;
+          }
         } catch (err) {
           failedCount++;
           this.logger.error(`基础表写入失败 (Task: ${taskId}, Table: ${task.targetEntity})`, err);

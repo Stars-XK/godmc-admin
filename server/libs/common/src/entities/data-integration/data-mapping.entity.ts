@@ -21,4 +21,8 @@ export class DataIntegrationMappingEntity extends BaseEntity {
   @ApiProperty({ type: String, description: '目标TDengine字段 (deviceCode, pointCode, value, timestamp)' })
   @Column({ type: 'varchar', name: 'target_field', length: 50, comment: '目标TDengine字段' })
   public targetField: string;
+
+  @ApiProperty({ description: '是否作为更新依据(0否 1是)' })
+  @Column({ name: 'is_update_key', type: 'tinyint', default: 0, comment: '是否作为更新依据(0否 1是)' })
+  public isUpdateKey: number;
 }
