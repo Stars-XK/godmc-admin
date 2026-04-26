@@ -71,9 +71,7 @@
           </el-table-column>
         </el-table>
 
-          <div class="pagination-container">
-            <pagination v-show="total>0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
-          </div>
+          <pagination class="custom-pagination" v-show="total>0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
         </el-col>
       </el-row>
 
@@ -498,20 +496,22 @@ onMounted(() => {
   flex-direction: column;
 }
 
-.pagination-container {
-  padding-top: 10px;
+.custom-pagination {
+  margin-top: 10px;
   flex-shrink: 0;
 }
 
 :deep(.el-table) {
   flex: 1;
-  height: 100% !important;
+  display: flex;
+  flex-direction: column;
 }
 
 :deep(.el-table__inner-wrapper) {
-  height: 100% !important;
+  flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 :deep(.el-table__body-wrapper) {
