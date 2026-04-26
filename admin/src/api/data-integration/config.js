@@ -75,11 +75,19 @@ export function updateTask(data) {
   })
 }
 
-// 删除任务
+// 删除接入任务
 export function delTask(id) {
   return request({
     url: '/data-integration/config/task/' + id,
     method: 'delete'
+  })
+}
+
+// 手动立即执行任务
+export function runTaskManually(id) {
+  return request({
+    url: '/data-integration/engine/task/run/' + id,
+    method: 'post'
   })
 }
 

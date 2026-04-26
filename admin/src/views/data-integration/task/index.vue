@@ -38,7 +38,8 @@
       <el-table-column label="目标表/实体" align="center" prop="targetEntity" width="150" :show-overflow-tooltip="true" />
       <el-table-column label="自动补全" align="center" prop="autoBackfill" width="100">
         <template #default="scope">
-          <el-tag :type="scope.row.autoBackfill ? 'success' : 'info'">{{ scope.row.autoBackfill ? '是' : '否' }}</el-tag>
+          <el-tag v-if="scope.row.targetEntity === 'tdengine'" :type="scope.row.autoBackfill ? 'success' : 'info'">{{ scope.row.autoBackfill ? '是' : '否' }}</el-tag>
+          <span v-else style="color: #999">-</span>
         </template>
       </el-table-column>
       <el-table-column label="状态" align="center" prop="status">
@@ -46,8 +47,22 @@
           <el-tag :type="scope.row.status === '0' ? 'success' : 'danger'">{{ scope.row.status === '0' ? '正常' : '停用' }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width" width="260">
+      <el-table-column label="最后执行情况" align="center" width="180">
         <template #default="scope">
+          <div v-if="scope.row.lastRunTime">
+            <div style="font-size: 12px; color: #666; margin-bottom: 4px;">{{ scope.row.lastRunTime }}</div>
+            <el-tooltip :content="scope.row.lastRunMsg || '无信息'" placement="top" :disabled="!scope.row.lastRunMsg">
+              <el-tag size="small" :type="scope.row.lastRunStatus === '0' ? 'success' : 'danger'">
+                {{ scope.row.lastRunStatus === '0' ? '成功' : '失败' }}
+              </el-tag>
+            </el-tooltip>
+          </div>
+          <span v-else style="color: #999; font-size: 12px;">暂无执行记录</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" align="center" class-name="small-padding fixed-width" width="300">
+        <template #default="scope">
+          <el-button type="success" link icon="VideoPlay" @click="handleRun(scope.row)">立即执行</el-button>
           <el-button type="success" link icon="Setting" @click="handleMapping(scope.row)" v-hasPermi="['data-integration:task:mapping']">字段映射</el-button>
           <el-button type="primary" link icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['data-integration:task:edit']">修改</el-button>
           <el-button type="danger" link icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['data-integration:task:remove']">删除</el-button>
@@ -151,6 +166,9 @@
         <div class="mapping-desc">
           <el-icon><Connection /></el-icon>
           <span>将外部数据源的字段，映射至系统内部的目标字段。</span>
+          <span style="color: #E6A23C; margin-left: 10px; font-size: 13px;">
+            <el-icon><InfoFilled /></el-icon> 提示：若源字段名使用单引号包裹(如 <code>'1'</code>)，则表示将固定值 1 写入该列。
+          </span>
         </div>
         <el-button type="primary" icon="Plus" @click="addMappingRow" class="btn-add-mapping">新增映射</el-button>
       </div>
@@ -212,9 +230,9 @@
 
 <script setup name="DataTask">
 import { ref, reactive, onMounted } from 'vue';
-import { listTask, addTask, updateTask, delTask, listMapping, saveMappingBatch, listSource, listLocalTables, listLocalColumns } from '@/api/data-integration/config';
+import { listTask, addTask, updateTask, delTask, listMapping, saveMappingBatch, listSource, listLocalTables, listLocalColumns, runTaskManually } from '@/api/data-integration/config';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { MagicStick, InfoFilled, Connection, Right, ArrowDown, Plus, DocumentCopy, Setting, Edit, Delete } from '@element-plus/icons-vue';
+import { MagicStick, InfoFilled, Connection, Right, ArrowDown, Plus, DocumentCopy, Setting, Edit, Delete, VideoPlay } from '@element-plus/icons-vue';
 
 const taskList = ref([]);
 const sourceList = ref([]);
@@ -403,6 +421,21 @@ function handleDelete(row) {
   }).then(() => {
     getList();
     ElMessage.success('删除成功');
+  }).catch(() => {});
+}
+
+function handleRun(row) {
+  ElMessageBox.confirm('是否确认立即执行名称为"' + row.name + '"的任务?', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'info'
+  }).then(function () {
+    return runTaskManually(row.id);
+  }).then(() => {
+    ElMessage.success('已触发执行');
+    setTimeout(() => {
+      getList();
+    }, 1000);
   }).catch(() => {});
 }
 
