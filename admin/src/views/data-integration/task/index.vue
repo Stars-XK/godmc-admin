@@ -57,10 +57,11 @@
     </el-table>
 
     <!-- 添加或修改任务对话框 -->
-    <el-dialog :title="title" v-model="open" width="680px" append-to-body custom-class="premium-dialog">
+    <el-dialog :title="title" v-model="open" width="680px" append-to-body class="premium-dialog" top="5vh">
       <div class="dialog-header-desc" v-if="title === '通过内置模板创建任务'">
         <el-icon><MagicStick /></el-icon> 您正在使用智能模板，系统已自动填充标准参数，您只需检查确认即可。
       </div>
+      <div class="dialog-scroll-container">
       <el-form ref="taskRef" :model="form" :rules="rules" label-width="140px" label-position="left" class="premium-form">
         <div class="form-section">
           <div class="section-title">基本信息</div>
@@ -136,6 +137,7 @@
           </el-form-item>
         </div>
       </el-form>
+      </div>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="cancel" class="btn-cancel">取 消</el-button>
@@ -145,7 +147,7 @@
     </el-dialog>
 
     <!-- 字段映射配置对话框 -->
-    <el-dialog title="字段映射配置 (Field Mapping)" v-model="mappingOpen" width="750px" append-to-body custom-class="premium-dialog">
+    <el-dialog title="字段映射配置 (Field Mapping)" v-model="mappingOpen" width="750px" append-to-body class="premium-dialog" top="5vh">
       <div class="mapping-header">
         <div class="mapping-desc">
           <el-icon><Connection /></el-icon>
@@ -154,6 +156,7 @@
         <el-button type="primary" icon="Plus" @click="addMappingRow" class="btn-add-mapping">新增映射</el-button>
       </div>
       
+      <div class="dialog-scroll-container">
       <div class="mapping-table-wrapper">
         <el-table :data="mappingList" style="width: 100%" class="mapping-table">
           <el-table-column label="源字段名 (Source Field)" align="center">
@@ -195,6 +198,7 @@
             </template>
           </el-table-column>
         </el-table>
+      </div>
       </div>
       
       <template #footer>
@@ -345,16 +349,24 @@ function handleAdd() {
 
 function handleUpdate(row) {
   reset();
-  form.id = row.id;
-  form.name = row.name;
-  form.sourceId = row.sourceId;
-  form.cronExpression = row.cronExpression;
-  form.querySqlOrTopic = row.querySqlOrTopic;
-  form.status = row.status;
-  form.autoBackfill = row.autoBackfill === 1 || row.autoBackfill === true;
-  form.interpolation = row.interpolation === 1 || row.interpolation === true;
-  open.value = true;
-  title.value = '修改接入任务';
+  const id = row.id;
+  listTask().then(res => {
+    const data = res.data.find(item => item.id === id);
+    if (data) {
+      form.id = data.id;
+      form.name = data.name;
+      form.sourceId = data.sourceId;
+      form.cronExpression = data.cronExpression;
+      form.querySqlOrTopic = data.querySqlOrTopic;
+      form.targetEntity = data.targetEntity;
+      form.autoBackfill = data.autoBackfill === 1;
+      form.interpolation = data.interpolation === 1;
+      form.status = data.status;
+      form.remark = data.remark;
+      open.value = true;
+      title.value = '修改接入任务';
+    }
+  });
 }
 
 function submitForm() {
@@ -366,13 +378,13 @@ function submitForm() {
         interpolation: form.interpolation ? 1 : 0 
       };
       if (form.id != null) {
-        updateTask(submitData).then(response => {
+        updateTask(submitData).then(() => {
           ElMessage.success('修改成功');
           open.value = false;
           getList();
         });
       } else {
-        addTask(submitData).then(response => {
+        addTask(submitData).then(() => {
           ElMessage.success('新增成功');
           open.value = false;
           getList();
@@ -541,12 +553,26 @@ onMounted(() => {
   .el-dialog__body {
     padding: 0;
     background-color: #fafafa;
+    overflow: hidden;
   }
 
   .el-dialog__footer {
     padding: 16px 24px;
     background-color: #ffffff;
     border-top: 1px solid #e5e7eb;
+  }
+}
+
+.dialog-scroll-container {
+  padding: 20px;
+  max-height: 60vh;
+  overflow-y: auto;
+  
+  /* 隐藏滚动条 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
   }
 }
 
