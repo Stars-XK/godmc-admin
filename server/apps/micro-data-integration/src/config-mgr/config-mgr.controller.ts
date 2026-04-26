@@ -32,6 +32,12 @@ export class ConfigMgrController {
     return this.configService.sourceDelete(id);
   }
 
+  @ApiOperation({ summary: '测试数据源连接' })
+  @Post('source/test')
+  testConnection(@Body() body: Partial<DataIntegrationSourceEntity>) {
+    return this.configService.testConnection(body);
+  }
+
   @ApiOperation({ summary: '获取任务列表' })
   @Get('task/list')
   taskList(@Query('sourceId') sourceId?: number) {

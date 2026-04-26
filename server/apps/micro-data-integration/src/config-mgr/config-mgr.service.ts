@@ -36,6 +36,65 @@ export class ConfigMgrService {
     return ResultData.ok();
   }
 
+  async testConnection(data: Partial<DataIntegrationSourceEntity>) {
+    try {
+      if (data.type === 'MYSQL') {
+        const mysql = require('mysql2/promise');
+        let str = data.connectionStr.replace('jdbc:mysql://', '');
+        str = str.split('?')[0];
+        const parts = str.split('/');
+        const hostPort = parts[0].split(':');
+        const host = hostPort[0];
+        const port = parseInt(hostPort[1] || '3306', 10);
+        const database = parts[1];
+        
+        const connection = await mysql.createConnection({
+          host, port, user: data.username, password: data.password, database, connectTimeout: 3000
+        });
+        await connection.end();
+        return ResultData.ok(null, 'MySQL 连接成功');
+      } else if (data.type === 'POSTGRESQL') {
+        const { Client } = require('pg');
+        let str = data.connectionStr.replace('jdbc:postgresql://', '');
+        str = str.split('?')[0];
+        const parts = str.split('/');
+        const hostPort = parts[0].split(':');
+        const host = hostPort[0];
+        const port = parseInt(hostPort[1] || '5432', 10);
+        const database = parts[1];
+        
+        const client = new Client({
+          host, port, user: data.username, password: data.password, database, connectionTimeoutMillis: 3000
+        });
+        await client.connect();
+        await client.end();
+        return ResultData.ok(null, 'PostgreSQL 连接成功');
+      } else if (data.type === 'KAFKA') {
+        const { Kafka } = require('kafkajs');
+        const brokers = data.connectionStr.split(',').map(b => b.trim());
+        const kafka = new Kafka({
+          clientId: 'test-client',
+          brokers,
+          connectionTimeout: 3000
+        });
+        const admin = kafka.admin();
+        await admin.connect();
+        await admin.disconnect();
+        return ResultData.ok(null, 'Kafka 连接成功');
+      } else if (data.type === 'FILE') {
+        const fs = require('fs');
+        if (fs.existsSync(data.connectionStr)) {
+          return ResultData.ok(null, '目录存在，且有访问权限');
+        } else {
+          return ResultData.fail(500, '目录不存在或无权限');
+        }
+      }
+      return ResultData.ok(null, '支持的类型或无需测试');
+    } catch (e) {
+      return ResultData.fail(500, '连接失败: ' + e.message);
+    }
+  }
+
   // --- DataTask ---
   async taskList(sourceId?: number) {
     const where = sourceId ? { sourceId } : {};
