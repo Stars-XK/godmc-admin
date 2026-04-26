@@ -366,7 +366,7 @@ function flattenTree(tree, arr = []) {
 async function loadAndScatterData() {
   try {
     const [zoneRes, stationRes, deviceRes, alarmRes] = await Promise.all([
-      listZoneTree({}),
+      listZoneTree({ fetchAll: true }), // 强制请求全部分区，无视懒加载层级限制
       listStation({ pageNum: 1, pageSize: 10000 }), // 获取尽可能多的点位用于全网展示
       listDevice({ pageNum: 1, pageSize: 10000 }),
       listHistory({ status: '0', pageNum: 1, pageSize: 500 }) // 未处理告警
