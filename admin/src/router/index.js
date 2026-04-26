@@ -58,6 +58,12 @@ export const constantRoutes = [
     hidden: true
   },
   {
+    path: '/gis/screen',
+    component: () => import('@/views/gis/screen/index'),
+    hidden: true,
+    meta: { title: 'GIS大屏监控' }
+  },
+  {
     path: '',
     component: Layout,
     redirect: '/index',
