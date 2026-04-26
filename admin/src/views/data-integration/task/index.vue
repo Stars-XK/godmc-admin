@@ -112,7 +112,7 @@
                 <el-option label="revenue (内置营收引擎)" value="revenue" />
               </el-option-group>
               <el-option-group label="系统本地业务表">
-                <el-option v-for="table in localTables" :key="table.tableName" :label="`${table.tableName} (${table.tableComment || '无注释'})`" :value="table.tableName">
+                <el-option v-for="table in localTables" :key="table.tableName" :label="`${table.tableName}`" :value="table.tableName">
                   <span style="float: left">{{ table.tableName }}</span>
                   <span style="float: right; color: #8492a6; font-size: 13px">{{ table.tableComment }}</span>
                 </el-option>
@@ -181,7 +181,7 @@
                   <el-option label="账单月份 (bill_month)" value="bill_month" />
                 </el-option-group>
                 <el-option-group :label="`目标表 ${currentTargetEntity} 字段`" v-if="localColumns.length > 0">
-                  <el-option v-for="col in localColumns" :key="col.columnName" :label="`${col.columnName} (${col.columnComment || '无注释'})`" :value="col.columnName">
+                  <el-option v-for="col in localColumns" :key="col.columnName" :label="`${col.columnName}`" :value="col.columnName">
                     <span style="float: left">{{ col.columnName }}</span>
                     <span style="float: right; color: #8492a6; font-size: 13px">{{ col.columnComment }}</span>
                   </el-option>
