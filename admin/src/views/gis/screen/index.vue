@@ -127,7 +127,8 @@ import { listConfig } from '@/api/system/config';
 import { listStation, listDevice } from '@/api/water-basic/equipment';
 import { listZone } from '@/api/water-basic/zone';
 import { listHistory } from '@/api/alarm/history';
-import proj4 from 'proj4';
+import proj4Lib from 'proj4';
+window.proj4Instance = proj4Lib;
 import { 
   ArrowLeft, Warning, Odometer, MapLocation, OfficeBuilding, 
   Cpu, BellFilled, WarningFilled, CircleCheckFilled, List 
@@ -333,14 +334,19 @@ function processCoord(lng, lat) {
   lat = Number(lat);
   if (isNaN(lng) || isNaN(lat)) return null;
 
+  // 增加调试信息：看看传入的原始值和转换模式
+  // console.log(`[processCoord] 原始lng=${lng}, lat=${lat} | transformMode=${transformMode} | customProj4Str=${customProj4Str}`);
+
   // 1. 如果坐标是千万级别的投影坐标 (如 39666720)，则使用 proj4 转换为 WGS84 经纬度
   if (transformMode === 'custom_proj4' && customProj4Str && (lng > 1000 || lat > 1000)) {
     try {
-      const wgs84 = proj4(customProj4Str, 'WGS84', [lng, lat]);
+      const wgs84 = window.proj4 ? window.proj4(customProj4Str, 'WGS84', [lng, lat]) : window.proj4Instance(customProj4Str, 'WGS84', [lng, lat]);
+      // 由于没有全局注册 proj4，如果在 vue 中引入，需要确保能调用到
       lng = wgs84[0];
       lat = wgs84[1];
+      // console.log(`[processCoord] proj4转换后: lng=${lng}, lat=${lat}`);
     } catch (e) {
-      console.warn('proj4 转换失败', e);
+      console.warn('[processCoord] proj4 转换失败', lng, lat, e);
     }
   }
 
@@ -399,8 +405,26 @@ async function loadAndScatterData() {
 
     // 1. 绘制分区 (Polygons)
     zones.forEach(zone => {
+      // ---- [新增调试日志] 打印每个分区的原始地理信息 ----
+      const lngRaw = zone.longitude;
+      const latRaw = zone.latitude;
+      const boundRaw = zone.boundary;
+      
+      let hasPoint = !!(lngRaw && latRaw && String(lngRaw).trim() !== '' && String(latRaw).trim() !== '');
+      let hasPolygon = !!(boundRaw && String(boundRaw).trim() !== '' && String(boundRaw).trim() !== '[]');
+      
+      console.log(`[分区数据检查] ${zone.name}: `, 
+                  `中心点[Lng: ${lngRaw || '空'}, Lat: ${latRaw || '空'}] -> ${hasPoint ? '✅' : '❌'}`,
+                  `| 边界(Boundary)长度: ${boundRaw ? String(boundRaw).length : 0} -> ${hasPolygon ? '✅' : '❌'}`);
+      
+      if (!hasPoint && !hasPolygon) {
+        console.log(`[分区跳过] ${zone.name} 既无中心点也无边界数据，跳过渲染。`);
+        return;
+      }
+      // ----------------------------------------------------
+
       // 优先绘制面
-      if (zone.boundary) {
+      if (hasPolygon) {
         try {
           const geoData = JSON.parse(zone.boundary);
           
@@ -502,7 +526,7 @@ async function loadAndScatterData() {
     } // end of if (zone.boundary)
       
       // 其次绘制中心点作为标签
-      if (zone.longitude && zone.latitude) {
+      if (hasPoint) {
         const pt = processCoord(zone.longitude, zone.latitude);
         if (pt && pt[0] > 70 && pt[0] < 140 && pt[1] > 10 && pt[1] < 60) {
           const marker = new AMap.Marker({
@@ -512,7 +536,7 @@ async function loadAndScatterData() {
           });
           overlayGroups.zones.addOverlay(marker);
         } else {
-           console.log(`[分区中心点被拦截] ${zone.name} 的坐标(${zone.longitude}, ${zone.latitude}) 经转换后为 ${pt}，超出了中国的合法经纬度范围。`);
+           console.log(`[分区中心点越界拦截] ${zone.name} 的坐标(${zone.longitude}, ${zone.latitude}) 经转换后为 [${pt ? pt.join(', ') : 'null'}]，超出了中国的合法经纬度范围。`);
         }
       }
     });
