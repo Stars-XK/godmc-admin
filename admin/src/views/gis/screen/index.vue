@@ -1,6 +1,7 @@
 <template>
-  <div class="gis-screen-container">
-    <div id="map-container" class="map-container" v-loading="loading" element-loading-text="地图引擎加载中... 稍等片刻" element-loading-background="rgba(3, 11, 20, 0.9)"></div>
+  <div class="gis-screen-container" :class="isDarkTheme ? 'theme-dark' : 'theme-light'">
+    <div id="map-container" class="map-container" v-loading="loading" element-loading-text="地图引擎加载中... 稍等片刻" :element-loading-background="isDarkTheme ? 'rgba(3, 11, 20, 0.9)' : 'rgba(255, 255, 255, 0.9)'"></div>
+
     
     <!-- 头部横幅 -->
     <div class="screen-header">
@@ -156,6 +157,8 @@ const layerVisible = reactive({
   alarms: true
 });
 
+const isDarkTheme = ref(true);
+
 const mapInstance = ref(null);
 let currentMapType = '';
 
@@ -168,7 +171,7 @@ const overlayGroups = {
 };
 
 // proj4 配置
-let transformEnabled = false;
+let transformMode = 'none';
 let customProj4Str = '';
 
 onMounted(() => {
@@ -216,10 +219,13 @@ async function initScreen() {
     const source = configMap['gis.map.source'] || 'amap';
     currentMapType = source;
     
-    transformEnabled = configMap['gis.coord.transform'] === 'custom_proj4';
+    transformMode = configMap['gis.coord.transform'] || 'none';
     customProj4Str = configMap['gis.custom.proj4'];
 
-    await loadMapEngine(source, configMap);
+    const mapStyle = configMap['gis.map.style'] || 'amap://styles/light';
+    isDarkTheme.value = mapStyle.includes('dark');
+
+    await loadMapEngine(source, configMap, mapStyle);
     await loadAndScatterData();
     
     loading.value = false;
@@ -230,11 +236,10 @@ async function initScreen() {
   }
 }
 
-function loadMapEngine(source, configMap) {
+function loadMapEngine(source, configMap, mapStyle) {
   return new Promise((resolve, reject) => {
     if (source === 'amap') {
       const key = configMap['gis.map.amap.key'] || 'f2ce1125b07fe3e22ebd5924b75ca6d1';
-      const mapStyle = configMap['gis.map.style'] || 'amap://styles/darkblue';
       
       if (!window._AMapSecurityConfig) {
         window._AMapSecurityConfig = { securityJsCode: configMap['gis.map.amap.security'] || '610162c69ef7947baf638e9b445316c5' };
@@ -312,21 +317,31 @@ function processCoord(lng, lat) {
   let y = Number(lat);
   if (isNaN(x) || isNaN(y) || x === 0 || y === 0) return null;
 
-  // 1. Proj4 投影转换 (Proj -> WGS84)
-  if (transformEnabled && customProj4Str) {
+  // 智能判断：如果已经在正常的中国经纬度范围内 (70~140, 10~60)
+  // 说明它本来就是经纬度，绝对不能再做 Proj4 投影转换，否则会变成乱码坐标
+  const isAlreadyLatLng = (x > 70 && x < 140 && y > 10 && y < 60);
+
+  // 1. Proj4 投影转换 (仅对非经纬度的大数值投影系坐标，如 x=39500000 进行转换)
+  if (transformMode === 'custom_proj4' && customProj4Str && !isAlreadyLatLng) {
     try {
       const res = proj4(customProj4Str, 'WGS84', [x, y]);
       x = res[0];
       y = res[1];
     } catch (e) {
-      // 忽略转换失败，可能已经是经纬度
+      // 忽略转换失败
     }
   }
 
   // 2. WGS84 -> GCJ02 (针对高德)
   if (currentMapType === 'amap') {
-    return wgs84togcj02(x, y);
+    // 只有明确配置了 WGS84_to_GCJ02，或者我们刚刚从 Proj4 转换出 WGS84，才进行纠偏。
+    // 如果它本来就是 isAlreadyLatLng，通常意味着在系统里录入的就是准确的底图经纬度（如 GCJ02），
+    // 所以不强制纠偏，除非用户强制选了 'WGS84_to_GCJ02'。
+    if (transformMode === 'WGS84_to_GCJ02' || (transformMode === 'custom_proj4' && !isAlreadyLatLng)) {
+      return wgs84togcj02(x, y);
+    }
   }
+  
   return [x, y];
 }
 
@@ -399,20 +414,20 @@ async function loadAndScatterData() {
             if (path.length > 2) {
               const polygon = new AMap.Polygon({
                 path: path,
-                strokeColor: '#00e5ff',
+                strokeColor: isDarkTheme.value ? '#00e5ff' : '#3b82f6',
                 strokeWeight: 2,
                 strokeOpacity: 0.8,
-                fillColor: '#0044ff',
+                fillColor: isDarkTheme.value ? '#0044ff' : '#3b82f6',
                 fillOpacity: 0.15,
                 extData: zone
               });
               
               // 悬浮交互
               polygon.on('mouseover', () => {
-                polygon.setOptions({ fillOpacity: 0.4, fillColor: '#00e5ff' });
+                polygon.setOptions({ fillOpacity: 0.4, fillColor: isDarkTheme.value ? '#00e5ff' : '#3b82f6' });
               });
               polygon.on('mouseout', () => {
-                polygon.setOptions({ fillOpacity: 0.15, fillColor: '#0044ff' });
+                polygon.setOptions({ fillOpacity: 0.15, fillColor: isDarkTheme.value ? '#0044ff' : '#3b82f6' });
               });
 
               overlayGroups.zones.addOverlay(polygon);
@@ -852,6 +867,96 @@ function toggleLayer(layerName) {
     font-size: 14px;
   }
 }
+/* 主题动态切换 (深色 / 浅色) */
+.gis-screen-container {
+  &.theme-dark {
+    background-color: #030b14;
+    .screen-header {
+      background: linear-gradient(180deg, rgba(3, 11, 20, 0.9) 0%, rgba(3, 11, 20, 0) 100%);
+      h1 { color: #fff; text-shadow: 0 0 15px rgba(0, 229, 255, 0.8), 0 0 30px rgba(0, 229, 255, 0.4); }
+      .header-subtitle { color: #00e5ff; }
+      .time { color: #00e5ff; text-shadow: 0 0 10px rgba(0, 229, 255, 0.5); }
+      .back-btn { color: #00e5ff; background: rgba(0, 229, 255, 0.1); border-color: rgba(0, 229, 255, 0.3); }
+    }
+    .panel-box {
+      background: rgba(6, 15, 33, 0.75);
+      border-color: rgba(0, 229, 255, 0.2);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 229, 255, 0.05);
+      &::after { background: linear-gradient(90deg, transparent, #00e5ff, transparent); }
+      .panel-title { color: #fff; }
+      .stat-card {
+        background: rgba(255, 255, 255, 0.03);
+        border-color: rgba(255, 255, 255, 0.05);
+        .stat-label { color: #8bb0d3; }
+        .stat-value { color: #fff; }
+      }
+      .alarm-list {
+        .empty-state { color: #00ffaa; }
+        .alarm-item {
+          .alarm-header .alarm-time { color: #8bb0d3; }
+          .alarm-desc { color: #e2e8f0; }
+          .alarm-source { color: #8bb0d3; }
+        }
+      }
+      .layer-switch {
+        background: rgba(255, 255, 255, 0.02);
+        .layer-name { color: #fff; }
+      }
+    }
+  }
+
+  &.theme-light {
+    background-color: #f3f4f6;
+    .screen-header {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 100%);
+      h1 { color: #111827; text-shadow: none; font-weight: bold; }
+      .header-subtitle { color: #3b82f6; }
+      .time { color: #3b82f6; text-shadow: none; }
+      .back-btn { 
+        color: #3b82f6; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3);
+        &:hover { background: rgba(59, 130, 246, 0.2); box-shadow: none; }
+      }
+    }
+    .panel-box {
+      background: rgba(255, 255, 255, 0.85);
+      border-color: rgba(229, 231, 235, 1);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      &::after { background: linear-gradient(90deg, transparent, #3b82f6, transparent); }
+      .panel-title { color: #111827; .el-icon { color: #3b82f6; } }
+      .stat-card {
+        background: rgba(0, 0, 0, 0.02);
+        border-color: rgba(0, 0, 0, 0.05);
+        &:hover { background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.2); }
+        .stat-label { color: #6b7280; }
+        .stat-value { color: #111827; }
+        .stat-icon {
+          &.zones { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+          &.stations { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+          &.devices { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+          &.alarms { background: rgba(107, 114, 128, 0.1); color: #6b7280; }
+        }
+      }
+      .alarm-list {
+        .empty-state { color: #10b981; }
+        .alarm-item {
+          .alarm-header .alarm-time { color: #6b7280; }
+          .alarm-desc { color: #4b5563; }
+          .alarm-source { color: #9ca3af; }
+        }
+      }
+      .layer-switch {
+        background: rgba(0, 0, 0, 0.02);
+        &:hover { background: rgba(0, 0, 0, 0.05); }
+        .layer-name { color: #374151; }
+        .switch-info .color-dot {
+          &.zone-dot { background: #3b82f6; box-shadow: none; }
+          &.station-dot { background: #f59e0b; box-shadow: none; }
+          &.device-dot { background: #10b981; box-shadow: none; }
+        }
+      }
+    }
+  }
+}
 </style>
 
 <style lang="scss">
@@ -871,6 +976,16 @@ function toggleLayer(layerName) {
   &.zone-label { border-color: #00e5ff; color: #00e5ff; box-shadow: 0 0 10px rgba(0, 229, 255, 0.2); }
   &.station-label { border-color: #ffd700; color: #ffd700; }
   &.device-label { border-color: #00ffaa; color: #00ffaa; }
+
+  /* 适配浅色主题 */
+  .theme-light & {
+    background: rgba(255, 255, 255, 0.95);
+    color: #111827;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    &.zone-label { border-color: #3b82f6; color: #3b82f6; box-shadow: none; }
+    &.station-label { border-color: #f59e0b; color: #f59e0b; }
+    &.device-label { border-color: #10b981; color: #10b981; }
+  }
 }
 
 .cyber-marker {
