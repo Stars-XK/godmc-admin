@@ -165,8 +165,8 @@ export class ConfigMgrService {
 
   async getLocalColumns(tableName: string) {
     const sql = `
-      SELECT column_name AS columnName, column_comment AS columnComment 
-      FROM information_schema.columns 
+      SELECT column_name AS columnName, column_comment AS columnComment, data_type AS columnType, column_key AS columnKey, extra AS extra
+      FROM information_schema.columns
       WHERE table_schema = (SELECT database()) AND table_name = ?
     `;
     const columns = await this.sourceRep.query(sql, [tableName]);

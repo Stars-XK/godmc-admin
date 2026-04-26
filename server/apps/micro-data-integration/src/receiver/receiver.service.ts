@@ -260,6 +260,10 @@ export class ReceiverService {
         if (sf && sf.startsWith("'") && sf.endsWith("'")) {
           // 固定值（由单引号包裹）
           extracted[map.targetField] = sf.substring(1, sf.length - 1);
+        } else if (sf && sf.toUpperCase() === 'UUID()') {
+          // 自动生成 UUID
+          const { randomUUID } = require('crypto');
+          extracted[map.targetField] = randomUUID();
         } else {
           // 从数据对象中提取
           extracted[map.targetField] = item[sf];
