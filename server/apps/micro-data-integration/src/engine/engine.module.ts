@@ -13,5 +13,6 @@ import { ReceiverModule } from '../receiver/receiver.module';
   ],
   controllers: [EngineController],
   providers: [TaskSchedulerService, KafkaConsumerService],
+  exports: [TaskSchedulerService],
 })
 export class EngineModule {}
