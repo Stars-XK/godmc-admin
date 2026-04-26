@@ -1,6 +1,15 @@
 import request from '@/utils/request'
 import { parseStrEmpty } from "@/utils/ruoyi";
 
+// 查询分区列表
+export function listZone(query) {
+  return request({
+    url: '/water-basic/zone/list',
+    method: 'get',
+    params: query
+  })
+}
+
 // 查询分区树
 export function listZoneTree(query) {
   return request({

@@ -26,6 +26,13 @@ export class ZoneController {
     return this.zoneService.findTree(query, user);
   }
 
+  @ApiOperation({ summary: '查询分区列表' })
+  @RequirePermission('water-basic:zone:query')
+  @Get('list')
+  findList(@Query() query: any, @User() user: any) {
+    return this.zoneService.findList(query, user);
+  }
+
   @ApiOperation({ summary: '懒加载获取下级分区' })
   @Get('lazyChildren')
   findLazyChildren(@Query('parentId') parentId: string, @Query() query: any, @User() user: any) {

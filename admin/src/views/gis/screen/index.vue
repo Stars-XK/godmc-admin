@@ -126,7 +126,7 @@ import AMapLoader from '@amap/amap-jsapi-loader';
 import { useRouter } from 'vue-router';
 import { listConfig } from '@/api/system/config';
 import { listStation, listDevice } from '@/api/water-basic/equipment';
-import { listZoneTree } from '@/api/water-basic/zone';
+import { listZone } from '@/api/water-basic/zone';
 import { listHistory } from '@/api/alarm/history';
 import proj4 from 'proj4';
 import { 
@@ -366,19 +366,19 @@ function flattenTree(tree, arr = []) {
 async function loadAndScatterData() {
   try {
     const [zoneRes, stationRes, deviceRes, alarmRes] = await Promise.all([
-      listZoneTree({ fetchAll: true }), // 强制请求全部分区，无视懒加载层级限制
+      listZone({ pageNum: 1, pageSize: 10000 }), // 直接使用 list 获取扁平全量分区数据
       listStation({ pageNum: 1, pageSize: 10000 }), // 获取尽可能多的点位用于全网展示
       listDevice({ pageNum: 1, pageSize: 10000 }),
       listHistory({ status: '0', pageNum: 1, pageSize: 500 }) // 未处理告警
     ]);
 
-    const zones = flattenTree(zoneRes.data || []);
+    const zones = zoneRes.data?.list || zoneRes.rows || zoneRes.data || [];
     const stations = stationRes.data?.list || stationRes.rows || [];
     const devices = deviceRes.data?.list || deviceRes.rows || [];
     const alarms = alarmRes.data?.list || alarmRes.rows || [];
 
     // 读取真实的统计总数
-    stats.zones = zones.length;
+    stats.zones = zoneRes.data?.total || zoneRes.total || zones.length;
     stats.stations = stationRes.data?.total || stationRes.total || stations.length;
     stats.devices = deviceRes.data?.total || deviceRes.total || devices.length;
     stats.alarms = alarmRes.data?.total || alarmRes.total || alarms.length;
