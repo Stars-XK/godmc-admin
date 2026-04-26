@@ -422,12 +422,21 @@ async function loadAndScatterData() {
                   `| 边界(Boundary)长度: ${boundRaw ? String(boundRaw).length : 0} -> ${hasPolygon ? '✅' : '❌'}`);
       
       if (!hasPoint && !hasPolygon) {
-        console.log(`[分区跳过] ${zone.name} 既无中心点也无边界数据，跳过渲染。`);
-        return;
-      }
-      // ----------------------------------------------------
+          console.log(`[分区跳过] ${zone.name} 既无中心点也无边界数据，跳过渲染。`);
+          return;
+        }
+        
+        // 性能优化：根据分区级别(level)计算可见缩放范围 (zooms)
+        // 使得地图在宏观时不渲染微观碎片，减轻GPU与DOM树负担
+        const zLevel = Number(zone.level) || 1;
+        let polyZooms = [3, 20];
+        if (zLevel === 1) polyZooms = [3, 14];      // 一级分区：视野范围极大，缩放到 14 级时隐藏
+        else if (zLevel === 2) polyZooms = [12, 16]; // 二级分区：12-16 级可见
+        else if (zLevel === 3) polyZooms = [14, 20]; // 三级分区：14-20 级可见
+        else if (zLevel >= 4) polyZooms = [15, 20];  // 四级及更深：15-20 级可见
+        // ----------------------------------------------------
 
-      // 优先绘制面
+        // 优先绘制面
       if (hasPolygon) {
         try {
           const geoData = JSON.parse(zone.boundary);
@@ -508,7 +517,8 @@ async function loadAndScatterData() {
             strokeOpacity: 0.8,
             fillColor: fillColor || (isDarkTheme.value ? '#0044ff' : '#3b82f6'),
             fillOpacity: fillOpacity,
-            extData: zone
+            extData: zone,
+            zooms: polyZooms // 根据分区的层级控制其在地图上的可见缩放范围
           });
           
           // 悬浮交互
@@ -536,7 +546,8 @@ async function loadAndScatterData() {
           const marker = new AMap.Marker({
             position: pt,
             content: `<div class="cyber-label zone-label">${zone.name}</div>`,
-            offset: new AMap.Pixel(-30, -15)
+            offset: new AMap.Pixel(-30, -15),
+            zooms: polyZooms // 标签文字也跟随其所属层级进行显隐
           });
           overlayGroups.zones.addOverlay(marker);
         } else {
