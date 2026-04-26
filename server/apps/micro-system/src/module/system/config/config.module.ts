@@ -9,10 +9,12 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 @Module({
   imports: [
     TypeOrmModule.forFeature([SysConfigEntity]),
-    ClientsModule.register([
+    ClientsModule.registerAsync([
       {
         name: 'MICRO_SYSTEM',
-        transport: Transport.TCP,
+        useFactory: () => ({
+          transport: Transport.TCP,
+        }),
       },
     ]),
   ],
