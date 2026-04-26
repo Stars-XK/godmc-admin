@@ -16,6 +16,7 @@ import { RuleModule } from './rule/rule.module';
 import { EngineModule } from './engine/engine.module';
 import { HistoryModule } from './history/history.module';
 import { TmqModule } from './tmq/tmq.module';
+import { TdengineModule } from './tdengine/tdengine.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { TmqModule } from './tmq/tmq.module';
     EngineModule,
     HistoryModule,
     TmqModule,
+    TdengineModule,
   ],
   controllers: [MicroAlarmController],
   providers: [
