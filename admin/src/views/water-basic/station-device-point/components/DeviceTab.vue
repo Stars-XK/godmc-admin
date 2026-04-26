@@ -473,11 +473,12 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
 }
-
+ 
 .full-height-row {
   flex: 1;
   margin: 0 !important;
   display: flex;
+  min-height: 0;
 }
 
 .full-height-col {
@@ -485,10 +486,12 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   padding: 0 !important;
+  min-height: 0;
 }
 
 .flex-table {
   flex: 1;
+  min-height: 0;
 }
 
 :deep(.el-table) {
@@ -497,6 +500,11 @@ onMounted(() => {
 
 :deep(.el-table__inner-wrapper) {
   height: 100% !important;
+}
+
+:deep(.el-table__body-wrapper) {
+  height: calc(100% - 40px) !important;
+  overflow-y: auto !important;
 }
 
 /* 现代化导入弹窗 */
