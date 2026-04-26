@@ -51,6 +51,7 @@
       </el-form>
       <template #footer>
         <div class="dialog-footer">
+          <el-button type="success" @click="handleTestConnection" :loading="testing" icon="Connection">测试连接</el-button>
           <el-button type="primary" @click="submitForm">确 定</el-button>
           <el-button @click="cancel">取 消</el-button>
         </div>
@@ -61,12 +62,14 @@
 
 <script setup name="DataSource">
 import { ref, reactive, onMounted } from 'vue';
-import { listSource, addSource, updateSource, delSource } from '@/api/data-integration/config';
+import { listSource, addSource, updateSource, delSource, testSourceConnection } from '@/api/data-integration/config';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { Connection } from '@element-plus/icons-vue';
 
 const sourceList = ref([]);
 const open = ref(false);
 const loading = ref(true);
+const testing = ref(false);
 const showSearch = ref(true);
 const title = ref('');
 
@@ -107,8 +110,6 @@ function handleTypeChange(type) {
     'HTTP': 'http://api.example.com'
   };
   
-  // 只有当当前连接字符串为空，或者等于其他某个类型的默认模板时，才进行替换
-  // 这样可以避免覆盖用户自己辛苦填写的真实连接信息
   if (templates[type]) {
     const currentStr = form.connectionStr;
     const isTemplate = !currentStr || Object.values(templates).includes(currentStr);
@@ -116,6 +117,25 @@ function handleTypeChange(type) {
       form.connectionStr = templates[type];
     }
   }
+}
+
+// 测试连接
+function handleTestConnection() {
+  sourceRef.value.validate(valid => {
+    if (valid) {
+      testing.value = true;
+      testSourceConnection(form).then(response => {
+        testing.value = false;
+        if (response.code === 200) {
+          ElMessage.success(response.msg || '连接成功');
+        } else {
+          ElMessage.error(response.msg || '连接失败');
+        }
+      }).catch(() => {
+        testing.value = false;
+      });
+    }
+  });
 }
 
 function getList() {

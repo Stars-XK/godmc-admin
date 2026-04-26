@@ -37,6 +37,15 @@ export function delSource(id) {
   })
 }
 
+// 测试数据源连接
+export function testSourceConnection(data) {
+  return request({
+    url: '/data-integration/config/source/test',
+    method: 'post',
+    data: data
+  })
+}
+
 // --- 接入任务 (Task) ---
 
 // 获取任务列表
