@@ -170,11 +170,19 @@
     <el-dialog title="字段映射配置 (Field Mapping)" v-model="mappingOpen" width="1000px" append-to-body class="premium-dialog" top="5vh">
       <div class="mapping-header">
         <div class="mapping-desc">
-          <el-icon><Connection /></el-icon>
-          <span>将外部数据源的字段，映射至系统内部的目标字段。</span>
-          <span style="color: #E6A23C; margin-left: 10px; font-size: 13px;">
-            <el-icon><InfoFilled /></el-icon> 提示：1. 使用单引号包裹(如 <code>'1'</code>)写入固定值；2. 填写 <code>UUID()</code> 自动生成主键；3. 目标表的自增主键无需映射。
-          </span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <el-icon><Connection /></el-icon>
+            <span>将外部数据源的字段，映射至系统内部的目标字段。</span>
+          </div>
+          <div style="color: #E6A23C; margin-top: 8px; font-size: 13px; display: flex; align-items: flex-start; gap: 6px; line-height: 1.5; background-color: #fdf6ec; padding: 8px 12px; border-radius: 4px;">
+            <el-icon style="margin-top: 2px;"><InfoFilled /></el-icon> 
+            <div>
+              <strong>配置提示：</strong><br/>
+              1. <strong>固定值：</strong>在源字段中使用英文单引号包裹(如 <code>'1'</code> 或 <code>'sys'</code>)，将把该固定值写入目标列。<br/>
+              2. <strong>UUID主键：</strong>在源字段中填写 <code>UUID()</code>，将自动生成36位唯一字符串主键。<br/>
+              3. <strong>自增主键：</strong>目标表如果自带 <code>auto_increment</code> 自增主键，无需在此处进行映射配置。
+            </div>
+          </div>
         </div>
         <el-button type="primary" icon="Plus" @click="addMappingRow" class="btn-add-mapping">新增映射</el-button>
       </div>
@@ -804,12 +812,11 @@ onMounted(() => {
   
   .mapping-desc {
     display: flex;
-    align-items: center;
-    gap: 8px;
+    flex-direction: column;
     color: #4b5563;
     font-size: 14px;
     font-weight: 500;
-    
+
     .el-icon {
       font-size: 18px;
       color: #3b82f6;
