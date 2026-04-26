@@ -109,6 +109,23 @@
           </el-form-item>
         </el-col>
 
+        <el-col :span="8">
+          <el-form-item label="默认中心经度 (Lng)">
+            <el-input v-model="formData['gis.map.center.lng']" placeholder="例如：118.60" size="large" />
+          </el-form-item>
+        </el-col>
+
+        <el-col :span="8">
+          <el-form-item label="默认中心纬度 (Lat)">
+            <el-input v-model="formData['gis.map.center.lat']" placeholder="例如：24.90" size="large" />
+          </el-form-item>
+        </el-col>
+
+        <el-col :span="8">
+          <el-form-item label="默认缩放级别 (Zoom)">
+            <el-input-number v-model="formData['gis.map.zoom']" :min="1" :max="20" size="large" style="width: 100%" />
+          </el-form-item>
+        </el-col>
       </el-row>
     </el-form>
   </div>
@@ -124,7 +141,8 @@ const saving = ref(false)
 
 const targetKeys = [
   'gis.map.source', 'gis.coord.transform', 'gis.custom.proj4',
-  'gis.map.amap.key', 'gis.map.amap.security', 'gis.map.baidu.key', 'gis.map.tianditu.key', 'gis.map.style'
+  'gis.map.amap.key', 'gis.map.amap.security', 'gis.map.baidu.key', 'gis.map.tianditu.key', 'gis.map.style',
+  'gis.map.center.lng', 'gis.map.center.lat', 'gis.map.zoom'
 ]
 
 const formData = ref({})
@@ -145,12 +163,16 @@ function loadData() {
     if (formData.value['gis.map.source'] === undefined) formData.value['gis.map.source'] = 'amap'
     if (formData.value['gis.map.style'] === undefined) formData.value['gis.map.style'] = 'amap://styles/light'
     if (formData.value['gis.coord.transform'] === undefined) formData.value['gis.coord.transform'] = 'none'
+    if (formData.value['gis.map.center.lng'] === undefined) formData.value['gis.map.center.lng'] = '118.60'
+    if (formData.value['gis.map.center.lat'] === undefined) formData.value['gis.map.center.lat'] = '24.90'
+    if (formData.value['gis.map.zoom'] === undefined) formData.value['gis.map.zoom'] = '12'
     if (formData.value['gis.custom.proj4'] === undefined) formData.value['gis.custom.proj4'] = '+proj=tmerc +lat_0=0 +lon_0=117 +k=1 +x_0=39500000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs'
+    
     if (formData.value['gis.map.amap.key'] === undefined) formData.value['gis.map.amap.key'] = ''
     if (formData.value['gis.map.amap.security'] === undefined) formData.value['gis.map.amap.security'] = ''
     if (formData.value['gis.map.baidu.key'] === undefined) formData.value['gis.map.baidu.key'] = ''
     if (formData.value['gis.map.tianditu.key'] === undefined) formData.value['gis.map.tianditu.key'] = ''
-    
+
     loading.value = false
   }).catch(() => { loading.value = false })
 }
@@ -174,6 +196,9 @@ function handleSave() {
       if (key === 'gis.map.baidu.key') name = '百度地图AK'
       if (key === 'gis.map.tianditu.key') name = '天地图Key'
       if (key === 'gis.map.style') name = 'GIS地图主题风格'
+      if (key === 'gis.map.center.lng') name = 'GIS默认中心经度'
+      if (key === 'gis.map.center.lat') name = 'GIS默认中心纬度'
+      if (key === 'gis.map.zoom') name = 'GIS默认缩放级别'
       
       payload = { configName: name, configKey: key, configValue: formData.value[key], configType: 'Y', remark: 'GIS系统自动生成配置' }
       promises.push(addConfig(payload))

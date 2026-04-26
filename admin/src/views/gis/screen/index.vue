@@ -241,6 +241,9 @@ function loadMapEngine(source, configMap, mapStyle) {
     if (source === 'amap') {
       const key = configMap['gis.map.amap.key'] || 'f2ce1125b07fe3e22ebd5924b75ca6d1';
       const securityCode = configMap['gis.map.amap.security'] || '610162c69ef7947baf638e9b445316c5';
+      const centerLng = Number(configMap['gis.map.center.lng']) || 118.60;
+      const centerLat = Number(configMap['gis.map.center.lat']) || 24.90;
+      const mapZoom = Number(configMap['gis.map.zoom']) || 12;
       
       // 彻底解决高德 API V2 安全码被覆盖失效的终极方案：使用代理机制配置
       window._AMapSecurityConfig = { 
@@ -255,10 +258,10 @@ function loadMapEngine(source, configMap, mapStyle) {
       }).then((AMap) => {
         window.AMap = AMap;
         mapInstance.value = new AMap.Map('map-container', {
-            zoom: 12,
-            center: [118.60, 24.90],
-            mapStyle: mapStyle,
-            viewMode: '3D',
+          zoom: mapZoom,
+          center: [centerLng, centerLat],
+          mapStyle: mapStyle,
+          viewMode: '3D',
             pitch: 0 // 去除倾斜视角，恢复正视俯视
           });
         
