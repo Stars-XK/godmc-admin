@@ -428,7 +428,7 @@ async function loadAndScatterData() {
           // 如果顶级带有 properties（如你提供的JSON结构），把它作为默认属性
           const globalProps = geoData.properties || {};
 
-          features.forEach(feature => {
+          features.forEach((feature, index) => {
             if (!feature.geometry) return;
             
             let coordsArray = [];
@@ -441,13 +441,29 @@ async function loadAndScatterData() {
 
             if (coordsArray && coordsArray.length > 0) {
               const path = [];
+              let validCount = 0;
+              let outOfBoundsCount = 0;
+              
               coordsArray.forEach(coord => {
                  let lng = Array.isArray(coord) ? coord[0] : coord.lng;
                  let lat = Array.isArray(coord) ? coord[1] : coord.lat;
                  const pt = processCoord(lng, lat);
-                 if (pt) path.push(pt);
+                 if (pt) {
+                   // 过滤异常坐标：如果你的坐标原本是类似 39666690 这种超大数值，
+                   // 说明这是 2000 国家大地坐标系等投影坐标，但 processCoord 可能没有配置 proj4 参数或者转换失败了！
+                   // 我们依然要进行 WGS84 的中国边界保护，防止把地图拉飞
+                   if (pt[0] > 70 && pt[0] < 140 && pt[1] > 10 && pt[1] < 60) {
+                     path.push(pt);
+                     validCount++;
+                   } else {
+                     outOfBoundsCount++;
+                   }
+                 }
               });
               
+              console.log(`[分区渲染调试] ${zone.name} - 提取特征 ${index}: 原始坐标点数=${coordsArray.length}, 有效经纬度点数=${validCount}, 越界被丢弃点数=${outOfBoundsCount}`, 
+                validCount > 0 ? path[0] : '无合法坐标');
+
               if (path.length > 2) {
                 // 尝试读取颜色配置 (优先 feature 自身，其次 global)
                 const props = feature.properties || globalProps;
@@ -503,6 +519,8 @@ async function loadAndScatterData() {
             offset: new AMap.Pixel(-30, -15)
           });
           overlayGroups.zones.addOverlay(marker);
+        } else {
+           console.log(`[分区中心点被拦截] ${zone.name} 的坐标(${zone.longitude}, ${zone.latitude}) 经转换后为 ${pt}，超出了中国的合法经纬度范围。`);
         }
       }
     });
