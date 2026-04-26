@@ -85,4 +85,25 @@ export class ConfigMgrService {
     }
     return ResultData.ok();
   }
+
+  // --- Local DB Metadata ---
+  async getLocalTables() {
+    const sql = `
+      SELECT table_name AS tableName, table_comment AS tableComment 
+      FROM information_schema.tables 
+      WHERE table_schema = (SELECT database())
+    `;
+    const tables = await this.sourceRep.query(sql);
+    return ResultData.ok(tables);
+  }
+
+  async getLocalColumns(tableName: string) {
+    const sql = `
+      SELECT column_name AS columnName, column_comment AS columnComment 
+      FROM information_schema.columns 
+      WHERE table_schema = (SELECT database()) AND table_name = ?
+    `;
+    const columns = await this.sourceRep.query(sql, [tableName]);
+    return ResultData.ok(columns);
+  }
 }

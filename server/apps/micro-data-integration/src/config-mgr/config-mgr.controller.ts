@@ -67,4 +67,16 @@ export class ConfigMgrController {
   mappingSaveBatch(@Param('taskId') taskId: number, @Body() body: { mappings: Partial<DataIntegrationMappingEntity>[] }) {
     return this.configService.mappingSaveBatch(taskId, body.mappings);
   }
+
+  @ApiOperation({ summary: '获取系统本地表列表' })
+  @Get('local/tables')
+  getLocalTables() {
+    return this.configService.getLocalTables();
+  }
+
+  @ApiOperation({ summary: '获取系统本地表字段列表' })
+  @Get('local/columns/:tableName')
+  getLocalColumns(@Param('tableName') tableName: string) {
+    return this.configService.getLocalColumns(tableName);
+  }
 }
