@@ -360,9 +360,9 @@ async function loadAndScatterData() {
   try {
     const [zoneRes, stationRes, deviceRes, alarmRes] = await Promise.all([
       listZoneTree({}),
-      listStation({ pageSize: 2000 }),
-      listDevice({ pageSize: 2000 }),
-      listHistory({ status: '0', pageSize: 100 }) // 未处理告警
+      listStation({ pageNum: 1, pageSize: 2000 }),
+      listDevice({ pageNum: 1, pageSize: 2000 }),
+      listHistory({ status: '0', pageNum: 1, pageSize: 100 }) // 未处理告警
     ]);
 
     const zones = flattenTree(zoneRes.data || []);
