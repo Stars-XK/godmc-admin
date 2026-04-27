@@ -36,10 +36,12 @@ export class BackupService {
     const filename = `backup_${dayjs().format('YYYYMMDD_HHmmss')}.sql`;
     const filepath = path.join(backupDir, filename);
 
-    const cmd = `mysqldump -h${dbConfig.host} -P${dbConfig.port} -u${dbConfig.username} -p"${dbConfig.password}" ${dbConfig.database} > "${filepath}"`;
+    const cmd = `mysqldump -h${dbConfig.host} -P${dbConfig.port} -u${dbConfig.username} ${dbConfig.database} > "${filepath}"`;
     
     try {
-      await execAsync(cmd);
+      await execAsync(cmd, {
+        env: { ...process.env, MYSQL_PWD: dbConfig.password },
+      });
       this.logger.log(`Backup created successfully: ${filepath}`);
       await this.cleanupOldBackups(backupDir);
       return { filename, path: filepath, size: fs.statSync(filepath).size };
@@ -58,10 +60,12 @@ export class BackupService {
       throw new Error('备份文件不存在');
     }
 
-    const cmd = `mysql -h${dbConfig.host} -P${dbConfig.port} -u${dbConfig.username} -p"${dbConfig.password}" ${dbConfig.database} < "${filepath}"`;
+    const cmd = `mysql -h${dbConfig.host} -P${dbConfig.port} -u${dbConfig.username} ${dbConfig.database} < "${filepath}"`;
     
     try {
-      await execAsync(cmd);
+      await execAsync(cmd, {
+        env: { ...process.env, MYSQL_PWD: dbConfig.password },
+      });
       this.logger.log(`Restore completed from: ${filepath}`);
       return true;
     } catch (error) {
