@@ -1,5 +1,8 @@
 <template>
-  <div :class="{ 'has-logo': showLogo }" :style="{ backgroundColor: sideTheme === 'theme-dark' ? variables.menuBackground : variables.menuLightBackground }">
+  <div
+    :class="['sidebar-container', sideTheme === 'theme-light' ? 'theme-light' : '']"
+    :style="{ backgroundColor: sideTheme === 'theme-dark' ? variables.menuBackground : variables.menuLightBackground }"
+  >
     <logo v-if="showLogo" :collapse="isCollapse" />
     <el-scrollbar :class="sideTheme" wrap-class="scrollbar-wrapper">
       <el-menu
@@ -12,7 +15,12 @@
         :collapse-transition="false"
         mode="vertical"
       >
-        <sidebar-item v-for="(route, index) in sidebarRouters" :key="route.path + index" :item="route" :base-path="route.path" />
+        <sidebar-item
+          v-for="(route, index) in sidebarRouters"
+          :key="route.path + index"
+          :item="route"
+          :base-path="route.path"
+        />
       </el-menu>
     </el-scrollbar>
   </div>
@@ -39,10 +47,7 @@ const isCollapse = computed(() => !appStore.sidebar.opened)
 
 const activeMenu = computed(() => {
   const { meta, path } = route
-  // if set path, the sidebar will highlight the path you set
-  if (meta.activeMenu) {
-    return meta.activeMenu
-  }
+  if (meta.activeMenu) return meta.activeMenu
   return path
 })
 </script>

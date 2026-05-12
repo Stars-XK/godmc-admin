@@ -18,7 +18,7 @@ export class BackupService {
     private readonly sysConfig: SysConfigService,
   ) {}
 
-  private async getBackupPath() {
+  private async getBackupPath(): Promise<string> {
     const defaultPath = '../upload/backups';
     let configuredPath = await this.sysConfig.getConfigValue('sys.backup.path');
     if (!configuredPath) configuredPath = defaultPath;
@@ -36,18 +36,17 @@ export class BackupService {
     const filename = `backup_${dayjs().format('YYYYMMDD_HHmmss')}.sql`;
     const filepath = path.join(backupDir, filename);
 
-    // 将密码通过环境变量传递给子进程，避免在命令行和错误日志中明文暴露
+    try {
       const env = { ...process.env, MYSQL_PWD: dbConfig.password };
-      
       const cmd = `mysqldump -h${dbConfig.host} -P${dbConfig.port} -u${dbConfig.username} ${dbConfig.database} > "${filepath}"`;
       
       await execAsync(cmd, { env });
       this.logger.log(`Backup created successfully: ${filepath}`);
       await this.cleanupOldBackups(backupDir);
       return { filename, path: filepath, size: fs.statSync(filepath).size };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Backup failed', error.message);
-      throw new Error(`备份失败: ${error.message}`);
+      throw new Error(`Backup failed: ${error.message}`);
     }
   }
 
@@ -57,35 +56,34 @@ export class BackupService {
     const filepath = path.join(backupDir, filename);
 
     if (!fs.existsSync(filepath)) {
-      throw new Error('备份文件不存在');
+      throw new Error('Backup file not found');
     }
 
-    // 将密码通过环境变量传递给子进程
+    try {
       const env = { ...process.env, MYSQL_PWD: dbConfig.password };
-      
       const cmd = `mysql -h${dbConfig.host} -P${dbConfig.port} -u${dbConfig.username} ${dbConfig.database} < "${filepath}"`;
       
       await execAsync(cmd, { env });
       this.logger.log(`Restore completed from: ${filepath}`);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Restore failed', error.message);
-      throw new Error(`恢复失败: ${error.message}`);
+      throw new Error(`Restore failed: ${error.message}`);
     }
   }
 
   async listBackups() {
     const backupDir = await this.getBackupPath();
-    const files = fs.readdirSync(backupDir).filter(f => f.endsWith('.sql'));
+    const files = fs.readdirSync(backupDir).filter((f: string) => f.endsWith('.sql'));
     
-    return files.map(filename => {
+    return files.map((filename: string) => {
       const stats = fs.statSync(path.join(backupDir, filename));
       return {
         filename,
         size: stats.size,
         createdAt: stats.birthtime
       };
-    }).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    }).sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   async deleteBackup(filename: string) {
@@ -102,12 +100,12 @@ export class BackupService {
     const limit = parseInt(limitStr || '30', 10);
     
     const files = fs.readdirSync(backupDir)
-      .filter(f => f.endsWith('.sql'))
-      .map(name => ({
+      .filter((f: string) => f.endsWith('.sql'))
+      .map((name: string) => ({
         name,
         time: fs.statSync(path.join(backupDir, name)).birthtime.getTime()
       }))
-      .sort((a, b) => b.time - a.time);
+      .sort((a: any, b: any) => b.time - a.time);
 
     if (files.length > limit) {
       const toDelete = files.slice(limit);

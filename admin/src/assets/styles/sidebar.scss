@@ -14,53 +14,40 @@
   .sidebar-container {
     transition: width 0.28s;
     width: $base-sidebar-width !important;
-    background-color: $base-menu-background;
     height: 100%;
     position: fixed;
-    font-size: 0px;
     top: 0;
     bottom: 0;
     left: 0;
     z-index: 1001;
     overflow: hidden;
-    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08);
 
-    // Sidebar logo area
+    /* Logo 区 */
     .sidebar-logo-container {
-      position: relative;
-      height: 56px;
-      line-height: 56px;
       background: $base-sub-menu-background;
-      text-align: center;
-      overflow: hidden;
 
-      .sidebar-logo-link {
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-decoration: none;
-
-        .sidebar-logo {
-          width: 32px;
-          height: 32px;
-          margin-right: 10px;
-          vertical-align: middle;
-        }
-
-        .sidebar-title {
-          display: inline-block;
-          font-size: 16px;
-          font-weight: 700;
-          color: $base-logo-title-color;
-          letter-spacing: 0.02em;
-        }
+      .sidebar-title {
+        color: $base-logo-title-color;
       }
     }
 
-    // reset element-ui css
-    .horizontal-collapse-transition {
-      transition: 0s width ease-in-out, 0s padding-left ease-in-out, 0s padding-right ease-in-out;
+    /* 浅色主题 Logo */
+    &.theme-light .sidebar-logo-container,
+    .theme-light .sidebar-logo-container {
+      background: $base-menu-light-background;
+
+      .sidebar-title {
+        color: $base-logo-light-title-color;
+      }
+    }
+
+    .el-scrollbar {
+      height: 100%;
+    }
+
+    &.has-logo .el-scrollbar {
+      height: calc(100% - 56px);
     }
 
     .scrollbar-wrapper {
@@ -68,21 +55,13 @@
     }
 
     .el-scrollbar__bar.is-vertical {
-      right: 0px;
+      right: 0;
     }
 
-    .el-scrollbar {
-      height: 100%;
-    }
+    .is-horizontal { display: none; }
 
-    &.has-logo {
-      .el-scrollbar {
-        height: calc(100% - 56px);
-      }
-    }
-
-    .is-horizontal {
-      display: none;
+    .horizontal-collapse-transition {
+      transition: 0s width ease-in-out, 0s padding-left ease-in-out, 0s padding-right ease-in-out;
     }
 
     a {
@@ -94,40 +73,56 @@
     .svg-icon {
       margin-right: 14px;
       font-size: 18px;
+      transition: color 0.2s;
     }
 
     .el-menu {
       border: none;
       height: 100%;
       width: 100% !important;
-      background-color: transparent;
-    }
+      background-color: transparent !important;
 
-    .el-menu-item, .menu-title {
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
-      white-space: nowrap !important;
-    }
-
-    .el-menu-item .el-menu-tooltip__trigger {
-      display: inline-block !important;
-    }
-
-    // Dark theme menu items
-    & .theme-dark {
       .el-menu-item,
       .el-sub-menu__title {
-        color: $base-menu-color;
-        font-size: 14px;
         height: 48px;
         line-height: 48px;
         margin: 2px 8px;
         border-radius: 8px;
+        font-size: 14px;
         transition: all 0.2s ease;
+      }
+
+      .el-menu-item.is-active {
+        font-weight: 600;
+      }
+    }
+
+    /* 深色主题菜单 */
+    .theme-dark {
+      .el-menu-item,
+      .el-sub-menu__title {
+        color: $base-menu-color;
+
+        .svg-icon {
+          color: $base-menu-color;
+        }
 
         &:hover {
           background-color: rgba(13, 148, 136, 0.12) !important;
           color: $base-menu-color-active;
+
+          .svg-icon {
+            color: $base-menu-color-active;
+          }
+        }
+      }
+
+      .el-menu-item.is-active {
+        color: $base-menu-color-active !important;
+        background: linear-gradient(135deg, rgba(13, 148, 136, 0.20), rgba(13, 148, 136, 0.08)) !important;
+
+        .svg-icon {
+          color: $base-menu-color-active !important;
         }
       }
 
@@ -135,98 +130,89 @@
         color: $base-menu-color-active !important;
       }
 
+      .nest-menu .el-sub-menu > .el-sub-menu__title,
+      .el-sub-menu .el-menu-item {
+        background-color: $base-sub-menu-background !important;
+        padding-left: 56px !important;
+
+        &:hover {
+          background-color: $base-sub-menu-hover !important;
+        }
+      }
+    }
+
+    /* 浅色主题菜单 */
+    .theme-light {
+      .el-menu-item,
+      .el-sub-menu__title {
+        color: $base-menu-light-color;
+
+        .svg-icon {
+          color: $base-menu-light-color;
+        }
+
+        &:hover {
+          background-color: #F0FDFA !important;
+          color: #0D9488;
+
+          .svg-icon {
+            color: #0D9488;
+          }
+        }
+      }
+
       .el-menu-item.is-active {
-        color: $base-menu-color-active !important;
-        background: linear-gradient(135deg, rgba(13, 148, 136, 0.18), rgba(13, 148, 136, 0.08)) !important;
-        font-weight: 600;
+        color: #0D9488 !important;
+        background: #F0FDFA !important;
+
+        .svg-icon {
+          color: #0D9488 !important;
+        }
       }
-    }
 
-    // Sub menu
-    .nest-menu .el-sub-menu > .el-sub-menu__title,
-    .el-sub-menu .el-menu-item {
-      min-width: $base-sidebar-width !important;
-
-      &:hover {
-        background-color: rgba(0, 0, 0, 0.06) !important;
+      .is-active > .el-sub-menu__title {
+        color: #0D9488 !important;
       }
-    }
 
-    & .theme-dark .nest-menu .el-sub-menu > .el-sub-menu__title,
-    & .theme-dark .el-sub-menu .el-menu-item {
-      background-color: $base-sub-menu-background !important;
-      padding-left: 56px !important;
+      .nest-menu .el-sub-menu > .el-sub-menu__title,
+      .el-sub-menu .el-menu-item {
+        background-color: $base-menu-light-background !important;
+        padding-left: 56px !important;
 
-      &:hover {
-        background-color: $base-sub-menu-hover !important;
-      }
-    }
-
-    // Active indicator
-    & .theme-dark {
-      .el-menu-item.is-active::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 3px;
-        height: 24px;
-        background: $base-menu-color-active;
-        border-radius: 0 3px 3px 0;
+        &:hover {
+          background-color: #F0FDFA !important;
+        }
       }
     }
   }
 
+  /* 折叠态 */
   .hideSidebar {
     .sidebar-container {
-      width: 54px !important;
+      width: 64px !important;
     }
 
     .main-container {
-      margin-left: 54px;
+      margin-left: 64px;
     }
 
-    .sub-menu-title-noDropdown {
-      padding: 0 !important;
-      position: relative;
-
-      .el-tooltip {
-        padding: 0 !important;
-        .svg-icon {
-          margin-left: 20px;
-        }
-      }
+    /* 折叠时菜单项去掉左右 margin，让 Element Plus 原生居中生效 */
+    .el-menu-item,
+    .el-sub-menu__title {
+      margin: 2px 4px !important;
+      justify-content: center !important;
     }
 
-    .el-sub-menu {
-      overflow: hidden;
-      & > .el-sub-menu__title {
-        padding: 0 !important;
-        .svg-icon {
-          margin-left: 20px;
-        }
-      }
+    /* 折叠时图标不需要额外 margin，Element Plus 会自动居中 */
+    .svg-icon {
+      margin-right: 0 !important;
+      margin-left: 0 !important;
     }
 
-    .el-menu--collapse {
-      .el-sub-menu {
-        & > .el-sub-menu__title {
-          & > span {
-            height: 0;
-            width: 0;
-            overflow: hidden;
-            visibility: hidden;
-            display: inline-block;
-          }
-          & > i {
-            height: 0;
-            width: 0;
-            overflow: hidden;
-            visibility: hidden;
-            display: inline-block;
-          }
-        }
+    /* 子菜单标题完全由 el-menu--collapse 处理 */
+    .el-menu--collapse .el-sub-menu > .el-sub-menu__title {
+      & > span, & > i {
+        height: 0; width: 0; overflow: hidden; visibility: hidden; display: inline-block;
       }
     }
   }
@@ -235,38 +221,31 @@
     min-width: $base-sidebar-width !important;
   }
 
-  // mobile responsive
+  /* 移动端 */
   .mobile {
-    .main-container {
-      margin-left: 0px;
-    }
+    .main-container { margin-left: 0; }
+
     .sidebar-container {
       transition: transform 0.28s;
       width: $base-sidebar-width !important;
     }
-    &.hideSidebar {
-      .sidebar-container {
-        pointer-events: none;
-        transition-duration: 0.3s;
-        transform: translate3d(-$base-sidebar-width, 0, 0);
-      }
+
+    &.hideSidebar .sidebar-container {
+      pointer-events: none;
+      transition-duration: 0.3s;
+      transform: translate3d(-$base-sidebar-width, 0, 0);
     }
   }
 
   .withoutAnimation {
-    .main-container,
-    .sidebar-container {
-      transition: none;
-    }
+    .main-container, .sidebar-container { transition: none; }
   }
 }
 
-// when menu collapsed
+/* 弹出子菜单 */
 .el-menu--vertical {
   & > .el-menu {
-    .svg-icon {
-      margin-right: 16px;
-    }
+    .svg-icon { margin-right: 16px; }
   }
 
   .nest-menu .el-sub-menu > .el-sub-menu__title,
@@ -282,17 +261,8 @@
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 
-    &::-webkit-scrollbar-track-piece {
-      background: #CBD5E1;
-    }
-
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: #94A3B8;
-      border-radius: 20px;
-    }
+    &::-webkit-scrollbar-track-piece { background: #CBD5E1; }
+    &::-webkit-scrollbar { width: 6px; }
+    &::-webkit-scrollbar-thumb { background: #94A3B8; border-radius: 20px; }
   }
 }
