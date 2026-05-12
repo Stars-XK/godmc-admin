@@ -165,7 +165,8 @@ function loadData() {
     if (formData.value['gis.coord.transform'] === undefined) formData.value['gis.coord.transform'] = 'none'
     if (formData.value['gis.map.center.lng'] === undefined) formData.value['gis.map.center.lng'] = '118.60'
     if (formData.value['gis.map.center.lat'] === undefined) formData.value['gis.map.center.lat'] = '24.90'
-    if (formData.value['gis.map.zoom'] === undefined) formData.value['gis.map.zoom'] = '12'
+    if (formData.value['gis.map.zoom'] === undefined) formData.value['gis.map.zoom'] = 12
+    else formData.value['gis.map.zoom'] = Number(formData.value['gis.map.zoom'])
     if (formData.value['gis.custom.proj4'] === undefined) formData.value['gis.custom.proj4'] = '+proj=tmerc +lat_0=0 +lon_0=117 +k=1 +x_0=39500000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs'
     
     if (formData.value['gis.map.amap.key'] === undefined) formData.value['gis.map.amap.key'] = ''
