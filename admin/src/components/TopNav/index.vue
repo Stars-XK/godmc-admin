@@ -162,7 +162,7 @@ onMounted(() => {
   float: left;
   height: 50px !important;
   line-height: 50px !important;
-  color: #999093 !important;
+  color: var(--el-text-color-secondary) !important;
   padding: 0 5px !important;
   margin: 0 10px !important;
 }
@@ -170,7 +170,7 @@ onMounted(() => {
 .topmenu-container.el-menu--horizontal > .el-menu-item.is-active,
 .el-menu--horizontal > .el-sub-menu.is-active .el-submenu__title {
   border-bottom: 2px solid #{'var(--theme)'} !important;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 /* sub-menu item */
@@ -178,7 +178,7 @@ onMounted(() => {
   float: left;
   height: 50px !important;
   line-height: 50px !important;
-  color: #999093 !important;
+  color: var(--el-text-color-secondary) !important;
   padding: 0 5px !important;
   margin: 0 10px !important;
 }

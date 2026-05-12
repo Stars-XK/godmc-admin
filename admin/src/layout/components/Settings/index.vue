@@ -70,6 +70,13 @@
       </span>
     </div>
 
+    <div class="drawer-item">
+      <span>暗色模式</span>
+      <span class="comp-style">
+        <el-switch v-model="siteThemeSwitch" class="drawer-switch" active-value="dark" inactive-value="light" />
+      </span>
+    </div>
+
     <el-divider />
 
     <el-button type="primary" plain icon="DocumentAdd" @click="saveSetting">保存配置</el-button>
@@ -141,6 +148,13 @@ const dynamicTitle = computed({
   }
 })
 
+const siteThemeSwitch = computed({
+  get: () => storeSettings.value.siteTheme || 'light',
+  set: (val) => {
+    settingsStore.changeSetting({ key: 'siteTheme', value: val })
+  }
+})
+
 function themeChange(val) {
   settingsStore.changeSetting({ key: 'theme', value: val })
   theme.value = val;
@@ -159,6 +173,7 @@ function saveSetting() {
     "sidebarLogo": storeSettings.value.sidebarLogo,
     "dynamicTitle": storeSettings.value.dynamicTitle,
     "sideTheme": storeSettings.value.sideTheme,
+    "siteTheme": storeSettings.value.siteTheme || 'light',
     "theme": storeSettings.value.theme
   };
   localStorage.setItem("layout-setting", JSON.stringify(layoutSetting));

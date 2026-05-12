@@ -132,7 +132,7 @@ function handleDelete(row) {
 
 <style lang="scss" scoped>
 .app-container.config-dashboard {
-  padding: 32px 40px !important; background-color: #fcfcfc !important; min-height: calc(100vh - 84px);
+  padding: 32px 40px !important; min-height: calc(100vh - 84px);
   font-family: 'Inter', sans-serif;
 }
 .config-header {

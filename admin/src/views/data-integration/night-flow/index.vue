@@ -212,6 +212,7 @@ const listContainer = ref(null)
 // 地图相关
 const amapKey = ref('')
 const amapSecurity = ref('')
+const amapStyle = ref('amap://styles/light')
 const mapInstance = shallowRef(null)
 const mapContainer = ref(null)
 let markers = []
@@ -244,14 +245,20 @@ onBeforeUnmount(() => {
 
 async function initMapKey() {
   try {
-    const [resKey, resSecurity] = await Promise.all([
+    const results = await Promise.all([
       getConfigKey('gis.map.amap.key'),
-      getConfigKey('gis.map.amap.security')
+      getConfigKey('gis.map.amap.security'),
+      getConfigKey('gis.map.style')
     ])
     
-    if (resKey.code === 200 && resKey.data) {
+    const resKey = results[0]
+    const resSecurity = results[1]
+    const resStyle = results[2]
+
+    if (resKey && resKey.data) {
       amapKey.value = resKey.data
-      amapSecurity.value = resSecurity.data || ''
+      amapSecurity.value = (resSecurity && resSecurity.data) || ''
+      amapStyle.value = (resStyle && resStyle.data) || 'amap://styles/light'
       initAMap()
     }
   } catch (error) {
@@ -277,7 +284,7 @@ function initAMap() {
       viewMode: '2D',
       zoom: 11,
       center: [118.6, 24.9], // 默认福建泉州附近
-      mapStyle: 'amap://styles/light' // 使用浅色主题更搭管理后台
+      mapStyle: amapStyle.value
     })
   }).catch(e => {
     console.error('高德地图加载失败', e)

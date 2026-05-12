@@ -14,6 +14,7 @@ const THEME_CONFIG_KEYS = [
   'sys.web.primaryColor',
   'sys.index.skinName',
   'sys.index.sideTheme',
+  'sys.index.siteTheme',
 ]
 
 /**
@@ -58,6 +59,12 @@ export async function loadThemeFromConfig() {
     const sideTheme = configMap['sys.index.sideTheme']
     if (sideTheme && (sideTheme === 'theme-dark' || sideTheme === 'theme-light')) {
       settingsStore.changeSetting({ key: 'sideTheme', value: sideTheme })
+    }
+
+    // 4.5. 应用全站主题（亮色/暗色）
+    const siteTheme = configMap['sys.index.siteTheme']
+    if (siteTheme && (siteTheme === 'light' || siteTheme === 'dark')) {
+      settingsStore.changeSetting({ key: 'siteTheme', value: siteTheme })
     }
 
     // 5. 应用全局皮肤（预置色板映射）

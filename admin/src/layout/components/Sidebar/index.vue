@@ -1,15 +1,15 @@
 <template>
   <div
-    :class="['sidebar-container', sideTheme === 'theme-light' ? 'theme-light' : '']"
-    :style="{ backgroundColor: sideTheme === 'theme-dark' ? variables.menuBackground : variables.menuLightBackground }"
+    :class="['sidebar-container', effectiveSideTheme === 'theme-light' ? 'theme-light' : '']"
+    :style="{ backgroundColor: effectiveSideTheme === 'theme-dark' ? variables.menuBackground : variables.menuLightBackground }"
   >
     <logo v-if="showLogo" :collapse="isCollapse" />
-    <el-scrollbar :class="sideTheme" wrap-class="scrollbar-wrapper">
+    <el-scrollbar :class="effectiveSideTheme" wrap-class="scrollbar-wrapper">
       <el-menu
         :default-active="activeMenu"
         :collapse="isCollapse"
-        :background-color="sideTheme === 'theme-dark' ? variables.menuBackground : variables.menuLightBackground"
-        :text-color="sideTheme === 'theme-dark' ? variables.menuColor : variables.menuLightColor"
+        :background-color="effectiveSideTheme === 'theme-dark' ? variables.menuBackground : variables.menuLightBackground"
+        :text-color="effectiveSideTheme === 'theme-dark' ? variables.menuColor : variables.menuLightColor"
         :unique-opened="true"
         :active-text-color="theme"
         :collapse-transition="false"
@@ -37,6 +37,12 @@ import usePermissionStore from '@/store/modules/permission'
 const route = useRoute()
 const appStore = useAppStore()
 const settingsStore = useSettingsStore()
+
+// 当全站暗色模式时，强制侧边栏使用深色主题
+const effectiveSideTheme = computed(() => {
+  if (settingsStore.siteTheme === 'dark') return 'theme-dark'
+  return settingsStore.sideTheme
+})
 const permissionStore = usePermissionStore()
 
 const sidebarRouters = computed(() => permissionStore.sidebarRouters)

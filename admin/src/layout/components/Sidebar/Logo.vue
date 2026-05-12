@@ -25,6 +25,12 @@ defineProps({
 
 const settingsStore = useSettingsStore()
 const displayTitle = computed(() => settingsStore.title || import.meta.env.VITE_APP_TITLE || '智慧水务')
+
+// 全站暗色模式时，Logo 使用深色侧边栏配色
+const logoSideTheme = computed(() => {
+  if (settingsStore.siteTheme === 'dark') return 'theme-dark'
+  return settingsStore.sideTheme
+})
 </script>
 
 <style lang="scss" scoped>

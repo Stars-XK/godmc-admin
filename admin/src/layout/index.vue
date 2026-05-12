@@ -23,6 +23,12 @@ import useAppStore from '@/store/modules/app'
 import useSettingsStore from '@/store/modules/settings'
 
 const settingsStore = useSettingsStore()
+
+// 全站暗色模式：挂载到 html 元素，确保任何 scoped 样式都能被覆盖
+watchEffect(() => {
+  const isDark = settingsStore.siteTheme === 'dark'
+  document.documentElement.classList.toggle('dark-mode', isDark)
+})
 const theme = computed(() => settingsStore.theme);
 const sideTheme = computed(() => settingsStore.sideTheme);
 const sidebar = computed(() => useAppStore().sidebar);
@@ -34,7 +40,8 @@ const classObj = computed(() => ({
   hideSidebar: !sidebar.value.opened,
   openSidebar: sidebar.value.opened,
   withoutAnimation: sidebar.value.withoutAnimation,
-  mobile: device.value === 'mobile'
+  mobile: device.value === 'mobile',
+  'dark-mode': settingsStore.siteTheme === 'dark'
 }))
 
 const { width, height } = useWindowSize();

@@ -58,6 +58,14 @@
             </el-select>
           </el-form-item>
         </el-col>
+        <el-col :span="8">
+          <el-form-item label="全站主题">
+            <el-select v-model="formData['sys.index.siteTheme']" size="large" style="width: 100%">
+              <el-option label="亮色模式" value="light" />
+              <el-option label="暗色模式" value="dark" />
+            </el-select>
+          </el-form-item>
+        </el-col>
       </el-row>
       
       <div class="form-actions">
@@ -80,7 +88,7 @@ const saving = ref(false)
 
 const targetKeys = [
   'sys.web.siteName', 'sys.web.title', 'sys.web.description', 'sys.web.logo', 
-  'sys.web.primaryColor', 'sys.index.skinName', 'sys.index.sideTheme'
+  'sys.web.primaryColor', 'sys.index.skinName', 'sys.index.sideTheme', 'sys.index.siteTheme'
 ]
 
 const formData = ref({})
@@ -154,6 +162,11 @@ function applyConfig() {
     settingsStore.changeSetting({ key: 'sideTheme', value: sideTheme })
   }
 
+  const siteTheme = formData.value['sys.index.siteTheme']
+  if (siteTheme) {
+    settingsStore.changeSetting({ key: 'siteTheme', value: siteTheme })
+  }
+
   // 同步到 localStorage
   const layoutSetting = {
     topNav: settingsStore.topNav,
@@ -162,6 +175,7 @@ function applyConfig() {
     sidebarLogo: settingsStore.sidebarLogo,
     dynamicTitle: settingsStore.dynamicTitle,
     sideTheme: settingsStore.sideTheme,
+    siteTheme: settingsStore.siteTheme,
     theme: settingsStore.theme,
   }
   localStorage.setItem('layout-setting', JSON.stringify(layoutSetting))
@@ -185,6 +199,7 @@ function handleSave() {
       if (key === 'sys.web.primaryColor') name = '系统主色调'
       if (key === 'sys.index.skinName') name = '全局皮肤'
       if (key === 'sys.index.sideTheme') name = '侧边栏主题'
+      if (key === 'sys.index.siteTheme') name = '全站主题'
       
       payload = { configName: name, configKey: key, configValue: formData.value[key], configType: 'Y', remark: '系统基础配置' }
       promises.push(addConfig(payload))
