@@ -34,8 +34,8 @@ export class SysAlarmHistoryEntity {
   @Column({ type: 'varchar', name: 'alarm_source', length: 100, default: null, comment: '报警源' })
   public alarmSource: string;
 
-  @ApiProperty({ type: String, description: '状态(0未处理 1已处理)' })
-  @Column({ type: 'char', name: 'status', length: 1, default: '0', comment: '状态' })
+  @ApiProperty({ type: String, description: '状态(0未处理 1已处理 2自动恢复)' })
+  @Column({ type: 'char', name: 'status', length: 1, default: '0', comment: '状态(0未处理 1已处理 2自动恢复)' })
   public status: string;
 
   @ApiProperty({ type: Date, description: '处理时间' })

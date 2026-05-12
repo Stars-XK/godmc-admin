@@ -9,12 +9,12 @@
       <el-row :gutter="24">
         <el-col :span="12">
           <el-form-item label="网站名称">
-            <el-input v-model="formData['sys.web.siteName']" placeholder="例如：Nest Admin" size="large" />
+            <el-input v-model="formData['sys.web.siteName']" placeholder="例如：智慧水务" size="large" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="网站标题">
-            <el-input v-model="formData['sys.web.title']" placeholder="例如：Nest Admin 后台管理系统" size="large" />
+            <el-input v-model="formData['sys.web.title']" placeholder="例如：智慧水务 IoT 管理平台" size="large" />
           </el-form-item>
         </el-col>
         
@@ -36,14 +36,14 @@
         
         <el-col :span="8">
           <el-form-item label="系统主色调">
-            <el-color-picker v-model="formData['sys.web.primaryColor']" size="large" />
+            <el-color-picker v-model="formData['sys.web.primaryColor']" size="large" @change="onColorChange" />
           </el-form-item>
         </el-col>
         <el-col :span="8">
           <el-form-item label="全局皮肤">
-            <el-select v-model="formData['sys.index.skinName']" size="large" style="width: 100%">
-              <el-option label="经典蓝 (skin-blue)" value="skin-blue" />
-              <el-option label="清新绿 (skin-green)" value="skin-green" />
+            <el-select v-model="formData['sys.index.skinName']" size="large" style="width: 100%" @change="onSkinChange">
+              <el-option label="水务青 (skin-blue)" value="skin-blue" />
+              <el-option label="翡翠绿 (skin-green)" value="skin-green" />
               <el-option label="优雅紫 (skin-purple)" value="skin-purple" />
               <el-option label="热情红 (skin-red)" value="skin-red" />
               <el-option label="明亮黄 (skin-yellow)" value="skin-yellow" />
@@ -52,7 +52,7 @@
         </el-col>
         <el-col :span="8">
           <el-form-item label="侧边栏主题">
-            <el-select v-model="formData['sys.index.sideTheme']" size="large" style="width: 100%">
+            <el-select v-model="formData['sys.index.sideTheme']" size="large" style="width: 100%" @change="onSideThemeChange">
               <el-option label="深色主题 (theme-dark)" value="theme-dark" />
               <el-option label="浅色主题 (theme-light)" value="theme-light" />
             </el-select>
@@ -61,7 +61,7 @@
       </el-row>
       
       <div class="form-actions">
-        <el-button type="primary" size="large" @click="handleSave" :loading="saving" class="btn-primary">保存基础配置</el-button>
+        <el-button type="primary" size="large" @click="handleSave" :loading="saving" class="btn-primary">保存配置</el-button>
       </div>
     </el-form>
   </div>
@@ -70,6 +70,9 @@
 <script setup>
 import { ref, onMounted, getCurrentInstance } from 'vue'
 import { listConfig, updateConfig, addConfig } from '@/api/system/config'
+import { handleThemeStyle } from '@/utils/theme'
+import { useDynamicTitle } from '@/utils/dynamicTitle'
+import useSettingsStore from '@/store/modules/settings'
 
 const { proxy } = getCurrentInstance()
 const loading = ref(true)
@@ -81,7 +84,7 @@ const targetKeys = [
 ]
 
 const formData = ref({})
-const configListMap = ref({}) // Store original config objects to retain IDs when updating
+const configListMap = ref({})
 
 function loadData() {
   loading.value = true
@@ -93,12 +96,75 @@ function loadData() {
         configListMap.value[item.configKey] = item
       }
     })
-    // Initialize missing keys with empty strings just in case
     targetKeys.forEach(k => {
       if (formData.value[k] === undefined) formData.value[k] = ''
     })
     loading.value = false
   }).catch(() => { loading.value = false })
+}
+
+// 颜色选择器即时预览
+function onColorChange(color) {
+  if (color && /^#[0-9A-Fa-f]{6}$/.test(color)) {
+    handleThemeStyle(color)
+  }
+}
+
+// 皮肤即时预览
+function onSkinChange(skin) {
+  const skinColorMap = {
+    'skin-blue': '#0D9488',
+    'skin-green': '#10B981',
+    'skin-purple': '#8B5CF6',
+    'skin-red': '#EF4444',
+    'skin-yellow': '#F59E0B',
+  }
+  const color = skinColorMap[skin]
+  if (color) {
+    formData.value['sys.web.primaryColor'] = color
+    handleThemeStyle(color)
+  }
+}
+
+// 侧边栏主题即时预览
+function onSideThemeChange(theme) {
+  useSettingsStore().changeSetting({ key: 'sideTheme', value: theme })
+}
+
+function applyConfig() {
+  const settingsStore = useSettingsStore()
+
+  if (formData.value['sys.web.siteName']) {
+    settingsStore.setTitle(formData.value['sys.web.siteName'])
+  }
+
+  if (formData.value['sys.web.title']) {
+    document.title = formData.value['sys.web.title']
+    useDynamicTitle()
+  }
+
+  const primaryColor = formData.value['sys.web.primaryColor']
+  if (primaryColor && /^#[0-9A-Fa-f]{6}$/.test(primaryColor)) {
+    settingsStore.changeSetting({ key: 'theme', value: primaryColor })
+    handleThemeStyle(primaryColor)
+  }
+
+  const sideTheme = formData.value['sys.index.sideTheme']
+  if (sideTheme) {
+    settingsStore.changeSetting({ key: 'sideTheme', value: sideTheme })
+  }
+
+  // 同步到 localStorage
+  const layoutSetting = {
+    topNav: settingsStore.topNav,
+    tagsView: settingsStore.tagsView,
+    fixedHeader: settingsStore.fixedHeader,
+    sidebarLogo: settingsStore.sidebarLogo,
+    dynamicTitle: settingsStore.dynamicTitle,
+    sideTheme: settingsStore.sideTheme,
+    theme: settingsStore.theme,
+  }
+  localStorage.setItem('layout-setting', JSON.stringify(layoutSetting))
 }
 
 function handleSave() {
@@ -127,6 +193,8 @@ function handleSave() {
   
   Promise.all(promises).then(() => {
     proxy.$modal.msgSuccess('基础系统配置保存成功')
+    // 保存后立即应用主题配置
+    applyConfig()
     loadData()
   }).catch(() => {
     proxy.$modal.msgError('部分配置保存失败')
@@ -143,36 +211,36 @@ onMounted(() => {
 <style lang="scss" scoped>
 .config-form-container {
   background: #ffffff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #E2E8F0;
   border-radius: 12px;
   padding: 32px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
 }
 
 .form-header {
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #F1F5F9;
   
-  h3 { font-size: 18px; font-weight: 600; color: #111827; margin: 0 0 8px 0; }
-  p { color: #6b7280; font-size: 14px; margin: 0; }
+  h3 { font-size: 18px; font-weight: 600; color: #0F172A; margin: 0 0 8px 0; }
+  p { color: #64748B; font-size: 14px; margin: 0; }
 }
 
 .premium-form {
-  .el-form-item__label { font-weight: 500; color: #374151; padding-bottom: 8px; }
+  .el-form-item__label { font-weight: 500; color: #334155; padding-bottom: 8px; }
   :deep(.el-input__wrapper), :deep(.el-textarea__inner) {
     border-radius: 8px;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 0 0 1px #d1d5db inset !important;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 0 0 1px #CBD5E1 inset !important;
     transition: all 0.2s;
-    &:hover { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 0 0 1px #9ca3af inset !important; }
-    &.is-focus, &:focus { box-shadow: 0 0 0 1px var(--el-color-primary) inset !important; }
+    &:hover { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 0 0 1px #94A3B8 inset !important; }
+    &.is-focus, &:focus { box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.3) inset !important; }
   }
 }
 
 .form-actions {
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #F1F5F9;
   display: flex;
   justify-content: flex-end;
 }
@@ -180,5 +248,10 @@ onMounted(() => {
 .btn-primary {
   border-radius: 8px;
   font-weight: 500;
+  background: linear-gradient(135deg, #0D9488, #0F766E);
+  border: none;
+  &:hover {
+    background: linear-gradient(135deg, #14B8A6, #0D9488);
+  }
 }
 </style>
