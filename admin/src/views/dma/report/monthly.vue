@@ -248,17 +248,30 @@ async function fetchTrend() {
   }
 }
 
+function buildMonthLabels(months) {
+  const labels = []
+  const [y, m] = queryParams.date.split('-').map(Number)
+  const base = new Date(y, m - 1, 1)
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(base)
+    d.setMonth(d.getMonth() - i)
+    labels.push(d.toISOString().substring(0, 7))
+  }
+  return labels
+}
+
 function renderChart(dataList) {
   if (!chartRef.value) return
   if (!chartInstance) {
     chartInstance = echarts.init(chartRef.value)
   }
 
-  const dates = dataList.map(d => d.date)
-  const supplyData = dataList.map(d => d.supply)
-  const salesData = dataList.map(d => d.sales)
-  const nrwData = dataList.map(d => d.nrw_diff)
-  const ratioData = dataList.map(d => d.nrw_ratio)
+  const hasData = dataList && dataList.length > 0
+  const dates = hasData ? dataList.map(d => d.date) : buildMonthLabels(trendMonths.value)
+  const supplyData = hasData ? dataList.map(d => d.supply) : []
+  const salesData = hasData ? dataList.map(d => d.sales) : []
+  const nrwData = hasData ? dataList.map(d => d.nrw_diff) : []
+  const ratioData = hasData ? dataList.map(d => d.nrw_ratio) : []
 
   const option = {
     tooltip: { trigger: 'axis' },
@@ -297,6 +310,37 @@ function renderChart(dataList) {
   chartInstance.setOption(option, true)
 }
 
+function renderEmptyChart() {
+  if (!chartRef.value) return
+  if (!chartInstance) {
+    chartInstance = echarts.init(chartRef.value)
+  }
+  const dates = buildMonthLabels(trendMonths.value)
+  chartInstance.setOption({
+    xAxis: {
+      type: 'category', data: dates,
+      axisLabel: { fontSize: 10, color: '#94A3B8' },
+      axisLine: { lineStyle: { color: '#E2E8F0' } }
+    },
+    yAxis: [
+      {
+        type: 'value', name: '水量(m³)',
+        nameTextStyle: { fontSize: 10, color: '#94A3B8' },
+        splitLine: { lineStyle: { type: 'dashed', color: '#F1F5F9' } },
+        axisLabel: { fontSize: 10, color: '#94A3B8' }
+      },
+      {
+        type: 'value', name: '比率(%)',
+        nameTextStyle: { fontSize: 10, color: '#94A3B8' },
+        splitLine: { show: false },
+        axisLabel: { fontSize: 10, color: '#94A3B8' }
+      }
+    ],
+    grid: { left: '3%', right: '5%', top: '8%', bottom: '14%', containLabel: true },
+    series: []
+  }, true)
+}
+
 function handleResize() {
   if (chartInstance) chartInstance.resize()
 }
@@ -304,6 +348,7 @@ function handleResize() {
 onMounted(() => {
   getList()
   window.addEventListener('resize', handleResize)
+  nextTick(() => renderEmptyChart())
 })
 </script>
 
