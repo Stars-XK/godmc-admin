@@ -13,6 +13,9 @@
       <el-tab-pane label="测点管理" name="point">
         <PointTab v-if="activeTab === 'point'" />
       </el-tab-pane>
+      <el-tab-pane label="管网管理" name="pipe">
+        <PipeTab v-if="activeTab === 'pipe'" />
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -23,6 +26,7 @@ import OverviewTab from './components/OverviewTab.vue'
 import StationTab from './components/StationTab.vue'
 import DeviceTab from './components/DeviceTab.vue'
 import PointTab from './components/PointTab.vue'
+import PipeTab from './components/PipeTab.vue'
 
 const activeTab = ref('overview')
 </script>

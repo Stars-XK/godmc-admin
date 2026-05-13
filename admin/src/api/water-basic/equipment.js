@@ -20,3 +20,10 @@ export function addPoint(data) { return request({ url: '/water-basic/point', met
 export function updatePoint(data) { return request({ url: '/water-basic/point', method: 'put', data: data }) }
 export function delPoint(id) { return request({ url: '/water-basic/point/' + id, method: 'delete' }) }
 export function importPointBatch(data) { return request({ url: '/water-basic/point/importBatch', method: 'post', data: data, timeout: 600000 }) }
+
+export function listPipe(query) { return request({ url: '/water-basic/pipe/list', method: 'get', params: query }) }
+export function getPipe(id) { return request({ url: '/water-basic/pipe/' + id, method: 'get' }) }
+export function addPipe(data) { return request({ url: '/water-basic/pipe', method: 'post', data: data }) }
+export function updatePipe(data) { return request({ url: '/water-basic/pipe', method: 'put', data: data }) }
+export function delPipe(id) { return request({ url: '/water-basic/pipe/' + id, method: 'delete' }) }
+export function importPipeBatch(data) { return request({ url: '/water-basic/pipe/importBatch', method: 'post', data: data, timeout: 600000 }) }

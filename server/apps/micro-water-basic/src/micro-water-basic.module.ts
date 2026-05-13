@@ -6,6 +6,8 @@ import { configuration } from '@app/shared';
 import { SharedModule } from '@app/shared';
 import { ZoneModule } from './module/zone/zone.module';
 import { RevenueUserModule } from './module/revenue/revenue-user.module';
+import { GisModule } from './module/gis/gis.module';
+import { BillModule } from './module/billing/bill.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from '@app/common/guards/auth.guard';
 import { JwtStrategy } from '@app/common/guards/jwt.strategy';
@@ -48,7 +50,7 @@ import { MicroWaterBasicService } from './micro-water-basic.service';
       },
     }),
     SharedModule,
-    ZoneModule, EquipmentModule, RevenueUserModule,
+    ZoneModule, EquipmentModule, RevenueUserModule, GisModule, BillModule,
     RegistryModule,
     TypeOrmModule.forFeature([WaterPointEntity, WaterDeviceEntity, WaterStationEntity]),
   ],

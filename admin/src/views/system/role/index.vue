@@ -74,92 +74,172 @@
     <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改角色配置对话框 -->
-    <el-dialog :title="title" v-model="open" width="500px" append-to-body>
+    <el-dialog :title="title" v-model="open" width="680px" append-to-body class="sys-dialog" top="5vh" destroy-on-close>
       <el-form ref="roleRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="角色名称" prop="roleName">
-          <el-input v-model="form.roleName" placeholder="请输入角色名称" />
-        </el-form-item>
-        <el-form-item prop="roleKey">
-          <template #label>
-            <span>
-              <el-tooltip content="控制器中定义的权限字符，如：@PreAuthorize(`@ss.hasRole('admin')`)" placement="top">
-                <el-icon><question-filled /></el-icon>
-              </el-tooltip>
-              权限字符
-            </span>
-          </template>
-          <el-input v-model="form.roleKey" placeholder="请输入权限字符" />
-        </el-form-item>
-        <el-form-item label="角色顺序" prop="roleSort">
-          <el-input-number v-model="form.roleSort" controls-position="right" :min="0" />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-radio-group v-model="form.status">
-            <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.value">{{ dict.label }}</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="菜单权限">
-          <el-checkbox v-model="menuExpand" @change="handleCheckedTreeExpand($event, 'menu')">展开/折叠</el-checkbox>
-          <el-checkbox v-model="menuNodeAll" @change="handleCheckedTreeNodeAll($event, 'menu')">全选/全不选</el-checkbox>
-          <el-checkbox v-model="form.menuCheckStrictly" @change="handleCheckedTreeConnect($event, 'menu')">父子联动</el-checkbox>
-          <el-tree
-            class="tree-border"
-            :data="menuOptions"
-            show-checkbox
-            ref="menuRef"
-            node-key="id"
-            :check-strictly="!form.menuCheckStrictly"
-            empty-text="加载中，请稍候"
-            :props="{ label: 'label', children: 'children' }"
-          />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="form.remark" type="textarea" placeholder="请输入内容"></el-input>
-        </el-form-item>
+        <div class="dialog-scroll">
+          <div class="form-card">
+            <div class="card-header">
+              <span class="card-dot"></span>
+              <el-icon class="card-icon"><Document /></el-icon>
+              <span class="card-title">基本信息</span>
+            </div>
+            <div class="card-body">
+              <el-row :gutter="20">
+                <el-col :span="24">
+                  <el-form-item label="角色名称" prop="roleName">
+                    <el-input v-model="form.roleName" placeholder="请输入角色名称" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="24">
+                  <el-form-item prop="roleKey">
+                    <template #label>
+                      <span>
+                        <el-tooltip content="控制器中定义的权限字符，如：@PreAuthorize(`@ss.hasRole('admin')`)" placement="top">
+                          <el-icon><question-filled /></el-icon>
+                        </el-tooltip>
+                        权限字符
+                      </span>
+                    </template>
+                    <el-input v-model="form.roleKey" placeholder="请输入权限字符" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="角色顺序" prop="roleSort">
+                    <el-input-number v-model="form.roleSort" controls-position="right" :min="0" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
+          </div>
+          <div class="form-card">
+            <div class="card-header">
+              <span class="card-dot dot-purple"></span>
+              <el-icon class="card-icon"><Menu /></el-icon>
+              <span class="card-title">菜单权限</span>
+            </div>
+            <div class="card-body">
+              <el-row :gutter="20">
+                <el-col :span="24">
+                  <el-form-item label="菜单权限">
+                    <el-checkbox v-model="menuExpand" @change="handleCheckedTreeExpand($event, 'menu')">展开/折叠</el-checkbox>
+                    <el-checkbox v-model="menuNodeAll" @change="handleCheckedTreeNodeAll($event, 'menu')">全选/全不选</el-checkbox>
+                    <el-checkbox v-model="form.menuCheckStrictly" @change="handleCheckedTreeConnect($event, 'menu')">父子联动</el-checkbox>
+                    <el-tree
+                      class="tree-border"
+                      :data="menuOptions"
+                      show-checkbox
+                      ref="menuRef"
+                      node-key="id"
+                      :check-strictly="!form.menuCheckStrictly"
+                      empty-text="加载中，请稍候"
+                      :props="{ label: 'label', children: 'children' }"
+                    />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
+          </div>
+          <div class="form-card">
+            <div class="card-header">
+              <span class="card-dot dot-green"></span>
+              <el-icon class="card-icon"><Setting /></el-icon>
+              <span class="card-title">其他设置</span>
+            </div>
+            <div class="card-body">
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="状态">
+                    <el-radio-group v-model="form.status">
+                      <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.value">{{ dict.label }}</el-radio>
+                    </el-radio-group>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="24">
+                  <el-form-item label="备注">
+                    <el-input v-model="form.remark" type="textarea" placeholder="请输入内容"></el-input>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
+          </div>
+        </div>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
           <el-button @click="cancel">取 消</el-button>
+          <el-button type="primary" @click="submitForm">确 定</el-button>
         </div>
       </template>
     </el-dialog>
 
     <!-- 分配角色数据权限对话框 -->
-    <el-dialog :title="title" v-model="openDataScope" width="500px" append-to-body>
+    <el-dialog :title="title" v-model="openDataScope" width="500px" append-to-body class="sys-dialog" top="5vh" destroy-on-close>
       <el-form :model="form" label-width="80px">
-        <el-form-item label="角色名称">
-          <el-input v-model="form.roleName" :disabled="true" />
-        </el-form-item>
-        <el-form-item label="权限字符">
-          <el-input v-model="form.roleKey" :disabled="true" />
-        </el-form-item>
-        <el-form-item label="权限范围">
-          <el-select v-model="form.dataScope" @change="dataScopeSelectChange">
-            <el-option v-for="item in dataScopeOptions" :key="item.value" :label="item.label" :value="item.value"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="数据权限" v-show="form.dataScope == 2">
-          <el-checkbox v-model="deptExpand" @change="handleCheckedTreeExpand($event, 'dept')">展开/折叠</el-checkbox>
-          <el-checkbox v-model="deptNodeAll" @change="handleCheckedTreeNodeAll($event, 'dept')">全选/全不选</el-checkbox>
-          <el-checkbox v-model="form.deptCheckStrictly" @change="handleCheckedTreeConnect($event, 'dept')">父子联动</el-checkbox>
-          <el-tree
-            class="tree-border"
-            :data="deptOptions"
-            show-checkbox
-            default-expand-all
-            ref="deptRef"
-            node-key="id"
-            :check-strictly="!form.deptCheckStrictly"
-            empty-text="加载中，请稍候"
-            :props="{ label: 'label', children: 'children' }"
-          ></el-tree>
-        </el-form-item>
+        <div class="dialog-scroll">
+          <div class="form-card">
+            <div class="card-header">
+              <span class="card-dot"></span>
+              <el-icon class="card-icon"><Aim /></el-icon>
+              <span class="card-title">数据权限</span>
+            </div>
+            <div class="card-body">
+              <el-row :gutter="20">
+                <el-col :span="24">
+                  <el-form-item label="角色名称">
+                    <el-input v-model="form.roleName" :disabled="true" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="24">
+                  <el-form-item label="权限字符">
+                    <el-input v-model="form.roleKey" :disabled="true" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="24">
+                  <el-form-item label="权限范围">
+                    <el-select v-model="form.dataScope" @change="dataScopeSelectChange">
+                      <el-option v-for="item in dataScopeOptions" :key="item.value" :label="item.label" :value="item.value"></el-option>
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="24">
+                  <el-form-item label="数据权限" v-show="form.dataScope == 2">
+                    <el-checkbox v-model="deptExpand" @change="handleCheckedTreeExpand($event, 'dept')">展开/折叠</el-checkbox>
+                    <el-checkbox v-model="deptNodeAll" @change="handleCheckedTreeNodeAll($event, 'dept')">全选/全不选</el-checkbox>
+                    <el-checkbox v-model="form.deptCheckStrictly" @change="handleCheckedTreeConnect($event, 'dept')">父子联动</el-checkbox>
+                    <el-tree
+                      class="tree-border"
+                      :data="deptOptions"
+                      show-checkbox
+                      default-expand-all
+                      ref="deptRef"
+                      node-key="id"
+                      :check-strictly="!form.deptCheckStrictly"
+                      empty-text="加载中，请稍候"
+                      :props="{ label: 'label', children: 'children' }"
+                    ></el-tree>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
+          </div>
+        </div>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitDataScope">确 定</el-button>
           <el-button @click="cancelDataScope">取 消</el-button>
+          <el-button type="primary" @click="submitDataScope">确 定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -169,6 +249,7 @@
 <script setup name="Role">
 import { addRole, changeRoleStatus, dataScope, delRole, getRole, listRole, updateRole, deptTreeSelect } from '@/api/system/role'
 import { roleMenuTreeselect, treeselect as menuTreeselect } from '@/api/system/menu'
+import { Document, Menu, Setting, Aim } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const { proxy } = getCurrentInstance()
@@ -496,3 +577,75 @@ function cancelDataScope() {
 
 getList()
 </script>
+
+<style scoped>
+/* ===== 卡片式表单对话框 ===== */
+:deep(.sys-dialog .el-dialog__header) {
+  background: linear-gradient(135deg, #f8fafc 0%, #ecf5ff 100%);
+  border-bottom: 1px solid #e4e7ed;
+  padding: 16px 24px;
+  margin: 0;
+}
+:deep(.sys-dialog .el-dialog__title) {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: 0.3px;
+}
+:deep(.sys-dialog .el-dialog__body) {
+  padding: 0;
+  background: #f8fafc;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(90vh - 110px);
+}
+:deep(.sys-dialog .el-dialog__footer) {
+  padding: 12px 24px;
+  border-top: 1px solid #f0f2f5;
+  background: #fff;
+}
+
+.dialog-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+}
+.dialog-scroll::-webkit-scrollbar { width: 5px; }
+.dialog-scroll::-webkit-scrollbar-thumb { background: #c0c4cc; border-radius: 3px; }
+.dialog-scroll::-webkit-scrollbar-track { background: transparent; }
+
+.form-card {
+  background: #fff;
+  border: 1px solid #e8ecf1;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  transition: box-shadow 0.2s;
+}
+.form-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  background: #fafbfc;
+  border-bottom: 1px solid #f0f2f5;
+  gap: 10px;
+}
+.card-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #409eff;
+  flex-shrink: 0;
+}
+.card-dot.dot-purple { background: #8b5cf6; }
+.card-dot.dot-green  { background: #10b981; }
+
+.card-icon { font-size: 16px; color: #64748b; }
+.card-title { font-size: 14px; font-weight: 600; color: #334155; }
+.card-body { padding: 18px 20px; }
+</style>

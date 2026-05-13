@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ResultData } from '@app/common/utils/result';
-import { SysDictDataEntity, WaterDeviceEntity, Paginate } from '@app/common';
+import { SysDictDataEntity, WaterDeviceEntity } from '@app/common';
 import { Response } from 'express';
 import { ExportTable } from '@app/common/utils/export';
 import * as exceljs from 'exceljs';

@@ -138,27 +138,45 @@
       />
 
       <!-- 添加或修改定时任务对话框 -->
-      <el-dialog :title="title" v-model="open" width="820px" append-to-body>
+      <el-dialog :title="title" v-model="open" width="750px" top="5vh" append-to-body class="sys-dialog" destroy-on-close>
+         <div class="dialog-scroll">
          <el-form ref="jobRef" :model="form" :rules="rules" label-width="120px">
-            <el-row>
-               <el-col :span="12">
-                  <el-form-item label="任务名称" prop="jobName">
-                     <el-input v-model="form.jobName" placeholder="请输入任务名称" />
-                  </el-form-item>
-               </el-col>
-               <el-col :span="12">
-                  <el-form-item label="任务分组" prop="jobGroup">
-                     <el-select v-model="form.jobGroup" placeholder="请选择">
-                        <el-option
-                           v-for="dict in sys_job_group"
-                           :key="dict.value"
-                           :label="dict.label"
-                           :value="dict.value"
-                        ></el-option>
-                     </el-select>
-                  </el-form-item>
-               </el-col>
-               <el-col :span="24">
+            <div class="form-card">
+               <div class="card-header">
+                  <span class="card-dot"></span>
+                  <el-icon class="card-icon"><Document /></el-icon>
+                  <span class="card-title">基本信息</span>
+               </div>
+               <div class="card-body">
+                  <el-row :gutter="20">
+                     <el-col :span="12">
+                        <el-form-item label="任务名称" prop="jobName">
+                           <el-input v-model="form.jobName" placeholder="请输入任务名称" />
+                        </el-form-item>
+                     </el-col>
+                     <el-col :span="12">
+                        <el-form-item label="任务分组" prop="jobGroup">
+                           <el-select v-model="form.jobGroup" placeholder="请选择" style="width: 100%">
+                              <el-option
+                                 v-for="dict in sys_job_group"
+                                 :key="dict.value"
+                                 :label="dict.label"
+                                 :value="dict.value"
+                              ></el-option>
+                           </el-select>
+                        </el-form-item>
+                     </el-col>
+                  </el-row>
+               </div>
+            </div>
+
+            <div class="form-card">
+               <div class="card-header">
+                  <span class="card-dot dot-purple"></span>
+                  <el-icon class="card-icon"><Operation /></el-icon>
+                  <span class="card-title">调用配置</span>
+               </div>
+               <div class="card-body">
                   <el-form-item prop="invokeTarget">
                      <template #label>
                         <span>
@@ -177,53 +195,61 @@
                      </template>
                      <el-input v-model="form.invokeTarget" placeholder="请输入调用目标字符串" />
                   </el-form-item>
-               </el-col>
-               <el-col :span="24">
                   <el-form-item label="cron表达式" prop="cronExpression">
                      <el-input v-model="form.cronExpression" placeholder="请输入cron执行表达式">
                         <template #append>
-                           <el-button type="primary" @click="handleShowCron">
-                              生成表达式
-                              <i class="el-icon-time el-icon--right"></i>
-                           </el-button>
+                           <el-button type="primary" @click="handleShowCron">生成表达式</el-button>
                         </template>
                      </el-input>
                   </el-form-item>
-               </el-col>
-               <el-col :span="24" v-if="form.jobId !== undefined">
-                  <el-form-item label="状态">
-                     <el-radio-group v-model="form.status">
-                        <el-radio
-                           v-for="dict in sys_job_status"
-                           :key="dict.value"
-                           :label="dict.value"
-                        >{{ dict.label }}</el-radio>
-                     </el-radio-group>
-                  </el-form-item>
-               </el-col>
-               <el-col :span="12">
-                  <el-form-item label="执行策略" prop="misfirePolicy">
-                     <el-radio-group v-model="form.misfirePolicy">
-                        <el-radio-button label="1">立即执行</el-radio-button>
-                        <el-radio-button label="2">执行一次</el-radio-button>
-                        <el-radio-button label="3">放弃执行</el-radio-button>
-                     </el-radio-group>
-                  </el-form-item>
-               </el-col>
-               <el-col :span="12">
-                  <el-form-item label="是否并发" prop="concurrent">
-                     <el-radio-group v-model="form.concurrent">
-                        <el-radio-button label="0">允许</el-radio-button>
-                        <el-radio-button label="1">禁止</el-radio-button>
-                     </el-radio-group>
-                  </el-form-item>
-               </el-col>
-            </el-row>
+               </div>
+            </div>
+
+            <div class="form-card">
+               <div class="card-header">
+                  <span class="card-dot dot-green"></span>
+                  <el-icon class="card-icon"><Setting /></el-icon>
+                  <span class="card-title">执行设置</span>
+               </div>
+               <div class="card-body">
+                  <el-row :gutter="20">
+                     <el-col :span="24" v-if="form.jobId !== undefined">
+                        <el-form-item label="状态">
+                           <el-radio-group v-model="form.status">
+                              <el-radio
+                                 v-for="dict in sys_job_status"
+                                 :key="dict.value"
+                                 :label="dict.value"
+                              >{{ dict.label }}</el-radio>
+                           </el-radio-group>
+                        </el-form-item>
+                     </el-col>
+                     <el-col :span="12">
+                        <el-form-item label="执行策略" prop="misfirePolicy">
+                           <el-radio-group v-model="form.misfirePolicy">
+                              <el-radio-button label="1">立即执行</el-radio-button>
+                              <el-radio-button label="2">执行一次</el-radio-button>
+                              <el-radio-button label="3">放弃执行</el-radio-button>
+                           </el-radio-group>
+                        </el-form-item>
+                     </el-col>
+                     <el-col :span="12">
+                        <el-form-item label="是否并发" prop="concurrent">
+                           <el-radio-group v-model="form.concurrent">
+                              <el-radio-button label="0">允许</el-radio-button>
+                              <el-radio-button label="1">禁止</el-radio-button>
+                           </el-radio-group>
+                        </el-form-item>
+                     </el-col>
+                  </el-row>
+               </div>
+            </div>
          </el-form>
+         </div>
          <template #footer>
             <div class="dialog-footer">
-               <el-button type="primary" @click="submitForm">确 定</el-button>
                <el-button @click="cancel">取 消</el-button>
+               <el-button type="primary" @click="submitForm">确 定</el-button>
             </div>
          </template>
       </el-dialog>

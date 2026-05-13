@@ -33,6 +33,14 @@
           <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
         </el-row>
 
+        <el-row :gutter="12" class="stats-mini-row">
+          <el-col :span="4"><div class="mini-stat-card mini-total"><div class="mini-num">{{ stats.total }}</div><div class="mini-label">设备总数</div></div></el-col>
+          <el-col :span="4"><div class="mini-stat-card mini-online"><div class="mini-num">{{ stats.online }}</div><div class="mini-label">在线</div></div></el-col>
+          <el-col :span="4"><div class="mini-stat-card mini-abnormal"><div class="mini-num">{{ stats.abnormal }}</div><div class="mini-label">异常</div></div></el-col>
+          <el-col :span="4"><div class="mini-stat-card mini-alarm"><div class="mini-num">{{ stats.alarm }}</div><div class="mini-label">报警</div></div></el-col>
+          <el-col :span="4"><div class="mini-stat-card mini-offline"><div class="mini-num">{{ stats.offline }}</div><div class="mini-label">离线</div></div></el-col>
+        </el-row>
+
         <el-table v-loading="loading" :data="deviceList" height="100%" class="flex-table">
           <el-table-column type="index" width="50" align="center" />
           <el-table-column label="设备名称" align="left" prop="name" min-width="180">
@@ -42,16 +50,12 @@
             </template>
           </el-table-column>
           <el-table-column label="设备编码" align="center" prop="code" width="200" />
-          <el-table-column label="所属站点" align="center" prop="stationCode" width="120" />
+          <el-table-column label="所属站点" align="center" prop="stationCode" min-width="160" />
           <el-table-column label="设备类型" align="center" prop="type" width="120">
             <template #default="scope">
               <dict-tag :options="water_device_type" :value="String(scope.row.type)" />
             </template>
           </el-table-column>
-          <el-table-column label="型号" align="center" prop="model" width="120" />
-          <el-table-column label="生产厂家" align="center" prop="manufacturer" min-width="150" />
-          <el-table-column label="负责人" align="center" prop="managerName" width="100" />
-          <el-table-column label="联系电话" align="center" prop="managerPhone" width="120" />
           <el-table-column label="状态" align="center" prop="status" width="100">
             <template #default="scope">
               <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
@@ -81,86 +85,133 @@
         </el-drawer>
 
     <!-- 添加或修改设备对话框 -->
-    <el-dialog :title="title" v-model="open" width="700px" append-to-body>
+    <el-dialog :title="title" v-model="open" width="780px" top="5vh" append-to-body class="equip-dialog" destroy-on-close>
+      <div class="dialog-scroll">
       <el-form ref="deviceRef" :model="form" :rules="rules" label-width="100px">
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="设备名称" prop="name">
-              <el-input v-model="form.name" placeholder="请输入设备名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="设备编码" prop="code">
-              <el-input v-model="form.code" placeholder="请输入设备编码" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="所属站点" prop="stationCode">
-              <el-input v-model="form.stationCode" placeholder="请输入站点编码" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="设备类型" prop="type">
-              <el-select v-model="form.type" placeholder="请选择类型" style="width: 100%;">
-                <el-option v-for="dict in water_device_type" :key="dict.value" :label="dict.label" :value="dict.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="型号" prop="model">
-              <el-input v-model="form.model" placeholder="请输入型号" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="厂家" prop="manufacturer">
-              <el-input v-model="form.manufacturer" placeholder="请输入厂家" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="安装日期" prop="installDate">
-              <el-date-picker clearable v-model="form.installDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择安装日期" style="width: 100%;"></el-date-picker>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="设计寿命" prop="lifespan">
-              <el-input-number v-model="form.lifespan" :min="0" :max="100" style="width: 100%;" placeholder="年" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="额定功率" prop="power">
-              <el-input v-model="form.power" placeholder="请输入功率(kW)" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="关联系统用户" prop="userId">
-              <el-select v-model="form.userId" filterable placeholder="选择关联用户" style="width: 100%;" clearable>
-                <el-option v-for="user in userOptions" :key="user.userId" :label="user.userName + (user.nickName ? ' (' + user.nickName + ')' : '')" :value="user.userId" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="负责人" prop="managerName">
-              <el-input v-model="form.managerName" placeholder="请输入负责人" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="联系电话" prop="managerPhone">
-              <el-input v-model="form.managerPhone" placeholder="请输入联系电话" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="状态">
-              <el-radio-group v-model="form.status">
-                <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{dict.label}}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-dot"></span>
+            <el-icon class="card-icon"><Document /></el-icon>
+            <span class="card-title">基本信息</span>
+          </div>
+          <div class="card-body">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="设备名称" prop="name">
+                  <el-input v-model="form.name" placeholder="请输入设备名称" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="设备编码" prop="code">
+                  <el-input v-model="form.code" placeholder="请输入设备编码" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="所属站点" prop="stationCode">
+                  <el-input v-model="form.stationCode" placeholder="请输入站点编码" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="设备类型" prop="type">
+                  <el-select v-model="form.type" placeholder="请选择类型" style="width: 100%;">
+                    <el-option v-for="dict in water_device_type" :key="dict.value" :label="dict.label" :value="dict.value" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-dot dot-purple"></span>
+            <el-icon class="card-icon"><Cpu /></el-icon>
+            <span class="card-title">设备参数</span>
+          </div>
+          <div class="card-body">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="型号" prop="model">
+                  <el-input v-model="form.model" placeholder="请输入型号" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="厂家" prop="manufacturer">
+                  <el-input v-model="form.manufacturer" placeholder="请输入厂家" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="安装日期" prop="installDate">
+                  <el-date-picker clearable v-model="form.installDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择安装日期" style="width: 100%;" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="设计寿命" prop="lifespan">
+                  <el-input-number v-model="form.lifespan" :min="0" :max="100" style="width: 100%;" placeholder="年" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="额定功率" prop="power">
+                  <el-input v-model="form.power" placeholder="请输入功率(kW)" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-dot dot-green"></span>
+            <el-icon class="card-icon"><UserFilled /></el-icon>
+            <span class="card-title">人员信息</span>
+          </div>
+          <div class="card-body">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="负责人" prop="managerName">
+                  <el-input v-model="form.managerName" placeholder="请输入负责人" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="联系电话" prop="managerPhone">
+                  <el-input v-model="form.managerPhone" placeholder="请输入联系电话" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="关联系统用户" prop="userId">
+                  <el-select v-model="form.userId" filterable placeholder="选择关联用户" style="width: 100%;" clearable>
+                    <el-option v-for="user in userOptions" :key="user.userId" :label="user.userName + (user.nickName ? ' (' + user.nickName + ')' : '')" :value="user.userId" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-dot dot-orange"></span>
+            <el-icon class="card-icon"><Setting /></el-icon>
+            <span class="card-title">其他设置</span>
+          </div>
+          <div class="card-body">
+            <el-row :gutter="20">
+              <el-col :span="24">
+                <el-form-item label="状态">
+                  <el-radio-group v-model="form.status">
+                    <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{dict.label}}</el-radio>
+                  </el-radio-group>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
       </el-form>
+      </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
           <el-button @click="cancel">取 消</el-button>
+          <el-button type="primary" @click="submitForm">确 定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -213,6 +264,7 @@ import { listUser } from "@/api/system/user"
 import * as XLSX from 'xlsx'
 import { getToken } from "@/utils/auth"
 import DataViewer from '@/components/DataViewer/index.vue'
+import { Document, Cpu, UserFilled, Setting } from '@element-plus/icons-vue'
 
 const { proxy } = getCurrentInstance()
 const { water_device_type, sys_normal_disable , iot_device_status } = proxy.useDict('water_device_type', 'sys_normal_disable', 'iot_device_status')
@@ -222,6 +274,7 @@ const showSearch = ref(true)
 const total = ref(0)
 const uploadRef = ref(null)
 const userOptions = ref([])
+const stats = reactive({ total: 0, online: 0, abnormal: 0, alarm: 0, offline: 0 })
 
 const drawerOpen = ref(false)
 const drawerTitle = ref('')
@@ -326,11 +379,19 @@ function getUserList() {
   })
 }
 
+function computeStats(list, totalCount) {
+  stats.total = totalCount
+  stats.online = list.filter(i => String(i.iotStatus) === '0').length
+  stats.abnormal = list.filter(i => String(i.iotStatus) === '1').length
+  stats.alarm = list.filter(i => String(i.iotStatus) === '3').length
+  stats.offline = list.filter(i => !['0','1','3'].includes(String(i.iotStatus))).length
+}
 function getList() {
   loading.value = true
   listDevice(queryParams.value).then(res => {
     deviceList.value = res.data.list
     total.value = res.data.total
+    computeStats(res.data.list, res.data.total)
     loading.value = false
   })
 }
@@ -496,6 +557,19 @@ onMounted(() => {
   flex-direction: column;
 }
 
+.stats-mini-row {
+  flex-shrink: 0;
+  margin: 0 0 10px 0 !important;
+}
+.mini-stat-card { background: #fff; border-radius: 8px; border: 1px solid #ebeef5; padding: 10px 14px; text-align: center; box-shadow: 0 1px 6px rgba(0,0,0,.03); }
+.mini-num { font-size: 22px; font-weight: 700; line-height: 1.2; }
+.mini-label { font-size: 11px; color: #909399; margin-top: 2px; }
+.mini-total .mini-num { color: #303133; }
+.mini-online .mini-num { color: #67c23a; }
+.mini-abnormal .mini-num { color: #e6a23c; }
+.mini-alarm .mini-num { color: #f56c6c; }
+.mini-offline .mini-num { color: #c0c4cc; }
+
 .custom-pagination {
   margin-top: 10px;
   flex-shrink: 0;
@@ -656,4 +730,76 @@ onMounted(() => {
   0% { transform: scale(0.8); opacity: 0.8; }
   100% { transform: scale(1.5); opacity: 0; }
 }
+
+/* ===== 卡片式表单对话框 ===== */
+:deep(.equip-dialog .el-dialog__header) {
+  background: linear-gradient(135deg, #f8fafc 0%, #ecf5ff 100%);
+  border-bottom: 1px solid #e4e7ed;
+  padding: 16px 24px;
+  margin: 0;
+}
+:deep(.equip-dialog .el-dialog__title) {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: 0.3px;
+}
+:deep(.equip-dialog .el-dialog__body) {
+  padding: 0;
+  background: #f8fafc;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(90vh - 110px);
+}
+:deep(.equip-dialog .el-dialog__footer) {
+  padding: 12px 24px;
+  border-top: 1px solid #f0f2f5;
+  background: #fff;
+}
+
+.dialog-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+}
+.dialog-scroll::-webkit-scrollbar { width: 5px; }
+.dialog-scroll::-webkit-scrollbar-thumb { background: #c0c4cc; border-radius: 3px; }
+.dialog-scroll::-webkit-scrollbar-track { background: transparent; }
+
+.form-card {
+  background: #fff;
+  border: 1px solid #e8ecf1;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  transition: box-shadow 0.2s;
+}
+.form-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  background: #fafbfc;
+  border-bottom: 1px solid #f0f2f5;
+  gap: 10px;
+}
+.card-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #409eff;
+  flex-shrink: 0;
+}
+.card-dot.dot-purple { background: #8b5cf6; }
+.card-dot.dot-green  { background: #10b981; }
+.card-dot.dot-orange { background: #f59e0b; }
+.card-dot.dot-gray   { background: #94a3b8; }
+
+.card-icon { font-size: 16px; color: #64748b; }
+.card-title { font-size: 14px; font-weight: 600; color: #334155; }
+.card-body { padding: 18px 20px; }
 </style>

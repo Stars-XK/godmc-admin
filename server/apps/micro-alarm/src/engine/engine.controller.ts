@@ -25,12 +25,21 @@ export class EngineController {
   @ApiOperation({ summary: '手动提交事实数据给报警引擎评估（用于测试或外部系统触发）' })
   @NotRequireAuth()
   @Post('evaluate')
-  async evaluate(@Body() facts: Record<string, any>) {
-    if (!facts || Object.keys(facts).length === 0) {
+  async evaluate(@Body() body: Record<string, any>) {
+    if (!body || Object.keys(body).length === 0) {
       return ResultData.fail(400, '缺少 facts 数据');
     }
+    // 兼容两种格式: { facts: {...}, targetType, targetKey } 或直接传 facts
+    const targetType = body.targetType || 'device';
+    const targetKey = body.targetKey;
+    const facts = body.facts || body;
+    // 清理元数据字段，避免污染 facts
+    delete facts.targetType;
+    delete facts.targetKey;
+    delete facts.facts;
+
     try {
-      await this.engineService.evaluate(facts);
+      await this.engineService.evaluate(facts, targetType, targetKey);
       return ResultData.ok(null, '事实已提交评估');
     } catch (e) {
       return ResultData.fail(500, `评估失败: ${e.message}`);

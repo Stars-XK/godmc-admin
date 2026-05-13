@@ -49,9 +49,7 @@
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ArrowLeft, Loading, WarningFilled } from '@element-plus/icons-vue'
 import { getConfigKey } from '@/api/system/config'
-import { listStation, listDevice, listPoint } from '@/api/water-basic/equipment'
-import { listZone } from '@/api/water-basic/zone'
-import { listHistory } from '@/api/alarm/history'
+import request from '@/utils/request'
 import AMapLoader from '@amap/amap-jsapi-loader'
 
 const isDark = ref(false)
@@ -131,22 +129,18 @@ async function initMap() {
 // ============ 数据加载 ============
 async function loadAllData() {
   try {
-    const [zRes, sRes, dRes, aRes] = await Promise.all([
-      listZone({ pageNum: 1, pageSize: 500, type: '' }),
-      listStation({ pageNum: 1, pageSize: 500 }),
-      listDevice({ pageNum: 1, pageSize: 1000 }),
-      listHistory({ pageNum: 1, pageSize: 50, status: '0' }),
-    ])
+    const res = await request({ url: '/gis/layers', method: 'get' })
+    const { zones: zRes, stations: sRes, devices: dRes, alarms: aRes } = res.data || {}
 
-    stats.value.zones = zRes.total || 0
-    stats.value.stations = sRes.total || 0
-    stats.value.devices = dRes.total || 0
-    stats.value.alarms = aRes.total || 0
+    stats.value.zones = zRes?.total || 0
+    stats.value.stations = sRes?.total || 0
+    stats.value.devices = dRes?.total || 0
+    stats.value.alarms = aRes?.total || 0
 
-    const zones = (zRes.rows || []).filter(z => z.longitude && z.latitude)
-    const stations = (sRes.rows || []).filter(s => s.longitude && s.latitude)
-    const devices = (dRes.rows || []).filter(d => d.longitude && d.latitude)
-    const alarms = (aRes.rows || [])
+    const zones = (zRes?.rows || []).filter(z => z.longitude && z.latitude)
+    const stations = (sRes?.rows || []).filter(s => s.longitude && s.latitude)
+    const devices = (dRes?.rows || []).filter(d => d.longitude && d.latitude)
+    const alarms = (aRes?.rows || [])
 
     renderZones(zones)
     renderStations(stations)

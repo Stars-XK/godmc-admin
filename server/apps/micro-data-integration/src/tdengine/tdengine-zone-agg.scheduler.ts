@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { RedisService } from '@app/shared';
 import { TdengineZoneAggService } from './tdengine-zone-agg.service';
+import { SysConfigEntity } from '@app/common';
 
 @Injectable()
 export class TdengineZoneAggScheduler {
@@ -11,15 +14,18 @@ export class TdengineZoneAggScheduler {
   constructor(
     private readonly redisService: RedisService,
     private readonly zoneAggService: TdengineZoneAggService,
+    @InjectRepository(SysConfigEntity)
+    private readonly sysConfigRep: Repository<SysConfigEntity>,
   ) {}
 
-  // @Cron('*/2 * * * *') // 每 2 分钟执行一次 (已迁移至统一任务管理平台 HTTP调用)
+  @Cron('*/2 * * * *')
   async processDirtyZones() {
+    if (!await this.isBuiltInEnabled()) return;
+
     const redis = this.redisService.getClient();
     const members = await redis.smembers(this.dirtySetKey);
     if (!members || members.length === 0) return;
 
-    // 每次处理最多 50 个分区指标任务
     const batch = members.slice(0, 50);
     for (const item of batch) {
       const [zoneCode, metricType] = item.split('|');
@@ -47,5 +53,13 @@ export class TdengineZoneAggScheduler {
         this.logger.warn(`分区聚合补算失败，将在下轮重试: ${zoneCode}|${metricType} ${e?.message || e}`);
       }
     }
+  }
+
+  private async isBuiltInEnabled(): Promise<boolean> {
+    try {
+      const conf = await this.sysConfigRep.findOne({ where: { configKey: 'scheduler.builtInEnabled' } });
+      if (conf && conf.configValue === 'false') return false;
+    } catch {}
+    return true;
   }
 }

@@ -10,6 +10,7 @@ import { JwtStrategy } from '@app/common/guards/jwt.strategy';
 import { PermissionGuard } from '@app/common/guards/permission.guard';
 import { RolesGuard } from '@app/common/guards/roles.guard';
 import { JwtModule } from '@nestjs/jwt';
+import { ScheduleModule } from '@nestjs/schedule';
 import { RegistryModule } from '@app/common';
 import { SysAlarmRuleEntity, SysAlarmHistoryEntity } from '@app/common';
 import { RuleModule } from './rule/rule.module';
@@ -17,6 +18,7 @@ import { EngineModule } from './engine/engine.module';
 import { HistoryModule } from './history/history.module';
 import { TmqModule } from './tmq/tmq.module';
 import { TdengineModule } from './tdengine/tdengine.module';
+import { RevenueAlarmScheduler } from './scheduler/revenue-alarm.scheduler';
 
 @Module({
   imports: [
@@ -50,6 +52,7 @@ import { TdengineModule } from './tdengine/tdengine.module';
         };
       },
     }),
+    ScheduleModule.forRoot(),
     SharedModule,
     RegistryModule,
     RuleModule,
@@ -61,6 +64,7 @@ import { TdengineModule } from './tdengine/tdengine.module';
   controllers: [MicroAlarmController],
   providers: [
     MicroAlarmService,
+    RevenueAlarmScheduler,
     JwtStrategy,
     {
       provide: APP_GUARD,

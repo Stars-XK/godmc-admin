@@ -104,6 +104,70 @@ export class TdengineService implements OnModuleInit {
   }
 
   /**
+   * 获取最近时间的分区 5 分钟聚合数据（用于分区报警轮询）
+   */
+  async getRecentZoneAggregatedData(lastMinutes: number = 5): Promise<any[]> {
+    try {
+      const sql = `
+        SELECT ts, zone_code, point_code, avg_val, max_val, min_val, spread_val, diff_val
+        FROM ${this.dbName}.zone_meters_5m
+        WHERE ts >= NOW - ${lastMinutes}m
+        ORDER BY ts DESC
+        LIMIT 500
+      `;
+      const result = await this.query(sql);
+      if (result && result.data) {
+        return result.data.map((row: any) => ({
+          ts: row[0],
+          zoneCode: row[1],
+          pointCode: row[2],
+          avgVal: row[3],
+          maxVal: row[4],
+          minVal: row[5],
+          spreadVal: row[6],
+          diffVal: row[7],
+        }));
+      }
+      return [];
+    } catch (error) {
+      this.logger.warn(`获取分区聚合数据失败: ${error.message}`);
+      return [];
+    }
+  }
+
+  /**
+   * 获取最近时间的分区日/月产销差数据（供 NRW 相关规则使用）
+   */
+  async getRecentZoneRevenueData(dataType: '1d' | '1mo', lastPeriods: number = 3): Promise<any[]> {
+    try {
+      const tableName = `zone_revenue_${dataType}`;
+      const timeCondition = dataType === '1d'
+        ? `ts >= NOW - ${lastPeriods}d`
+        : `ts >= NOW - ${lastPeriods * 30}d`;
+      const sql = `
+        SELECT ts, zone_code, total_val
+        FROM ${this.dbName}.${tableName}
+        WHERE metric_type = 'water_sales'
+          AND ${timeCondition}
+        ORDER BY ts DESC
+        LIMIT 500
+      `;
+      const result = await this.query(sql);
+      if (result && result.data) {
+        return result.data.map((row: any) => ({
+          ts: row[0],
+          zoneCode: row[1],
+          totalVal: row[2],
+        }));
+      }
+      return [];
+    } catch (error) {
+      this.logger.warn(`获取分区产销差数据失败: ${error.message}`);
+      return [];
+    }
+  }
+
+  /**
    * 获取指定设备的最近原始数据（用于即时评估）
    */
   async getDeviceLatestData(deviceCode: string, pointCode: string): Promise<any[]> {

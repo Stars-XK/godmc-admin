@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { WaterPointEntity, WaterZoneMetricCalcEntity } from '@app/common';
+import { WaterPointEntity, WaterZoneMetricCalcEntity, SysConfigEntity } from '@app/common';
 import { TdengineModule } from './tdengine.module';
 import { TdengineAggService } from './tdengine-agg.service';
 import { TdengineAggScheduler } from './tdengine-agg.scheduler';
@@ -12,7 +12,7 @@ import { TdengineAggController } from './tdengine-agg.controller';
 @Module({
   imports: [
     TdengineModule, 
-    TypeOrmModule.forFeature([WaterPointEntity, WaterZoneMetricCalcEntity])
+    TypeOrmModule.forFeature([WaterPointEntity, WaterZoneMetricCalcEntity, SysConfigEntity])
   ],
   controllers: [TdengineAggController],
   providers: [

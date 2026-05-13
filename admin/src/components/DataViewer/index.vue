@@ -3,83 +3,109 @@
     <!-- 站点视图 -->
     <div v-if="viewType === 'station'" class="station-view">
       <div class="view-header">
-        <div class="header-left">
-          <h3>{{ name || code }} - 下属设备实时数据</h3>
+        <div class="header-title">
+          <span class="header-accent"></span>
+          <span class="header-label">下属设备实时数据</span>
+          <el-tag size="small" effect="plain" type="info" class="header-tag">{{ stationDevices.length }} 台设备</el-tag>
         </div>
-        <el-button type="primary" link icon="Refresh" @click="fetchStationData">刷新</el-button>
+        <div class="header-subtitle">{{ name || code }}</div>
+        <el-button class="refresh-btn" icon="Refresh" @click="fetchStationData">刷新</el-button>
       </div>
       <div v-loading="loading" class="station-device-list">
         <div v-for="device in stationDevices" :key="device.code" class="device-section">
-          <h4 class="device-title">
-            <el-icon><Cpu /></el-icon> {{ device.name }} ({{ device.code }})
-          </h4>
-          <el-row :gutter="20">
-            <el-col :span="12" :md="8" :lg="6" v-for="(item, index) in device.latestData" :key="index" style="margin-bottom: 20px;">
-              <el-card shadow="hover" class="point-card">
-                <div class="point-title" :title="item.pointCode">{{ item.pointCode }}</div>
-                <div class="point-value">{{ item.val }}</div>
-                <div class="point-time">{{ formatTime(item.ts) }}</div>
-              </el-card>
-            </el-col>
-            <el-col :span="24" v-if="!device.latestData || device.latestData.length === 0">
-              <el-empty description="暂无感知数据" :image-size="60"></el-empty>
-            </el-col>
-          </el-row>
+          <div class="device-header">
+            <div class="device-header-left">
+              <span class="device-status-dot"></span>
+              <span class="device-name">{{ device.name }}</span>
+              <span class="device-code">{{ device.code }}</span>
+            </div>
+            <span class="device-point-count">{{ device.pointData ? device.pointData.length : 0 }} 个测点</span>
+          </div>
+          <div class="point-grid">
+            <div v-for="(item, index) in device.pointData" :key="index" class="point-card" :class="{ 'point-no-data': item.val === '—' }">
+              <div class="point-card-head">
+                <span class="point-label" :title="item.pointName">{{ item.pointName }}</span>
+                <span class="point-code" :title="item.pointCode">{{ item.pointCode }}</span>
+              </div>
+              <div class="point-card-body">
+                <span class="point-value" :class="{ 'value-empty': item.val === '—' }">{{ item.val }}</span>
+              </div>
+              <div class="point-card-foot">
+                <el-icon class="point-time-icon"><Clock /></el-icon>
+                <span class="point-time">{{ item.ts ? formatTime(item.ts) : '暂无数据' }}</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <el-empty v-if="stationDevices.length === 0 && !loading" description="该站点下暂无设备"></el-empty>
+        <el-empty v-if="stationDevices.length === 0 && !loading" description="该站点下暂无设备" />
       </div>
     </div>
 
     <!-- 设备视图 -->
     <div v-if="viewType === 'device'" class="device-view">
       <div class="view-header">
-        <div class="header-left">
-          <h3>{{ name || code }} - 实时感知数据</h3>
+        <div class="header-title">
+          <span class="header-accent"></span>
+          <span class="header-label">实时感知数据</span>
+          <el-tag size="small" effect="plain" type="info" class="header-tag">{{ latestData.length }} 个测点</el-tag>
         </div>
-        <el-button type="primary" link icon="Refresh" @click="fetchLatest">刷新</el-button>
+        <div class="header-subtitle">{{ name || code }}</div>
+        <el-button class="refresh-btn" icon="Refresh" @click="fetchLatest">刷新</el-button>
       </div>
-      <el-row :gutter="20" v-loading="loading">
-        <el-col :span="12" :md="8" :lg="6" v-for="(item, index) in latestData" :key="index" style="margin-bottom: 20px;">
-          <el-card shadow="hover" class="point-card">
-            <div class="point-title" :title="item.pointCode">{{ item.pointCode }}</div>
-            <div class="point-value">{{ item.val }}</div>
-            <div class="point-time">{{ formatTime(item.ts) }}</div>
-          </el-card>
-        </el-col>
-        <el-col :span="24" v-if="latestData.length === 0 && !loading">
-          <el-empty description="暂无感知数据"></el-empty>
-        </el-col>
-      </el-row>
+      <div v-loading="loading" class="point-grid">
+        <div v-for="(item, index) in latestData" :key="index" class="point-card" :class="{ 'point-no-data': item.val === '—' }">
+          <div class="point-card-head">
+            <span class="point-label" :title="item.pointName">{{ item.pointName }}</span>
+            <span class="point-code" :title="item.pointCode">{{ item.pointCode }}</span>
+          </div>
+          <div class="point-card-body">
+            <span class="point-value" :class="{ 'value-empty': item.val === '—' }">{{ item.val }}</span>
+          </div>
+          <div class="point-card-foot">
+            <el-icon class="point-time-icon"><Clock /></el-icon>
+            <span class="point-time">{{ item.ts ? formatTime(item.ts) : '暂无数据' }}</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 测点视图 -->
     <div v-if="viewType === 'point'" class="point-view">
       <div class="view-header">
-        <div class="header-left">
-          <h3>{{ name || code }} - 历史数据曲线</h3>
+        <div class="header-title">
+          <span class="header-accent"></span>
+          <span class="header-label">历史数据曲线</span>
+        </div>
+        <div class="header-subtitle">{{ name || code }}</div>
+      </div>
+      <div class="chart-toolbar">
+        <div class="toolbar-left">
+          <span class="toolbar-section-label">聚合粒度</span>
+          <el-radio-group v-model="historyParams.interval" @change="fetchHistory" size="small">
+            <el-radio-button label="raw">原始</el-radio-button>
+            <el-radio-button label="5m">5 分钟</el-radio-button>
+            <el-radio-button label="1h">1 小时</el-radio-button>
+            <el-radio-button label="1d">日统计</el-radio-button>
+          </el-radio-group>
+        </div>
+        <div class="toolbar-right">
+          <span class="toolbar-section-label">时间范围</span>
+          <el-date-picker
+            v-model="dateRange"
+            type="datetimerange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            size="small"
+            @change="handleDateChange"
+            value-format="YYYY-MM-DD HH:mm:ss"
+          />
+          <el-button type="primary" size="small" icon="Refresh" @click="fetchHistory">刷新</el-button>
         </div>
       </div>
-      <div class="toolbar">
-        <el-radio-group v-model="historyParams.interval" @change="fetchHistory" size="small">
-          <el-radio-button label="raw">原始</el-radio-button>
-          <el-radio-button label="5m">5分钟</el-radio-button>
-          <el-radio-button label="1h">1小时</el-radio-button>
-          <el-radio-button label="1d">日统计</el-radio-button>
-        </el-radio-group>
-        <el-date-picker
-          v-model="dateRange"
-          type="datetimerange"
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          size="small"
-          @change="handleDateChange"
-          value-format="YYYY-MM-DD HH:mm:ss"
-          style="margin-left: 15px;"
-        />
-        <el-button type="primary" size="small" icon="Refresh" style="margin-left: 15px;" @click="fetchHistory">刷新</el-button>
+      <div v-loading="loading" class="chart-wrapper">
+        <div class="chart-box" ref="chartRef"></div>
       </div>
-      <div v-loading="loading" class="chart-box" ref="chartRef"></div>
     </div>
   </div>
 </template>
@@ -87,7 +113,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { getLatestDataBatch, getHistoryData } from '@/api/data-integration/query'
-import { listDevice } from '@/api/water-basic/equipment'
+import { listDevice, listPoint } from '@/api/water-basic/equipment'
 import * as echarts from 'echarts'
 
 const props = defineProps({
@@ -127,14 +153,28 @@ async function fetchStationData() {
   try {
     const res = await listDevice({ stationCode: props.code, pageNum: 1, pageSize: 100 })
     const devices = res.data.list || []
-    
-    // 对于每个设备，获取最新数据
+
     await Promise.all(devices.map(async (device) => {
       try {
-        const latestRes = await getLatestDataBatch({ deviceCode: device.code })
-        device.latestData = latestRes.data || []
+        const [pointRes, latestRes] = await Promise.all([
+          listPoint({ deviceCode: device.code, pageNum: 1, pageSize: 500 }),
+          getLatestDataBatch({ deviceCode: device.code })
+        ])
+        const points = pointRes.data.list || pointRes.data || []
+        const latestMap = {}
+        ;(latestRes.data || []).forEach(d => { latestMap[d.pointCode] = d })
+        device.pointData = points.map(p => {
+          const code = p.pointCode || p.code
+          const latest = latestMap[code]
+          return {
+            pointCode: code,
+            pointName: p.name || code,
+            val: latest ? latest.val : '—',
+            ts: latest ? latest.ts : null
+          }
+        })
       } catch (e) {
-        device.latestData = []
+        device.pointData = []
       }
     }))
     stationDevices.value = devices
@@ -149,8 +189,23 @@ async function fetchLatest() {
   if (!props.code) return
   loading.value = true
   try {
-    const res = await getLatestDataBatch({ deviceCode: props.code })
-    latestData.value = res.data || []
+    const [pointRes, latestRes] = await Promise.all([
+      listPoint({ deviceCode: props.code, pageNum: 1, pageSize: 500 }),
+      getLatestDataBatch({ deviceCode: props.code })
+    ])
+    const points = pointRes.data.list || pointRes.data || []
+    const latestMap = {}
+    ;(latestRes.data || []).forEach(d => { latestMap[d.pointCode] = d })
+    latestData.value = points.map(p => {
+      const code = p.pointCode || p.code
+      const latest = latestMap[code]
+      return {
+        pointCode: code,
+        pointName: p.name || code,
+        val: latest ? latest.val : '—',
+        ts: latest ? latest.ts : null
+      }
+    })
   } catch (e) {
     console.error(e)
   } finally {
@@ -303,75 +358,278 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* ==========================================
+   DataViewer — 数据查看器
+   三层视图: 站点 → 设备 → 测点
+   ========================================== */
+
 .data-viewer-container {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
+
+/* ---- View Header ---- */
 .view-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: #F8FAFC;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+  position: relative;
 }
-.view-header h3 {
-  margin: 0;
-  color: #303133;
-  font-size: 16px;
-}
-.point-card {
-  text-align: center;
-  border-radius: 8px;
-}
-.point-title {
-  font-size: 13px;
-  color: #909399;
-  margin-bottom: 10px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.point-value {
-  font-size: 26px;
-  font-weight: bold;
-  color: #409EFF;
-  margin-bottom: 8px;
-}
-.point-time {
-  font-size: 12px;
-  color: #C0C4CC;
-}
-.toolbar {
-  margin-bottom: 20px;
+
+.header-title {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 10px;
+  flex-shrink: 0;
 }
-.chart-box {
-  width: 100%;
-  height: 450px;
-  flex-grow: 1;
+
+.header-accent {
+  width: 4px;
+  height: 20px;
+  border-radius: 2px;
+  background: #409EFF;
+  flex-shrink: 0;
 }
+
+.header-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1E293B;
+  letter-spacing: 0.3px;
+}
+
+.header-tag {
+  font-weight: 500;
+}
+
+.header-subtitle {
+  font-size: 13px;
+  color: #94A3B8;
+  line-height: 32px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.refresh-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* ---- Point Grid ---- */
+.point-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+  gap: 14px;
+}
+
+/* ---- Point Card ---- */
+.point-card {
+  background: #fff;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color .2s, box-shadow .2s, transform .15s;
+  cursor: default;
+}
+
+.point-card:hover {
+  border-color: #409EFF40;
+  box-shadow: 0 2px 12px rgba(64,158,255,.1);
+  transform: translateY(-1px);
+}
+
+.point-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.point-label {
+  font-size: 13px;
+  color: #334155;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.point-code {
+  font-size: 11px;
+  color: #94A3B8;
+  font-family: 'SF Mono', 'Consolas', 'Menlo', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.point-card-body {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.point-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1E293B;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.point-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #CBD5E1;
+  font-size: 11px;
+}
+
+.point-time-icon {
+  font-size: 13px;
+}
+
+.point-time {
+  color: #CBD5E1;
+}
+
+.point-empty {
+  padding: 20px 0;
+}
+
+/* 无数据测点 */
+.point-no-data {
+  opacity: 0.6;
+}
+.point-no-data:hover {
+  opacity: 0.85;
+}
+.value-empty {
+  color: #CBD5E1 !important;
+  font-size: 22px;
+  font-weight: 400;
+}
+
+/* ---- Station View / Device Sections ---- */
 .station-device-list {
   display: flex;
   flex-direction: column;
-  gap: 30px;
-  padding-right: 10px;
+  gap: 28px;
+  padding-right: 6px;
+  overflow-y: auto;
+  flex: 1;
 }
+
 .device-section {
-  border-bottom: 1px solid #ebeef5;
-  padding-bottom: 20px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 18px 20px 20px;
 }
-.device-section:last-child {
-  border-bottom: none;
+
+.device-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed #E2E8F0;
 }
-.device-title {
-  margin: 0 0 15px 0;
-  color: #303133;
-  font-size: 15px;
+
+.device-header-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  min-width: 0;
+}
+
+.device-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #67C23A;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(103,194,58,.15);
+}
+
+.device-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device-code {
+  font-size: 12px;
+  color: #94A3B8;
+  font-family: 'SF Mono', 'Consolas', 'Menlo', monospace;
+  background: #F1F5F9;
+  padding: 2px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.device-point-count {
+  font-size: 12px;
+  color: #94A3B8;
+  flex-shrink: 0;
+}
+
+/* ---- Chart ---- */
+.chart-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+}
+
+.toolbar-left,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toolbar-section-label {
+  font-size: 12px;
+  color: #94A3B8;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+.chart-wrapper {
+  flex: 1;
+  min-height: 0;
+  background: #fff;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+}
+
+.chart-box {
+  width: 100%;
+  height: 420px;
 }
 </style>

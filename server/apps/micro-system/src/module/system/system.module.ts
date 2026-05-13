@@ -11,6 +11,7 @@ import { ToolModule } from './tool/tool.module';
 import { UserModule } from './user/user.module';
 import { BackupModule } from './backup/backup.module';
 import { DbUpdaterModule } from './db-updater/db-updater.module';
+import { HomeModule } from './home/home.module';
 
 @Global()
 @Module({
@@ -27,6 +28,7 @@ import { DbUpdaterModule } from './db-updater/db-updater.module';
     UserModule,
     BackupModule,
     DbUpdaterModule,
+    HomeModule,
   ],
 })
 export class SystemModule {}

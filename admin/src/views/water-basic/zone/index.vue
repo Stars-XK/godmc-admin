@@ -127,79 +127,114 @@
     </el-table>
 
     <!-- 添加或修改分区对话框 -->
-    <el-dialog :title="title" v-model="open" width="600px" append-to-body>
+    <el-dialog :title="title" v-model="open" width="700px" top="5vh" append-to-body class="equip-dialog" destroy-on-close>
+      <div class="dialog-scroll">
       <el-form ref="zoneRef" :model="form" :rules="rules" label-width="100px">
-        <el-row>
-          <el-col :span="24" v-if="form.parentId !== 0 && form.parentId !== '0'">
-            <el-form-item label="上级分区" prop="parentId">
-              <el-tree-select
-                v-model="form.parentId"
-                :data="zoneOptions"
-                :props="{ value: 'code', label: 'name', children: 'children' }"
-                value-key="code"
-                placeholder="选择上级分区"
-                check-strictly
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="分区名称" prop="name">
-              <el-input v-model="form.name" placeholder="请输入分区名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="分区编码" prop="code">
-              <el-input v-model="form.code" placeholder="请输入分区编码" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="覆盖面积" prop="area">
-              <el-input-number v-model="form.area" :min="0" :precision="2" controls-position="right" placeholder="面积(平方公里)" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="服务人口" prop="population">
-              <el-input-number v-model="form.population" :min="0" controls-position="right" placeholder="服务人口数" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="负责人" prop="managerName">
-              <el-input v-model="form.managerName" placeholder="请输入负责人姓名" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="联系电话" prop="managerPhone">
-              <el-input v-model="form.managerPhone" placeholder="请输入联系电话" maxlength="11" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="位置描述" prop="address">
-              <el-input v-model="form.address" placeholder="请输入位置描述" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="显示排序" prop="sort">
-              <el-input-number v-model="form.sort" controls-position="right" :min="0" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="分区状态" prop="status">
-              <el-radio-group v-model="form.status">
-                <el-radio
-                  v-for="dict in sys_normal_disable"
-                  :key="dict.value"
-                  :label="dict.value"
-                >{{ dict.label }}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-dot"></span>
+            <el-icon class="card-icon"><Document /></el-icon>
+            <span class="card-title">基本信息</span>
+          </div>
+          <div class="card-body">
+            <el-row :gutter="20">
+              <el-col :span="24" v-if="form.parentId !== 0 && form.parentId !== '0'">
+                <el-form-item label="上级分区" prop="parentId">
+                  <el-tree-select
+                    v-model="form.parentId"
+                    :data="zoneOptions"
+                    :props="{ value: 'code', label: 'name', children: 'children' }"
+                    value-key="code"
+                    placeholder="选择上级分区"
+                    check-strictly
+                    style="width: 100%"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="分区名称" prop="name">
+                  <el-input v-model="form.name" placeholder="请输入分区名称" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="分区编码" prop="code">
+                  <el-input v-model="form.code" placeholder="请输入分区编码" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-dot dot-purple"></span>
+            <el-icon class="card-icon"><Location /></el-icon>
+            <span class="card-title">分区属性</span>
+          </div>
+          <div class="card-body">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="覆盖面积" prop="area">
+                  <el-input-number v-model="form.area" :min="0" :precision="2" controls-position="right" placeholder="面积(平方公里)" style="width: 100%" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="服务人口" prop="population">
+                  <el-input-number v-model="form.population" :min="0" controls-position="right" placeholder="服务人口数" style="width: 100%" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="负责人" prop="managerName">
+                  <el-input v-model="form.managerName" placeholder="请输入负责人姓名" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="联系电话" prop="managerPhone">
+                  <el-input v-model="form.managerPhone" placeholder="请输入联系电话" maxlength="11" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="24">
+                <el-form-item label="位置描述" prop="address">
+                  <el-input v-model="form.address" placeholder="请输入位置描述" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-dot dot-green"></span>
+            <el-icon class="card-icon"><Setting /></el-icon>
+            <span class="card-title">其他设置</span>
+          </div>
+          <div class="card-body">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="显示排序" prop="sort">
+                  <el-input-number v-model="form.sort" controls-position="right" :min="0" style="width: 100%" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="分区状态" prop="status">
+                  <el-radio-group v-model="form.status">
+                    <el-radio
+                      v-for="dict in sys_normal_disable"
+                      :key="dict.value"
+                      :label="dict.value"
+                    >{{ dict.label }}</el-radio>
+                  </el-radio-group>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
       </el-form>
+      </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
           <el-button @click="cancel">取 消</el-button>
+          <el-button type="primary" @click="submitForm">确 定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -292,6 +327,7 @@ import ZoneBindDevice from './components/ZoneBindDevice.vue'
 import ZoneBindRevenue from './components/ZoneBindRevenue.vue'
 import GlobalBindImport from './components/GlobalBindImport.vue'
 import ZoneMetricConfig from './components/ZoneMetricConfig.vue'
+import { Document, Location, Setting } from '@element-plus/icons-vue'
 
 const globalImportVisible = ref(false)
 const globalImportType = ref('device')
@@ -633,4 +669,75 @@ onMounted(() => {
 .flex-table :deep(.el-table__expand-icon) {
   font-size: 14px;
 }
+
+/* ===== 卡片式表单对话框 ===== */
+:deep(.equip-dialog .el-dialog__header) {
+  background: linear-gradient(135deg, #f8fafc 0%, #ecf5ff 100%);
+  border-bottom: 1px solid #e4e7ed;
+  padding: 16px 24px;
+  margin: 0;
+}
+:deep(.equip-dialog .el-dialog__title) {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: 0.3px;
+}
+:deep(.equip-dialog .el-dialog__body) {
+  padding: 0;
+  background: #f8fafc;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(90vh - 110px);
+}
+:deep(.equip-dialog .el-dialog__footer) {
+  padding: 12px 24px;
+  border-top: 1px solid #f0f2f5;
+  background: #fff;
+}
+
+.dialog-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+}
+.dialog-scroll::-webkit-scrollbar { width: 5px; }
+.dialog-scroll::-webkit-scrollbar-thumb { background: #c0c4cc; border-radius: 3px; }
+.dialog-scroll::-webkit-scrollbar-track { background: transparent; }
+
+.form-card {
+  background: #fff;
+  border: 1px solid #e8ecf1;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  transition: box-shadow 0.2s;
+}
+.form-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  background: #fafbfc;
+  border-bottom: 1px solid #f0f2f5;
+  gap: 10px;
+}
+.card-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #409eff;
+  flex-shrink: 0;
+}
+.card-dot.dot-purple { background: #8b5cf6; }
+.card-dot.dot-green  { background: #10b981; }
+.card-dot.dot-orange { background: #f59e0b; }
+
+.card-icon { font-size: 16px; color: #64748b; }
+.card-title { font-size: 14px; font-weight: 600; color: #334155; }
+.card-body { padding: 18px 20px; }
 </style>

@@ -104,6 +104,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { Cpu, Grid, MapLocation, Setting, BellFilled, Connection, Tools, Monitor, Stamp } from '@element-plus/icons-vue'
+import request from '@/utils/request'
 
 const stats = ref({
   zoneCount: 0,
@@ -124,8 +125,17 @@ const services = ref([
   { name: '报警中心', port: '3008', online: true },
 ])
 
+function fetchStats() {
+  request({ url: '/system/home/stats', method: 'get' }).then(res => {
+    if (res.data) {
+      stats.value = res.data
+    }
+  }).catch(() => {})
+}
+
 onMounted(() => {
   document.title = '智慧水务 IoT 管理平台'
+  fetchStats()
 })
 </script>
 

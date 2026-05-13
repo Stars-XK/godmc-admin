@@ -1,11 +1,13 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, Res } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Res, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { RequirePermission } from '@app/common/decorators/require-premission.decorator';
 import { User } from '@app/common/decorators/user.decorator';
 import { RevenueUserService } from './revenue-user.service';
 import { Response } from 'express';
 
 @ApiTags('营收基础信息')
+@ApiBearerAuth()
 @Controller('water-basic/revenue-user')
 export class RevenueUserController {
   constructor(private readonly revenueUserService: RevenueUserService) {}
@@ -13,8 +15,8 @@ export class RevenueUserController {
   @ApiOperation({ summary: '查询营收用户列表' })
   @RequirePermission('water-basic:revenue:query')
   @Get('list')
-  list(@Query() query: any) {
-    return this.revenueUserService.findList(query);
+  list(@Query() query: any, @User() user: any) {
+    return this.revenueUserService.findList(query, user);
   }
 
   @ApiOperation({ summary: '获取营收用户详细信息' })
@@ -52,10 +54,33 @@ export class RevenueUserController {
     return this.revenueUserService.importBatch(dataList, user);
   }
 
+  @ApiOperation({ summary: '下载导入模板' })
+  @Post('importTemplate')
+  importTemplate(@Res() res: Response) {
+    return this.revenueUserService.importTemplate(res);
+  }
+
+  @ApiOperation({ summary: '导入营收用户数据(文件上传)' })
+  @RequirePermission('water-basic:revenue:import')
+  @Post('importData')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  importData(@UploadedFile() file: Express.Multer.File, @User() user: any) {
+    return this.revenueUserService.importData(file, user);
+  }
+
   @ApiOperation({ summary: '导出营收用户数据' })
   @RequirePermission('water-basic:revenue:export')
   @Post('export')
-  export(@Res() res: Response, @Body() query: any) {
-    return this.revenueUserService.export(res, query);
+  export(@Res() res: Response, @Body() query: any, @User() user: any) {
+    return this.revenueUserService.export(res, query, user);
   }
 }

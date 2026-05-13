@@ -4,7 +4,7 @@ import { RedisService } from '@app/shared';
 import { TdengineAggService } from './tdengine-agg.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { WaterZoneMetricCalcEntity } from '@app/common';
+import { WaterZoneMetricCalcEntity, SysConfigEntity } from '@app/common';
 
 @Injectable()
 export class TdengineAggScheduler {
@@ -12,16 +12,20 @@ export class TdengineAggScheduler {
   private readonly dirtySetKey = 'iot:agg:dirty:set';
   private readonly zoneDirtySetKey = 'iot:zone_agg:dirty:set';
   private readonly pointMetricCachePrefix = 'iot:zone_agg:cache:point_metrics:';
+  private builtInEnabled = true;
 
   constructor(
     private readonly redisService: RedisService,
     private readonly aggService: TdengineAggService,
     @InjectRepository(WaterZoneMetricCalcEntity)
     private readonly zoneMetricRep: Repository<WaterZoneMetricCalcEntity>,
+    @InjectRepository(SysConfigEntity)
+    private readonly sysConfigRep: Repository<SysConfigEntity>,
   ) {}
 
-  // @Cron(CronExpression.EVERY_MINUTE) // 已迁移至统一任务管理平台 (HTTP调用)
+  @Cron(CronExpression.EVERY_MINUTE)
   async processDirtyPoints() {
+    if (!await this.isBuiltInEnabled()) return;
     const redis = this.redisService.getClient();
     const members = await redis.smembers(this.dirtySetKey);
     if (!members || members.length === 0) return;
@@ -101,5 +105,13 @@ export class TdengineAggScheduler {
     } catch (error) {
       this.logger.error(`触发分区聚合联动失败: pointCode=${pointCode}`, error);
     }
+  }
+
+  private async isBuiltInEnabled(): Promise<boolean> {
+    try {
+      const conf = await this.sysConfigRep.findOne({ where: { configKey: 'scheduler.builtInEnabled' } });
+      if (conf && conf.configValue === 'false') return false;
+    } catch {}
+    return true;
   }
 }

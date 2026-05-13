@@ -101,89 +101,110 @@
     </el-row>
 
     <!-- 添加或修改用户配置对话框 -->
-    <el-dialog :title="title" v-model="open" width="600px" append-to-body>
+    <el-dialog :title="title" v-model="open" width="680px" append-to-body class="sys-dialog" top="5vh" destroy-on-close>
       <el-form :model="form" :rules="rules" ref="userRef" label-width="80px">
-        <el-row>
-          <el-col :span="12">
-            <el-form-item v-if="form.userId == undefined" label="用户账号" prop="userName">
-              <el-input v-model="form.userName" placeholder="请输入用户账号" maxlength="30" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item v-if="form.userId == undefined" label="用户密码" prop="password">
-              <el-input v-model="form.password" placeholder="请输入用户密码" type="password" maxlength="20" show-password />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="用户昵称" prop="nickName">
-              <el-input v-model="form.nickName" placeholder="请输入用户昵称" maxlength="30" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="归属部门" prop="deptId">
-              <el-tree-select v-model="form.deptId" :data="deptOptions" :props="{ value: 'id', label: 'label', children: 'children' }" value-key="id" placeholder="请选择归属部门" check-strictly />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="手机号码" prop="phonenumber">
-              <el-input v-model="form.phonenumber" placeholder="请输入手机号码" maxlength="11" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="邮箱" prop="email">
-              <el-input v-model="form.email" placeholder="请输入邮箱" maxlength="50" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="用户性别">
-              <el-select v-model="form.sex" placeholder="请选择">
-                <el-option v-for="dict in sys_user_sex" :key="dict.value" :label="dict.label" :value="dict.value"></el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="状态">
-              <el-radio-group v-model="form.status">
-                <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.value">{{ dict.label }}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="岗位">
-              <el-select v-model="form.postIds" multiple placeholder="请选择">
-                <el-option v-for="item in postOptions" :key="item.postId" :label="item.postName" :value="item.postId" :disabled="item.status == 1"></el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="角色">
-              <el-select v-model="form.roleIds" multiple placeholder="请选择">
-                <el-option v-for="item in roleOptions" :key="item.roleId" :label="item.roleName" :value="item.roleId" :disabled="item.status == 1"></el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <el-form-item label="备注">
-              <el-input v-model="form.remark" type="textarea" placeholder="请输入内容"></el-input>
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <div class="dialog-scroll">
+          <div class="form-card">
+            <div class="card-header">
+              <span class="card-dot"></span>
+              <el-icon class="card-icon"><Document /></el-icon>
+              <span class="card-title">基本信息</span>
+            </div>
+            <div class="card-body">
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="用户昵称" prop="nickName">
+                    <el-input v-model="form.nickName" placeholder="请输入用户昵称" maxlength="30" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="归属部门" prop="deptId">
+                    <el-tree-select v-model="form.deptId" :data="deptOptions" :props="{ value: 'id', label: 'label', children: 'children' }" value-key="id" placeholder="请选择归属部门" check-strictly />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="手机号码" prop="phonenumber">
+                    <el-input v-model="form.phonenumber" placeholder="请输入手机号码" maxlength="11" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="邮箱" prop="email">
+                    <el-input v-model="form.email" placeholder="请输入邮箱" maxlength="50" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="用户性别">
+                    <el-select v-model="form.sex" placeholder="请选择">
+                      <el-option v-for="dict in sys_user_sex" :key="dict.value" :label="dict.label" :value="dict.value"></el-option>
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
+          </div>
+          <div class="form-card">
+            <div class="card-header">
+              <span class="card-dot dot-green"></span>
+              <el-icon class="card-icon"><Setting /></el-icon>
+              <span class="card-title">其他设置</span>
+            </div>
+            <div class="card-body">
+              <el-row :gutter="20" v-if="form.userId == undefined">
+                <el-col :span="12">
+                  <el-form-item label="用户账号" prop="userName">
+                    <el-input v-model="form.userName" placeholder="请输入用户账号" maxlength="30" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="用户密码" prop="password">
+                    <el-input v-model="form.password" placeholder="请输入用户密码" type="password" maxlength="20" show-password />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="岗位">
+                    <el-select v-model="form.postIds" multiple placeholder="请选择">
+                      <el-option v-for="item in postOptions" :key="item.postId" :label="item.postName" :value="item.postId" :disabled="item.status == 1"></el-option>
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="角色">
+                    <el-select v-model="form.roleIds" multiple placeholder="请选择">
+                      <el-option v-for="item in roleOptions" :key="item.roleId" :label="item.roleName" :value="item.roleId" :disabled="item.status == 1"></el-option>
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="状态">
+                    <el-radio-group v-model="form.status">
+                      <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.value">{{ dict.label }}</el-radio>
+                    </el-radio-group>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="20">
+                <el-col :span="24">
+                  <el-form-item label="备注">
+                    <el-input v-model="form.remark" type="textarea" placeholder="请输入内容"></el-input>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
+          </div>
+        </div>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
           <el-button @click="cancel">取 消</el-button>
+          <el-button type="primary" @click="submitForm">确 定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -231,6 +252,7 @@
 <script setup name="User">
 import { getToken } from '@/utils/auth'
 import { changeUserStatus, listUser, resetUserPwd, delUser, getUser, updateUser, addUser, deptTreeSelect } from '@/api/system/user'
+import { Document, Setting } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const { proxy } = getCurrentInstance()
@@ -525,3 +547,75 @@ function submitForm() {
 getDeptTree()
 getList()
 </script>
+
+<style scoped>
+/* ===== 卡片式表单对话框 ===== */
+:deep(.sys-dialog .el-dialog__header) {
+  background: linear-gradient(135deg, #f8fafc 0%, #ecf5ff 100%);
+  border-bottom: 1px solid #e4e7ed;
+  padding: 16px 24px;
+  margin: 0;
+}
+:deep(.sys-dialog .el-dialog__title) {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: 0.3px;
+}
+:deep(.sys-dialog .el-dialog__body) {
+  padding: 0;
+  background: #f8fafc;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(90vh - 110px);
+}
+:deep(.sys-dialog .el-dialog__footer) {
+  padding: 12px 24px;
+  border-top: 1px solid #f0f2f5;
+  background: #fff;
+}
+
+.dialog-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+}
+.dialog-scroll::-webkit-scrollbar { width: 5px; }
+.dialog-scroll::-webkit-scrollbar-thumb { background: #c0c4cc; border-radius: 3px; }
+.dialog-scroll::-webkit-scrollbar-track { background: transparent; }
+
+.form-card {
+  background: #fff;
+  border: 1px solid #e8ecf1;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  transition: box-shadow 0.2s;
+}
+.form-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  background: #fafbfc;
+  border-bottom: 1px solid #f0f2f5;
+  gap: 10px;
+}
+.card-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #409eff;
+  flex-shrink: 0;
+}
+.card-dot.dot-purple { background: #8b5cf6; }
+.card-dot.dot-green  { background: #10b981; }
+
+.card-icon { font-size: 16px; color: #64748b; }
+.card-title { font-size: 14px; font-weight: 600; color: #334155; }
+.card-body { padding: 18px 20px; }
+</style>

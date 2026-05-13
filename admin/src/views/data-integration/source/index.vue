@@ -25,35 +25,62 @@
     </el-table>
 
     <!-- 添加或修改数据源对话框 -->
-    <el-dialog :title="title" v-model="open" width="500px" append-to-body>
+    <el-dialog :title="title" v-model="open" width="650px" top="5vh" append-to-body class="ds-dialog" destroy-on-close>
+      <div class="dialog-scroll">
       <el-form ref="sourceRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="数据源名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入数据源名称" />
-        </el-form-item>
-        <el-form-item label="数据源类型" prop="type">
-          <el-select v-model="form.type" placeholder="请选择数据源类型" style="width: 100%" @change="handleTypeChange">
-            <el-option label="HTTP" value="HTTP" />
-            <el-option label="MYSQL" value="MYSQL" />
-            <el-option label="POSTGRESQL" value="POSTGRESQL" />
-            <el-option label="KAFKA" value="KAFKA" />
-            <el-option label="FILE" value="FILE" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="连接字符串" prop="connectionStr">
-          <el-input v-model="form.connectionStr" type="textarea" :placeholder="getConnectionPlaceholder(form.type)" />
-        </el-form-item>
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="form.username" placeholder="请输入用户名" />
-        </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="form.password" type="password" placeholder="请输入密码" show-password />
-        </el-form-item>
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-dot"></span>
+            <el-icon class="card-icon"><Document /></el-icon>
+            <span class="card-title">基本信息</span>
+          </div>
+          <div class="card-body">
+            <el-form-item label="数据源名称" prop="name">
+              <el-input v-model="form.name" placeholder="请输入数据源名称" />
+            </el-form-item>
+            <el-form-item label="数据源类型" prop="type">
+              <el-select v-model="form.type" placeholder="请选择数据源类型" style="width: 100%" @change="handleTypeChange">
+                <el-option label="HTTP" value="HTTP" />
+                <el-option label="MYSQL" value="MYSQL" />
+                <el-option label="POSTGRESQL" value="POSTGRESQL" />
+                <el-option label="KAFKA" value="KAFKA" />
+                <el-option label="FILE" value="FILE" />
+              </el-select>
+            </el-form-item>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-dot dot-purple"></span>
+            <el-icon class="card-icon"><Connection /></el-icon>
+            <span class="card-title">连接信息</span>
+          </div>
+          <div class="card-body">
+            <el-form-item label="连接字符串" prop="connectionStr">
+              <el-input v-model="form.connectionStr" type="textarea" :rows="3" :placeholder="getConnectionPlaceholder(form.type)" />
+            </el-form-item>
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="用户名" prop="username">
+                  <el-input v-model="form.username" placeholder="请输入用户名" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="密码" prop="password">
+                  <el-input v-model="form.password" type="password" placeholder="请输入密码" show-password />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
       </el-form>
+      </div>
       <template #footer>
         <div class="dialog-footer">
+          <el-button @click="cancel">取 消</el-button>
           <el-button type="success" @click="handleTestConnection" :loading="testing" icon="Connection">测试连接</el-button>
           <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
         </div>
       </template>
     </el-dialog>
@@ -64,7 +91,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { listSource, addSource, updateSource, delSource, testSourceConnection } from '@/api/data-integration/config';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Connection } from '@element-plus/icons-vue';
+import { Connection, Document } from '@element-plus/icons-vue';
 
 const sourceList = ref([]);
 const open = ref(false);
@@ -216,3 +243,67 @@ onMounted(() => {
   getList();
 });
 </script>
+
+<style scoped>
+:deep(.ds-dialog .el-dialog__header) {
+  background: linear-gradient(135deg, #f8fafc 0%, #ecf5ff 100%);
+  border-bottom: 1px solid #e4e7ed;
+  padding: 16px 24px;
+  margin: 0;
+}
+:deep(.ds-dialog .el-dialog__title) {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: 0.3px;
+}
+:deep(.ds-dialog .el-dialog__body) {
+  padding: 0;
+  background: #f8fafc;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(90vh - 110px);
+}
+:deep(.ds-dialog .el-dialog__footer) {
+  padding: 12px 24px;
+  border-top: 1px solid #f0f2f5;
+  background: #fff;
+}
+
+.dialog-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+}
+.dialog-scroll::-webkit-scrollbar { width: 5px; }
+.dialog-scroll::-webkit-scrollbar-thumb { background: #c0c4cc; border-radius: 3px; }
+.dialog-scroll::-webkit-scrollbar-track { background: transparent; }
+
+.form-card {
+  background: #fff;
+  border: 1px solid #e8ecf1;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  transition: box-shadow 0.2s;
+}
+.form-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  background: #fafbfc;
+  border-bottom: 1px solid #f0f2f5;
+  gap: 10px;
+}
+.card-dot { width: 8px; height: 8px; border-radius: 50%; background: #409eff; flex-shrink: 0; }
+.card-dot.dot-purple { background: #8b5cf6; }
+
+.card-icon { font-size: 16px; color: #64748b; }
+.card-title { font-size: 14px; font-weight: 600; color: #334155; }
+.card-body { padding: 18px 20px; }
+</style>

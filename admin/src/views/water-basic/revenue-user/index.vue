@@ -94,101 +94,148 @@
     <pagination v-show="total>0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
 
     <!-- 添加或修改对话框 -->
-    <el-dialog :title="title" v-model="open" width="700px" append-to-body>
+    <el-dialog :title="title" v-model="open" width="780px" top="5vh" append-to-body class="equip-dialog" destroy-on-close>
+      <div class="dialog-scroll">
       <el-form ref="userRef" :model="form" :rules="rules" label-width="100px">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="用户编号" prop="userNo">
-              <el-input v-model="form.userNo" placeholder="请输入用户编号" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="用户名称" prop="userName">
-              <el-input v-model="form.userName" placeholder="请输入用户名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="证件号码" prop="idCard">
-              <el-input v-model="form.idCard" placeholder="请输入身份证或信用代码" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="合同编号" prop="contractNo">
-              <el-input v-model="form.contractNo" placeholder="请输入合同编号" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="手机号" prop="phone">
-              <el-input v-model="form.phone" placeholder="请输入手机号" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="水表编号" prop="meterNo">
-              <el-input v-model="form.meterNo" placeholder="请输入水表编号" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="水卡分类" prop="cardCategory">
-              <el-select v-model="form.cardCategory" placeholder="请选择水卡分类" style="width: 100%;">
-                <el-option v-for="dict in water_card_category" :key="dict.value" :label="dict.label" :value="dict.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="用户分类" prop="userCategory">
-              <el-select v-model="form.userCategory" placeholder="请选择用户分类" style="width: 100%;">
-                <el-option v-for="dict in water_user_category" :key="dict.value" :label="dict.label" :value="dict.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="表册编号" prop="bookNo">
-              <el-input v-model="form.bookNo" placeholder="请输入表册编号" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="口径" prop="caliber">
-              <el-input v-model="form.caliber" placeholder="请输入水表口径" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="账户余额" prop="balance">
-              <el-input-number v-model="form.balance" :precision="2" :step="1" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="立户日期" prop="installDate">
-              <el-date-picker clearable v-model="form.installDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择日期" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="欠费金额" prop="arrearsAmount">
-              <el-input-number v-model="form.arrearsAmount" :precision="2" :step="1" :min="0" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="用户状态" prop="status">
-              <el-radio-group v-model="form.status">
-                <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.value">{{dict.label}}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="详细地址" prop="address">
-              <el-input v-model="form.address" type="textarea" placeholder="请输入用户地址" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="备注信息" prop="remark">
-              <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-dot"></span>
+            <el-icon class="card-icon"><Document /></el-icon>
+            <span class="card-title">基本信息</span>
+          </div>
+          <div class="card-body">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="用户编号" prop="userNo">
+                  <el-input v-model="form.userNo" placeholder="请输入用户编号" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="用户名称" prop="userName">
+                  <el-input v-model="form.userName" placeholder="请输入用户名称" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="证件号码" prop="idCard">
+                  <el-input v-model="form.idCard" placeholder="请输入身份证或信用代码" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="合同编号" prop="contractNo">
+                  <el-input v-model="form.contractNo" placeholder="请输入合同编号" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="手机号" prop="phone">
+                  <el-input v-model="form.phone" placeholder="请输入手机号" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-dot dot-purple"></span>
+            <el-icon class="card-icon"><Odometer /></el-icon>
+            <span class="card-title">水表信息</span>
+          </div>
+          <div class="card-body">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="水表编号" prop="meterNo">
+                  <el-input v-model="form.meterNo" placeholder="请输入水表编号" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="水卡分类" prop="cardCategory">
+                  <el-select v-model="form.cardCategory" placeholder="请选择水卡分类" style="width: 100%;">
+                    <el-option v-for="dict in water_card_category" :key="dict.value" :label="dict.label" :value="dict.value" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="用户分类" prop="userCategory">
+                  <el-select v-model="form.userCategory" placeholder="请选择用户分类" style="width: 100%;">
+                    <el-option v-for="dict in water_user_category" :key="dict.value" :label="dict.label" :value="dict.value" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="表册编号" prop="bookNo">
+                  <el-input v-model="form.bookNo" placeholder="请输入表册编号" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="口径" prop="caliber">
+                  <el-input v-model="form.caliber" placeholder="请输入水表口径" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-dot dot-green"></span>
+            <el-icon class="card-icon"><Money /></el-icon>
+            <span class="card-title">账户信息</span>
+          </div>
+          <div class="card-body">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="账户余额" prop="balance">
+                  <el-input-number v-model="form.balance" :precision="2" :step="1" style="width: 100%" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="立户日期" prop="installDate">
+                  <el-date-picker clearable v-model="form.installDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择日期" style="width: 100%" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="欠费金额" prop="arrearsAmount">
+                  <el-input-number v-model="form.arrearsAmount" :precision="2" :step="1" :min="0" style="width: 100%" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="用户状态" prop="status">
+                  <el-radio-group v-model="form.status">
+                    <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.value">{{dict.label}}</el-radio>
+                  </el-radio-group>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-dot dot-orange"></span>
+            <el-icon class="card-icon"><Setting /></el-icon>
+            <span class="card-title">其他信息</span>
+          </div>
+          <div class="card-body">
+            <el-row :gutter="20">
+              <el-col :span="24">
+                <el-form-item label="详细地址" prop="address">
+                  <el-input v-model="form.address" type="textarea" placeholder="请输入用户地址" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="24">
+                <el-form-item label="备注信息" prop="remark">
+                  <el-input v-model="form.remark" type="textarea" placeholder="请输入内容" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
       </el-form>
+      </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
           <el-button @click="cancel">取 消</el-button>
+          <el-button type="primary" @click="submitForm">确 定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -234,6 +281,7 @@
 import { ref, reactive, toRefs, onMounted, getCurrentInstance } from 'vue'
 import { listRevenueUser, getRevenueUser, delRevenueUser, addRevenueUser, updateRevenueUser, importRevenueUserBatch } from '@/api/water-basic/revenue-user'
 import * as XLSX from 'xlsx'
+import { Document, Odometer, Money, Setting } from '@element-plus/icons-vue'
 
 const { proxy } = getCurrentInstance()
 const { sys_normal_disable, water_card_category, water_user_category } = proxy.useDict('sys_normal_disable', 'water_card_category', 'water_user_category')
@@ -622,4 +670,75 @@ onMounted(() => {
   0% { transform: scale(0.8); opacity: 0.8; }
   100% { transform: scale(1.5); opacity: 0; }
 }
+
+/* ===== 卡片式表单对话框 ===== */
+:deep(.equip-dialog .el-dialog__header) {
+  background: linear-gradient(135deg, #f8fafc 0%, #ecf5ff 100%);
+  border-bottom: 1px solid #e4e7ed;
+  padding: 16px 24px;
+  margin: 0;
+}
+:deep(.equip-dialog .el-dialog__title) {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: 0.3px;
+}
+:deep(.equip-dialog .el-dialog__body) {
+  padding: 0;
+  background: #f8fafc;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(90vh - 110px);
+}
+:deep(.equip-dialog .el-dialog__footer) {
+  padding: 12px 24px;
+  border-top: 1px solid #f0f2f5;
+  background: #fff;
+}
+
+.dialog-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+}
+.dialog-scroll::-webkit-scrollbar { width: 5px; }
+.dialog-scroll::-webkit-scrollbar-thumb { background: #c0c4cc; border-radius: 3px; }
+.dialog-scroll::-webkit-scrollbar-track { background: transparent; }
+
+.form-card {
+  background: #fff;
+  border: 1px solid #e8ecf1;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  transition: box-shadow 0.2s;
+}
+.form-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  background: #fafbfc;
+  border-bottom: 1px solid #f0f2f5;
+  gap: 10px;
+}
+.card-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #409eff;
+  flex-shrink: 0;
+}
+.card-dot.dot-purple { background: #8b5cf6; }
+.card-dot.dot-green  { background: #10b981; }
+.card-dot.dot-orange { background: #f59e0b; }
+
+.card-icon { font-size: 16px; color: #64748b; }
+.card-title { font-size: 14px; font-weight: 600; color: #334155; }
+.card-body { padding: 18px 20px; }
 </style>

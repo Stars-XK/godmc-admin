@@ -18,6 +18,14 @@ export class SysAlarmRuleEntity {
   @Column({ type: 'varchar', name: 'rule_type', length: 2, default: '1', comment: '规则类型(1-设备 2-分区 3-系统)' })
   public ruleType: string;
 
+  @ApiProperty({ type: String, description: '作用域类型: device(指定设备)/zone(指定分区)/all_devices(全部设备)/all_zones(全部分区)/device_group(设备组)' })
+  @Column({ type: 'varchar', name: 'scope_type', length: 20, default: 'device', comment: '作用域类型' })
+  public scopeType: string;
+
+  @ApiProperty({ type: String, description: '作用域值: 设备/分区编码列表(逗号分隔) 或 组名. 当scope_type为all_*时可为空' })
+  @Column({ type: 'text', name: 'scope_value', nullable: true, comment: '作用域值' })
+  public scopeValue: string;
+
   @ApiProperty({ type: Object, description: '条件JSON' })
   @Column({ type: 'json', name: 'rule_conditions', comment: '条件JSON' })
   public ruleConditions: any;

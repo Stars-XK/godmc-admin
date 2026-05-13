@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { SysConfigEntity } from '@app/common/entities/config.entity';
 import { WaterPointEntity } from '@app/common/entities/water-basic/water-point.entity';
 import { WaterDeviceEntity } from '@app/common/entities/water-basic/water-device.entity';
+import { SysAlarmHistoryEntity } from '@app/common/entities/alarm/sys-alarm-history.entity';
 import dayjs = require('dayjs');
 
 @Injectable()
@@ -19,6 +20,8 @@ export class QueryService {
     private readonly waterPointRep: Repository<WaterPointEntity>,
     @InjectRepository(WaterDeviceEntity)
     private readonly waterDeviceRep: Repository<WaterDeviceEntity>,
+    @InjectRepository(SysAlarmHistoryEntity)
+    private readonly alarmHistoryRep: Repository<SysAlarmHistoryEntity>,
   ) {}
 
   /**
@@ -433,5 +436,41 @@ export class QueryService {
     const result = Array.from(pointDict.values()).filter(p => p.val !== null);
     // 按时间倒序或设备排序
     return result;
+  }
+
+  /**
+   * 获取分区下的活跃报警数据
+   */
+  async getZoneAlarms(zoneCode: string) {
+    if (!zoneCode) return [];
+
+    // 查找分区下的所有设备
+    const devices = await this.waterDeviceRep.find({
+      where: { zoneCode, delFlag: '0' },
+      select: ['code']
+    });
+    const deviceCodes = devices.map(d => d.code);
+
+    // 构建 alarmSource 匹配列表：分区编码 + 所有设备编码
+    const sourcePatterns = [zoneCode, ...deviceCodes];
+
+    // 查询未处理的活跃报警（状态为 '0' 未处理）
+    const alarms = await this.alarmHistoryRep.createQueryBuilder('a')
+      .where('a.alarmSource IN (:...sources)', { sources: sourcePatterns })
+      .andWhere("a.status = '0'")
+      .orderBy('a.alarmTime', 'DESC')
+      .limit(200)
+      .getMany();
+
+    return alarms.map(a => ({
+      alarmId: a.alarmId,
+      ruleId: a.ruleId,
+      ruleName: a.ruleName,
+      alarmLevel: a.alarmLevel,
+      alarmContent: a.alarmContent,
+      alarmTime: a.alarmTime,
+      alarmSource: a.alarmSource,
+      status: a.status,
+    }));
   }
 }

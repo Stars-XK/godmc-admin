@@ -1,19 +1,14 @@
 import { Controller, Get, Query, Logger, Post } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { ReportService } from './report.service';
-import { TdengineService } from '../tdengine/tdengine.service';
 import { ResultData, NotRequireAuth } from '@app/common';
-import dayjs from 'dayjs';
 
 @ApiTags('产销差报表聚合查询')
 @Controller('report')
 export class ReportController {
   private readonly logger = new Logger(ReportController.name);
 
-  constructor(
-    private readonly reportService: ReportService,
-    private readonly tdengineService: TdengineService,
-  ) {}
+  constructor(private readonly reportService: ReportService) {}
 
   @ApiOperation({ summary: '手动触发产销差日聚合任务(或由系统任务触发)' })
   @Post('trigger-daily-agg')
@@ -68,74 +63,21 @@ export class ReportController {
     if (!zoneCode || !startDate || !endDate || !type) {
       return ResultData.fail(500, '缺少必要参数');
     }
+    return this.reportService.getNrwTrend(zoneCode, startDate, endDate, type);
+  }
 
-    const supplySql = `
-      SELECT ts, total_val 
-      FROM water_iot.zone_meters_${type} 
-      WHERE metric_type = 'water_supply' 
-        AND ts >= '${startDate} 00:00:00' 
-        AND ts <= '${endDate} 23:59:59' 
-        AND zone_code = '${zoneCode}' 
-      ORDER BY ts ASC
-    `;
-
-    const salesSql = `
-      SELECT ts, total_val 
-      FROM water_iot.zone_revenue_${type} 
-      WHERE metric_type = 'water_sales' 
-        AND ts >= '${startDate} 00:00:00' 
-        AND ts <= '${endDate} 23:59:59' 
-        AND zone_code = '${zoneCode}' 
-      ORDER BY ts ASC
-    `;
-
-    try {
-      const [supplyRes, salesRes] = await Promise.all([
-        this.tdengineService.querySql(supplySql),
-        this.tdengineService.querySql(salesSql)
-      ]);
-
-      const supplyMap = new Map<string, number>();
-      if (supplyRes && supplyRes.data) {
-        supplyRes.data.forEach(row => {
-          const tsStr = dayjs(row[0]).format(type === '1d' ? 'YYYY-MM-DD' : 'YYYY-MM');
-          supplyMap.set(tsStr, row[1]);
-        });
-      }
-
-      const salesMap = new Map<string, number>();
-      if (salesRes && salesRes.data) {
-        salesRes.data.forEach(row => {
-          const tsStr = dayjs(row[0]).format(type === '1d' ? 'YYYY-MM-DD' : 'YYYY-MM');
-          salesMap.set(tsStr, row[1]);
-        });
-      }
-
-      const result = [];
-      const days = dayjs(endDate).diff(dayjs(startDate), type === '1d' ? 'day' : 'month') + 1;
-      
-      for (let i = 0; i < days; i++) {
-        const d = dayjs(startDate).add(i, type === '1d' ? 'day' : 'month');
-        const tsStr = d.format(type === '1d' ? 'YYYY-MM-DD' : 'YYYY-MM');
-        
-        const supply = supplyMap.get(tsStr) || 0;
-        const sales = salesMap.get(tsStr) || 0;
-        const diff = Number((supply - sales).toFixed(3));
-        const ratio = supply > 0 ? Number(((diff / supply) * 100).toFixed(2)) : 0; 
-
-        result.push({
-          date: tsStr,
-          supply: supply,
-          sales: sales,
-          nrw_diff: diff,   
-          nrw_ratio: ratio  
-        });
-      }
-
-      return ResultData.ok(result);
-    } catch (e) {
-      this.logger.error('查询产销差报表失败', e);
-      return ResultData.fail(500, e.message);
+  @ApiOperation({ summary: '获取分区产销差报表树（含所有节点数据，一次返回，替代前端N+1递归调用）' })
+  @ApiQuery({ name: 'date', required: true, description: '目标日期(YYYY-MM-DD)或月份(YYYY-MM)' })
+  @ApiQuery({ name: 'type', required: true, description: '报表类型: 1d(日) / 1mo(月)' })
+  @Get('tree-summary')
+  @NotRequireAuth()
+  async getTreeSummary(
+    @Query('date') date: string,
+    @Query('type') type: '1d' | '1mo'
+  ) {
+    if (!date || !type) {
+      return ResultData.fail(500, '必须提供 date 和 type');
     }
+    return this.reportService.getTreeSummary(date, type);
   }
 }

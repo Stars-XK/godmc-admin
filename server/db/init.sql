@@ -398,6 +398,13 @@ INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (163, 4, '提示', '4', 'sys_alarm_level', '', 'info', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '提示', '0');
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (164, 1, '未处理', '0', 'sys_alarm_status', '', 'danger', 'Y', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '未处理', '0');
 INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (165, 2, '已处理', '1', 'sys_alarm_status', '', 'success', 'N', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '已处理', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (166, 1, '供水管', 'WATER_SUPPLY', 'water_pipe_type', '', 'primary', 'Y', '0', 'admin', NOW(), '', NULL, '供水管线', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (167, 2, '排水管', 'DRAINAGE', 'water_pipe_type', '', 'success', 'N', '0', 'admin', NOW(), '', NULL, '排水管线', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (168, 3, '污水管', 'SEWAGE', 'water_pipe_type', '', 'warning', 'N', '0', 'admin', NOW(), '', NULL, '污水管线', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (169, 4, '回用水管', 'RECLAIMED', 'water_pipe_type', '', 'info', 'N', '0', 'admin', NOW(), '', NULL, '回用水管线', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (170, 1, '未缴', '0', 'water_bill_status', '', 'danger', 'Y', '0', 'admin', NOW(), '', NULL, '未缴纳', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (171, 2, '部分缴纳', '1', 'water_bill_status', '', 'warning', 'N', '0', 'admin', NOW(), '', NULL, '部分已缴', '0');
+INSERT INTO `sys_dict_data` (`dict_code`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (172, 3, '已缴清', '2', 'water_bill_status', '', 'success', 'N', '0', 'admin', NOW(), '', NULL, '已全部缴纳', '0');
 COMMIT;
 
 
@@ -419,7 +426,7 @@ CREATE TABLE `sys_dict_type` (
   `del_flag` char(1) NOT NULL DEFAULT '0' COMMENT '删除标志',
   PRIMARY KEY (`dict_id`),
   UNIQUE KEY `IDX_f4e4273658733a3bbe6a2479bf` (`dict_type`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 字典类型表】字典类型表';
+) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 字典类型表】字典类型表';
 
 -- ----------------------------
 -- Records of sys_dict_type
@@ -445,6 +452,8 @@ INSERT INTO `sys_dict_type` (`dict_id`, `dict_name`, `dict_type`, `status`, `cre
 INSERT INTO `sys_dict_type` (`dict_id`, `dict_name`, `dict_type`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (18, '报警规则类型', 'sys_alarm_rule_type', '0', 'admin','2025-02-28 16:52:10.000000', '', NULL, '报警规则类型列表', '0');
 INSERT INTO `sys_dict_type` (`dict_id`, `dict_name`, `dict_type`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (19, '报警级别', 'sys_alarm_level', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '报警级别列表', '0');
 INSERT INTO `sys_dict_type` (`dict_id`, `dict_name`, `dict_type`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (20, '报警处理状态', 'sys_alarm_status', '0', 'admin', '2025-02-28 16:52:10.000000', '', NULL, '报警处理状态列表', '0');
+INSERT INTO `sys_dict_type` (`dict_id`, `dict_name`, `dict_type`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (21, '管线类型', 'water_pipe_type', '0', 'admin', NOW(), '', NULL, '智慧水务-管线类型', '0');
+INSERT INTO `sys_dict_type` (`dict_id`, `dict_name`, `dict_type`, `status`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (22, '账单状态', 'water_bill_status', '0', 'admin', NOW(), '', NULL, '智慧水务-水费账单状态', '0');
 COMMIT; -- 【系统管理模块 - 字典类型表】
 
 -- ----------------------------
@@ -729,6 +738,21 @@ INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`
 INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1119, '报警处理', 1113, 2, '', '', '', '1', '0', 'F', '0', '0', 'alarm:history:resolve', '#', 'admin', '2026-04-24 10:00:00.000000', '', NULL, '', '0');
 -- 综合水务GIS大屏监控
 INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1120, 'GIS大屏监控', 0, 6, 'gis/screen', 'gis/screen/index', '', '1', '0', 'C', '0', '0', 'gis:screen:view', 'monitor', 'admin', '2026-04-26 10:00:00.000000', '', NULL, '全屏GIS大屏监控', '0');
+-- 水费账单管理菜单
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1121, '水费账单', 119, 4, 'billing', 'water-basic/billing/index', '', '1', '0', 'C', '0', '0', 'water-basic:billing:list', 'money', 'admin', NOW(), '', NULL, '水费账单管理', '0');
+-- 水费账单按钮权限
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1122, '账单查询', 1121, 1, '', '', '', '1', '0', 'F', '0', '0', 'water-basic:billing:query', '#', 'admin', NOW(), '', NULL, '', '0');
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1123, '账单新增', 1121, 2, '', '', '', '1', '0', 'F', '0', '0', 'water-basic:billing:add', '#', 'admin', NOW(), '', NULL, '', '0');
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1124, '账单修改', 1121, 3, '', '', '', '1', '0', 'F', '0', '0', 'water-basic:billing:edit', '#', 'admin', NOW(), '', NULL, '', '0');
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1125, '账单删除', 1121, 4, '', '', '', '1', '0', 'F', '0', '0', 'water-basic:billing:remove', '#', 'admin', NOW(), '', NULL, '', '0');
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1126, '账单导出', 1121, 5, '', '', '', '1', '0', 'F', '0', '0', 'water-basic:billing:export', '#', 'admin', NOW(), '', NULL, '', '0');
+-- 管网管线按钮权限（挂在物联台账 122 下）
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1127, '管线查询', 122, 19, '', '', '', '1', '0', 'F', '0', '0', 'water-basic:pipe:query', '#', 'admin', NOW(), '', NULL, '', '0');
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1128, '管线新增', 122, 20, '', '', '', '1', '0', 'F', '0', '0', 'water-basic:pipe:add', '#', 'admin', NOW(), '', NULL, '', '0');
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1129, '管线修改', 122, 21, '', '', '', '1', '0', 'F', '0', '0', 'water-basic:pipe:edit', '#', 'admin', NOW(), '', NULL, '', '0');
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1130, '管线删除', 122, 22, '', '', '', '1', '0', 'F', '0', '0', 'water-basic:pipe:remove', '#', 'admin', NOW(), '', NULL, '', '0');
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1131, '管线导出', 122, 23, '', '', '', '1', '0', 'F', '0', '0', 'water-basic:pipe:export', '#', 'admin', NOW(), '', NULL, '', '0');
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1132, '管线导入', 122, 24, '', '', '', '1', '0', 'F', '0', '0', 'water-basic:pipe:import', '#', 'admin', NOW(), '', NULL, '', '0');
 
 COMMIT; -- 【系统管理模块 - 菜单表】
 
@@ -1258,6 +1282,66 @@ CREATE TABLE IF NOT EXISTS `water_point` (
 COMMIT; -- 【水务基础模块 - 测点信息表】
 
 -- ----------------------------
+-- Table structure for water_pipe
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS `water_pipe` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '管线ID',
+  `name` varchar(100) NOT NULL COMMENT '管线名称',
+  `code` varchar(50) NOT NULL COMMENT '管线编码',
+  `pipe_type` varchar(20) DEFAULT 'WATER_SUPPLY' COMMENT '管线类型(供水/排水/污水等)',
+  `material` varchar(20) DEFAULT NULL COMMENT '管材(PVC/PE/铸铁/钢管等)',
+  `diameter` decimal(10,2) DEFAULT NULL COMMENT '管径(mm)',
+  `length` decimal(10,2) DEFAULT NULL COMMENT '管线长度(m)',
+  `start_node` varchar(100) DEFAULT NULL COMMENT '起点节点名称',
+  `end_node` varchar(100) DEFAULT NULL COMMENT '终点节点名称',
+  `burial_depth` decimal(5,2) DEFAULT NULL COMMENT '埋深(m)',
+  `install_date` datetime DEFAULT NULL COMMENT '铺设日期',
+  `coordinates` text DEFAULT NULL COMMENT '管线路径坐标(JSON数组)',
+  `zone_code` varchar(50) DEFAULT NULL COMMENT '所属分区编码',
+  `construction_unit` varchar(100) DEFAULT NULL COMMENT '施工单位',
+  `sort` int DEFAULT 0 COMMENT '排序',
+  `status` char(1) DEFAULT '0' COMMENT '状态（0正常 1停用）',
+  `del_flag` char(1) DEFAULT '0' COMMENT '删除标志（0代表存在 1代表删除）',
+  `dept_id` bigint(20) DEFAULT NULL COMMENT '部门ID',
+  `user_id` bigint(20) DEFAULT NULL COMMENT '用户ID',
+  `create_by` varchar(64) DEFAULT '' COMMENT '创建者',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `update_by` varchar(64) DEFAULT '' COMMENT '更新者',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='【水务基础模块 - 管网管线表】管网管线信息表';
+COMMIT; -- 【水务基础模块 - 管网管线表】
+
+-- ----------------------------
+-- Table structure for water_bill
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS `water_bill` (
+  `bill_id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '账单ID',
+  `user_no` varchar(50) NOT NULL COMMENT '用户编号',
+  `zone_code` varchar(50) DEFAULT NULL COMMENT '所属分区编码',
+  `bill_period` varchar(7) NOT NULL COMMENT '账单周期(YYYY-MM)',
+  `water_usage` decimal(12,3) DEFAULT 0 COMMENT '用水量(m³)',
+  `unit_price` decimal(10,4) DEFAULT 0 COMMENT '单价(元/m³)',
+  `total_amount` decimal(12,2) DEFAULT 0 COMMENT '账单总金额(元)',
+  `paid_amount` decimal(12,2) DEFAULT 0 COMMENT '已缴金额(元)',
+  `unpaid_amount` decimal(12,2) DEFAULT 0 COMMENT '未缴金额(元)',
+  `status` char(1) DEFAULT '0' COMMENT '状态（0正常 1停用）',
+  `bill_status` char(1) DEFAULT '0' COMMENT '账单状态（0未缴 1部分 2已缴）',
+  `generate_time` datetime DEFAULT NULL COMMENT '账单生成时间',
+  `pay_time` datetime DEFAULT NULL COMMENT '最后缴费时间',
+  `del_flag` char(1) DEFAULT '0' COMMENT '删除标志',
+  `dept_id` bigint(20) DEFAULT NULL COMMENT '部门ID',
+  `create_by` varchar(64) DEFAULT '' COMMENT '创建者',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `update_by` varchar(64) DEFAULT '' COMMENT '更新者',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (`bill_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='【水务基础模块 - 水费账单表】水费账单信息表';
+COMMIT; -- 【水务基础模块 - 水费账单表】
+
+-- ----------------------------
 -- Table structure for scada_revenue_user
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS `scada_revenue_user` (
@@ -1281,6 +1365,7 @@ CREATE TABLE IF NOT EXISTS `scada_revenue_user` (
   `arrears_amount` decimal(10,2) DEFAULT '0.00' COMMENT '欠费金额',
   `balance` decimal(10,2) DEFAULT '0.00' COMMENT '账户余额',
   `associated_user_id` bigint(20) DEFAULT NULL COMMENT '关联系统用户ID',
+  `dept_id` bigint(20) DEFAULT NULL COMMENT '部门ID',
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   `create_by` varchar(64) DEFAULT '' COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
@@ -1372,6 +1457,8 @@ CREATE TABLE IF NOT EXISTS `sys_alarm_rule` (
   `rule_id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '规则ID',
   `rule_name` varchar(100) NOT NULL COMMENT '规则名称',
   `rule_type` varchar(2) DEFAULT '1' COMMENT '规则类型(1-设备 2-分区 3-系统)',
+  `scope_type` varchar(20) DEFAULT 'device' COMMENT '作用域类型: device/zone/all_devices/all_zones/device_group',
+  `scope_value` text DEFAULT NULL COMMENT '作用域值: 设备/分区编码列表(逗号分隔) 或 组名',
   `rule_conditions` json NOT NULL COMMENT '条件JSON',
   `rule_actions` json NOT NULL COMMENT '动作JSON',
   `status` char(1) DEFAULT '0' COMMENT '状态(0正常 1停用)',
@@ -1399,3 +1486,7 @@ CREATE TABLE IF NOT EXISTS `sys_alarm_history` (
   PRIMARY KEY (`alarm_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='报警历史记录表';
 SET FOREIGN_KEY_CHECKS = 1; -- 【报警模块 - 报警历史记录表】
+
+-- 【迁移脚本】为已有 sys_alarm_rule 表增加作用域字段（适用于存量数据库升级）
+-- ALTER TABLE `sys_alarm_rule` ADD COLUMN IF NOT EXISTS `scope_type` varchar(20) DEFAULT 'device' COMMENT '作用域类型' AFTER `rule_type`;
+-- ALTER TABLE `sys_alarm_rule` ADD COLUMN IF NOT EXISTS `scope_value` text DEFAULT NULL COMMENT '作用域值' AFTER `scope_type`;

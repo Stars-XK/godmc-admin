@@ -4,11 +4,13 @@ import { EngineService } from './engine.service';
 import { EngineController } from './engine.controller';
 import { SysAlarmRuleEntity, SysAlarmHistoryEntity } from '@app/common';
 import { RedisModule } from '@app/shared';
+import { NotifyModule } from '../notify/notify.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([SysAlarmRuleEntity, SysAlarmHistoryEntity]),
-    RedisModule
+    RedisModule,
+    NotifyModule,
   ],
   controllers: [EngineController],
   providers: [EngineService],

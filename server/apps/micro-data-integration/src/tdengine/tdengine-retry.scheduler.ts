@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { RedisService } from '@app/shared/redis/redis.service';
 import { TdengineService } from './tdengine.service';
+import { SysConfigEntity } from '@app/common';
 
 @Injectable()
 export class TdengineRetryScheduler {
@@ -12,6 +15,8 @@ export class TdengineRetryScheduler {
   constructor(
     private readonly redisService: RedisService,
     private readonly tdengineService: TdengineService,
+    @InjectRepository(SysConfigEntity)
+    private readonly sysConfigRep: Repository<SysConfigEntity>,
   ) {}
 
   private async markAggDirty(deviceCode: string, pointCode: string, tsMs: number) {
@@ -31,8 +36,10 @@ export class TdengineRetryScheduler {
     });
   }
 
-  // @Cron('*/10 * * * * *') // 已迁移至统一任务管理平台 (HTTP调用)
+  @Cron('*/10 * * * * *')
   async replayFailedInserts() {
+    if (!await this.isBuiltInEnabled()) return;
+
     const redis = this.redisService.getClient();
 
     for (let i = 0; i < 200; i++) {
@@ -64,5 +71,12 @@ export class TdengineRetryScheduler {
       }
     }
   }
-}
 
+  private async isBuiltInEnabled(): Promise<boolean> {
+    try {
+      const conf = await this.sysConfigRep.findOne({ where: { configKey: 'scheduler.builtInEnabled' } });
+      if (conf && conf.configValue === 'false') return false;
+    } catch {}
+    return true;
+  }
+}

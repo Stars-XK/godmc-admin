@@ -33,6 +33,14 @@
           <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
         </el-row>
 
+        <el-row :gutter="12" class="stats-mini-row">
+          <el-col :span="4"><div class="mini-stat-card mini-total"><div class="mini-num">{{ stats.total }}</div><div class="mini-label">测点总数</div></div></el-col>
+          <el-col :span="4"><div class="mini-stat-card mini-online"><div class="mini-num">{{ stats.online }}</div><div class="mini-label">在线</div></div></el-col>
+          <el-col :span="4"><div class="mini-stat-card mini-abnormal"><div class="mini-num">{{ stats.abnormal }}</div><div class="mini-label">异常</div></div></el-col>
+          <el-col :span="4"><div class="mini-stat-card mini-alarm"><div class="mini-num">{{ stats.alarm }}</div><div class="mini-label">报警</div></div></el-col>
+          <el-col :span="4"><div class="mini-stat-card mini-offline"><div class="mini-num">{{ stats.offline }}</div><div class="mini-label">离线</div></div></el-col>
+        </el-row>
+
         <el-table v-loading="loading" :data="pointList" height="100%" class="flex-table">
           <el-table-column type="index" width="50" align="center" />
           <el-table-column label="测点名称" align="left" prop="name" min-width="150">
@@ -87,88 +95,135 @@
       </el-drawer>
 
     <!-- 添加或修改测点对话框 -->
-    <el-dialog :title="title" v-model="open" width="700px" append-to-body>
+    <el-dialog :title="title" v-model="open" width="780px" top="5vh" append-to-body class="equip-dialog" destroy-on-close>
+      <div class="dialog-scroll">
       <el-form ref="pointRef" :model="form" :rules="rules" label-width="100px">
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="测点名称" prop="name">
-              <el-input v-model="form.name" placeholder="请输入测点名称" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="测点编码" prop="code">
-              <el-input v-model="form.code" placeholder="请输入测点编码" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="所属设备" prop="deviceCode">
-              <el-input v-model="form.deviceCode" placeholder="请输入设备编码" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="测点类型" prop="type">
-              <el-select v-model="form.type" placeholder="请选择类型" style="width: 100%;">
-                <el-option v-for="dict in water_point_type" :key="dict.value" :label="dict.label" :value="dict.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="量程上限" prop="rangeMax">
-              <el-input-number v-model="form.rangeMax" :precision="2" :step="1" style="width: 100%;" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="量程下限" prop="rangeMin">
-              <el-input-number v-model="form.rangeMin" :precision="2" :step="1" style="width: 100%;" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="报警上限" prop="alarmMax">
-              <el-input-number v-model="form.alarmMax" :precision="2" :step="0.1" style="width: 100%;" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="报警下限" prop="alarmMin">
-              <el-input-number v-model="form.alarmMin" :precision="2" :step="0.1" style="width: 100%;" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="计量单位" prop="unit">
-              <el-input v-model="form.unit" placeholder="请输入单位 (如 m³/h)" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="数据类型" prop="dataType">
-              <el-select v-model="form.dataType" placeholder="请选择" style="width: 100%;">
-                <el-option label="浮点型 (float)" value="float" />
-                <el-option label="整型 (int)" value="int" />
-                <el-option label="布尔型 (bool)" value="bool" />
-                <el-option label="字符串 (string)" value="string" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="读写属性" prop="rwAttr">
-              <el-select v-model="form.rwAttr" placeholder="请选择" style="width: 100%;">
-                <el-option label="只读 (R)" value="R" />
-                <el-option label="读写 (R/W)" value="R/W" />
-                <el-option label="只写 (W)" value="W" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="状态">
-              <el-radio-group v-model="form.status">
-                <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{dict.label}}</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-dot"></span>
+            <el-icon class="card-icon"><Document /></el-icon>
+            <span class="card-title">基本信息</span>
+          </div>
+          <div class="card-body">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="测点名称" prop="name">
+                  <el-input v-model="form.name" placeholder="请输入测点名称" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="测点编码" prop="code">
+                  <el-input v-model="form.code" placeholder="请输入测点编码" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="所属设备" prop="deviceCode">
+                  <el-input v-model="form.deviceCode" placeholder="请输入设备编码" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="测点类型" prop="type">
+                  <el-select v-model="form.type" placeholder="请选择类型" style="width: 100%;">
+                    <el-option v-for="dict in water_point_type" :key="dict.value" :label="dict.label" :value="dict.value" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-dot dot-purple"></span>
+            <el-icon class="card-icon"><Odometer /></el-icon>
+            <span class="card-title">量程与报警</span>
+          </div>
+          <div class="card-body">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="量程上限" prop="rangeMax">
+                  <el-input-number v-model="form.rangeMax" :precision="2" :step="1" style="width: 100%;" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="量程下限" prop="rangeMin">
+                  <el-input-number v-model="form.rangeMin" :precision="2" :step="1" style="width: 100%;" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="报警上限" prop="alarmMax">
+                  <el-input-number v-model="form.alarmMax" :precision="2" :step="0.1" style="width: 100%;" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="报警下限" prop="alarmMin">
+                  <el-input-number v-model="form.alarmMin" :precision="2" :step="0.1" style="width: 100%;" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-dot dot-green"></span>
+            <el-icon class="card-icon"><Filter /></el-icon>
+            <span class="card-title">数据属性</span>
+          </div>
+          <div class="card-body">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="计量单位" prop="unit">
+                  <el-input v-model="form.unit" placeholder="请输入单位 (如 m³/h)" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="数据类型" prop="dataType">
+                  <el-select v-model="form.dataType" placeholder="请选择" style="width: 100%;">
+                    <el-option label="浮点型 (float)" value="float" />
+                    <el-option label="整型 (int)" value="int" />
+                    <el-option label="布尔型 (bool)" value="bool" />
+                    <el-option label="字符串 (string)" value="string" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="读写属性" prop="rwAttr">
+                  <el-select v-model="form.rwAttr" placeholder="请选择" style="width: 100%;">
+                    <el-option label="只读 (R)" value="R" />
+                    <el-option label="读写 (R/W)" value="R/W" />
+                    <el-option label="只写 (W)" value="W" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="card-header">
+            <span class="card-dot dot-orange"></span>
+            <el-icon class="card-icon"><Setting /></el-icon>
+            <span class="card-title">其他设置</span>
+          </div>
+          <div class="card-body">
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="状态">
+                  <el-radio-group v-model="form.status">
+                    <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :value="dict.value">{{dict.label}}</el-radio>
+                  </el-radio-group>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
       </el-form>
+      </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
           <el-button @click="cancel">取 消</el-button>
+          <el-button type="primary" @click="submitForm">确 定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -221,6 +276,7 @@ import { listUser } from "@/api/system/user"
 import * as XLSX from 'xlsx'
 import { getToken } from "@/utils/auth"
 import DataViewer from '@/components/DataViewer/index.vue'
+import { Document, Odometer, Filter, Setting } from '@element-plus/icons-vue'
 
 const { proxy } = getCurrentInstance()
 const { water_point_type, sys_normal_disable , iot_device_status } = proxy.useDict('water_point_type', 'sys_normal_disable', 'iot_device_status')
@@ -230,6 +286,7 @@ const showSearch = ref(true)
 const total = ref(0)
 const uploadRef = ref(null)
 const userOptions = ref([])
+const stats = reactive({ total: 0, online: 0, abnormal: 0, alarm: 0, offline: 0 })
 
 const drawerOpen = ref(false)
 const drawerTitle = ref('')
@@ -335,11 +392,19 @@ function getUserList() {
   })
 }
 
+function computeStats(list) {
+  stats.total = list.length
+  stats.online = list.filter(i => String(i.iotStatus) === '0').length
+  stats.abnormal = list.filter(i => String(i.iotStatus) === '1').length
+  stats.alarm = list.filter(i => String(i.iotStatus) === '3').length
+  stats.offline = list.filter(i => !['0','1','3'].includes(String(i.iotStatus))).length
+}
 function getList() {
   loading.value = true
   listPoint(queryParams.value).then(res => {
     pointList.value = res.data.list
     total.value = res.data.total
+    computeStats(res.data.list)
     loading.value = false
   })
 }
@@ -506,6 +571,19 @@ onMounted(() => {
   flex-direction: column;
 }
 
+.stats-mini-row {
+  flex-shrink: 0;
+  margin: 0 0 10px 0 !important;
+}
+.mini-stat-card { background: #fff; border-radius: 8px; border: 1px solid #ebeef5; padding: 10px 14px; text-align: center; box-shadow: 0 1px 6px rgba(0,0,0,.03); }
+.mini-num { font-size: 22px; font-weight: 700; line-height: 1.2; }
+.mini-label { font-size: 11px; color: #909399; margin-top: 2px; }
+.mini-total .mini-num { color: #303133; }
+.mini-online .mini-num { color: #67c23a; }
+.mini-abnormal .mini-num { color: #e6a23c; }
+.mini-alarm .mini-num { color: #f56c6c; }
+.mini-offline .mini-num { color: #c0c4cc; }
+
 .custom-pagination {
   margin-top: 10px;
   flex-shrink: 0;
@@ -666,4 +744,76 @@ onMounted(() => {
   0% { transform: scale(0.8); opacity: 0.8; }
   100% { transform: scale(1.5); opacity: 0; }
 }
+
+/* ===== 卡片式表单对话框 ===== */
+:deep(.equip-dialog .el-dialog__header) {
+  background: linear-gradient(135deg, #f8fafc 0%, #ecf5ff 100%);
+  border-bottom: 1px solid #e4e7ed;
+  padding: 16px 24px;
+  margin: 0;
+}
+:deep(.equip-dialog .el-dialog__title) {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: 0.3px;
+}
+:deep(.equip-dialog .el-dialog__body) {
+  padding: 0;
+  background: #f8fafc;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(90vh - 110px);
+}
+:deep(.equip-dialog .el-dialog__footer) {
+  padding: 12px 24px;
+  border-top: 1px solid #f0f2f5;
+  background: #fff;
+}
+
+.dialog-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+}
+.dialog-scroll::-webkit-scrollbar { width: 5px; }
+.dialog-scroll::-webkit-scrollbar-thumb { background: #c0c4cc; border-radius: 3px; }
+.dialog-scroll::-webkit-scrollbar-track { background: transparent; }
+
+.form-card {
+  background: #fff;
+  border: 1px solid #e8ecf1;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  transition: box-shadow 0.2s;
+}
+.form-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  background: #fafbfc;
+  border-bottom: 1px solid #f0f2f5;
+  gap: 10px;
+}
+.card-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #409eff;
+  flex-shrink: 0;
+}
+.card-dot.dot-purple { background: #8b5cf6; }
+.card-dot.dot-green  { background: #10b981; }
+.card-dot.dot-orange { background: #f59e0b; }
+.card-dot.dot-gray   { background: #94a3b8; }
+
+.card-icon { font-size: 16px; color: #64748b; }
+.card-title { font-size: 14px; font-weight: 600; color: #334155; }
+.card-body { padding: 18px 20px; }
 </style>

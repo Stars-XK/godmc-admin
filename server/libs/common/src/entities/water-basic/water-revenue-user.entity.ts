@@ -60,4 +60,7 @@ export class WaterRevenueUserEntity extends BaseEntity {
 
   @Column({ type: 'bigint', name: 'associated_user_id', nullable: true, comment: '关联系统用户ID' })
   associatedUserId: string;
+
+  @Column({ type: 'bigint', name: 'dept_id', comment: '部门ID', nullable: true })
+  public deptId: number;
 }

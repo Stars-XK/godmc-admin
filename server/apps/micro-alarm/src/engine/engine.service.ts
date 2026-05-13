@@ -4,209 +4,416 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SysAlarmRuleEntity, SysAlarmHistoryEntity } from '@app/common';
 import { RedisService } from '@app/shared';
+import { NotifyService } from '../notify/notify.service';
+
+interface IndexedRule {
+  ruleId: number;
+  ruleName: string;
+  conditions: any;
+  actions: any;
+  entity: SysAlarmRuleEntity;
+}
 
 @Injectable()
 export class EngineService implements OnModuleInit {
-  private engine: Engine;
   private readonly logger = new Logger(EngineService.name);
-  // 活跃报警设备追踪：key = `alarm:active:{ruleId}:{deviceId}`, value = historyId
   private readonly ACTIVE_ALARM_PREFIX = 'alarm:active:';
+
+  /**
+   * 规则索引：按目标键快速查找相关规则
+   * key: "device:<code>" | "zone:<code>" | "__all_devices__" | "__all_zones__" | "__system__"
+   */
+  private ruleIndex: Map<string, IndexedRule[]> = new Map();
 
   constructor(
     @InjectRepository(SysAlarmRuleEntity)
     private readonly ruleRep: Repository<SysAlarmRuleEntity>,
     @InjectRepository(SysAlarmHistoryEntity)
     private readonly historyRep: Repository<SysAlarmHistoryEntity>,
-    private readonly redisService: RedisService
+    private readonly redisService: RedisService,
+    private readonly notifyService: NotifyService,
   ) {}
 
   async onModuleInit() {
     await this.reloadEngine();
   }
 
+  /**
+   * 重载规则引擎：从数据库加载所有活跃规则，构建目标索引
+   *
+   * 索引策略：
+   * - device:<code> → 作用域为指定设备的规则
+   * - zone:<code>  → 作用域为指定分区的规则
+   * - __all_devices__ → 作用于全部设备的规则
+   * - __all_zones__  → 作用于全部分区的规则
+   * - __system__     → 系统级规则
+   *
+   * 一条规则可能出现在多个索引键下（如 all_devices 规则对所有设备都生效）
+   */
   async reloadEngine() {
-    this.engine = new Engine();
     const rules = await this.ruleRep.find({ where: { status: '0' } });
+    const newIndex = new Map<string, IndexedRule[]>();
 
-    for (const r of rules) {
+    for (const entity of rules) {
       try {
-        const conditions = typeof r.ruleConditions === 'string' ? JSON.parse(r.ruleConditions) : r.ruleConditions;
-        const actions = typeof r.ruleActions === 'string' ? JSON.parse(r.ruleActions) : r.ruleActions;
-        this.engine.addRule({
-          conditions: conditions,
-          event: {
-            type: 'alarm_triggered',
-            params: { ruleId: r.ruleId, ruleName: r.ruleName, ruleActions: actions }
-          }
-        });
+        const conditions = typeof entity.ruleConditions === 'string'
+          ? JSON.parse(entity.ruleConditions) : entity.ruleConditions;
+        const actions = typeof entity.ruleActions === 'string'
+          ? JSON.parse(entity.ruleActions) : entity.ruleActions;
+
+        const indexed: IndexedRule = {
+          ruleId: entity.ruleId,
+          ruleName: entity.ruleName,
+          conditions,
+          actions,
+          entity,
+        };
+
+        const scopeType = entity.scopeType || 'device';
+        const scopeValue = entity.scopeValue || '';
+
+        this.addToIndex(newIndex, indexed, scopeType, scopeValue);
       } catch (e) {
-        this.logger.error(`Failed to load rule ${r.ruleId}`, e);
+        this.logger.error(`Failed to index rule ${entity.ruleId}`, e);
       }
     }
 
-    // SUCCESS HANDLER (Rule Matched → 触发报警)
-    this.engine.on('success', async (event, almanac, ruleResult) => {
+    this.ruleIndex = newIndex;
+    this.logger.log(
+      `[Alarm Engine] 规则索引重建完成，${rules.length} 条规则 → ${newIndex.size} 个索引键`,
+    );
+  }
+
+  /**
+   * 将规则添加到索引的对应键下
+   */
+  private addToIndex(
+    index: Map<string, IndexedRule[]>,
+    rule: IndexedRule,
+    scopeType: string,
+    scopeValue: string,
+  ) {
+    const add = (key: string) => {
+      if (!index.has(key)) index.set(key, []);
+      index.get(key)!.push(rule);
+    };
+
+    switch (scopeType) {
+      case 'device': {
+        // 指定设备列表，逗号分隔
+        const codes = scopeValue.split(',').map(s => s.trim()).filter(Boolean);
+        for (const code of codes) {
+          add(`device:${code}`);
+        }
+        break;
+      }
+      case 'zone': {
+        const codes = scopeValue.split(',').map(s => s.trim()).filter(Boolean);
+        for (const code of codes) {
+          add(`zone:${code}`);
+        }
+        break;
+      }
+      case 'device_group': {
+        // 设备组：每个组名作为一个索引键，TMQ 侧根据设备所属组查找
+        const groups = scopeValue.split(',').map(s => s.trim()).filter(Boolean);
+        for (const g of groups) {
+          add(`device_group:${g}`);
+        }
+        break;
+      }
+      case 'all_devices': {
+        add('__all_devices__');
+        break;
+      }
+      case 'all_zones': {
+        add('__all_zones__');
+        break;
+      }
+      default: {
+        // 兼容旧数据：无 scope 的规则按系统级处理
+        add('__system__');
+      }
+    }
+
+    // 系统级规则 (rule_type=3) 额外加到 __system__
+    if (rule.entity.ruleType === '3') {
+      add('__system__');
+    }
+  }
+
+  /**
+   * 获取某个目标需要评估的规则列表
+   */
+  private getRulesForTarget(
+    targetType: 'device' | 'zone' | 'system',
+    targetKey?: string,
+  ): IndexedRule[] {
+    const rules: IndexedRule[] = [];
+    const seen = new Set<number>();
+
+    const addUnique = (list: IndexedRule[]) => {
+      for (const r of list) {
+        if (!seen.has(r.ruleId)) {
+          seen.add(r.ruleId);
+          rules.push(r);
+        }
+      }
+    };
+
+    // 全局规则总是适用
+    addUnique(this.ruleIndex.get('__system__') || []);
+
+    if (targetType === 'device') {
+      addUnique(this.ruleIndex.get('__all_devices__') || []);
+      if (targetKey) {
+        addUnique(this.ruleIndex.get(`device:${targetKey}`) || []);
+        // 也检查设备组 (如果 TMQ 传递了组信息可在 facts 中携带)
+      }
+    } else if (targetType === 'zone') {
+      addUnique(this.ruleIndex.get('__all_zones__') || []);
+      if (targetKey) {
+        addUnique(this.ruleIndex.get(`zone:${targetKey}`) || []);
+      }
+    }
+
+    return rules;
+  }
+
+  /**
+   * 评估事实数据 — 核心方法
+   *
+   * @param facts    事实数据 (deviceId, zoneCode, value, pointCode, avgVal, maxVal, minVal 等)
+   * @param targetType 目标类型 'device' | 'zone' | 'system'
+   * @param targetKey  目标标识 (deviceCode 或 zoneCode)
+   */
+  async evaluate(
+    facts: Record<string, any>,
+    targetType: 'device' | 'zone' | 'system' = 'device',
+    targetKey?: string,
+  ) {
+    // 跳过内部 ping 检测
+    if (facts._ping) {
+      return null;
+    }
+
+    if (this.ruleIndex.size === 0) {
+      this.logger.warn('[Alarm Engine] 规则索引为空，跳过评估');
+      return null;
+    }
+
+    // 尝试从 facts 中推导目标信息（兼容旧调用方式）
+    if (!targetKey) {
+      if (targetType === 'device') {
+        targetKey = facts.deviceId || facts.deviceCode;
+      } else if (targetType === 'zone') {
+        targetKey = facts.zoneCode;
+      }
+    }
+
+    const relevantRules = this.getRulesForTarget(targetType, targetKey);
+
+    if (relevantRules.length === 0) {
+      return null; // 没有规则匹配此目标，快速返回
+    }
+
+    // 创建临时引擎，只加载相关规则
+    const engine = new Engine();
+    const ruleMetaMap = new Map<number, IndexedRule>();
+
+    for (const indexed of relevantRules) {
+      engine.addRule({
+        conditions: indexed.conditions,
+        event: {
+          type: 'alarm_triggered',
+          params: {
+            ruleId: indexed.ruleId,
+            ruleName: indexed.ruleName,
+            ruleActions: indexed.actions,
+          },
+        },
+      });
+      ruleMetaMap.set(indexed.ruleId, indexed);
+    }
+
+    // 确定目标标识用于防抖键
+    const deviceId = targetType === 'device'
+      ? (targetKey || facts.deviceId || facts.deviceCode || 'global')
+      : (targetKey || facts.zoneCode || 'global');
+
+    // SUCCESS HANDLER — 规则命中
+    engine.on('success', async (event, almanac) => {
       const actions = event?.params?.ruleActions || {};
       const debounce = actions.debounce;
-
-      let deviceId = 'global';
-      try { deviceId = await almanac.factValue('deviceId') || await almanac.factValue('zoneCode') || 'global'; } catch(e) {}
+      const ruleId = event?.params?.ruleId;
+      const ruleName = event?.params?.ruleName || 'Unknown';
 
       let factValue = 'unknown';
-      try { factValue = await almanac.factValue('value'); } catch(e) {}
+      try { factValue = await almanac.factValue('value'); } catch (e) {}
 
-      const ruleId = event?.params?.ruleId;
-      const ruleName = event?.params?.ruleName || 'Unknown';
-
-      if (debounce && debounce.enabled) {
-        const threshold = debounce.threshold || 1;
-        const now = Date.now();
-
-        if (debounce.strategy === 'count') {
-          const key = `alarm:window:${ruleId}:${deviceId}`;
-          const eventId = `${now}-${Math.random().toString(36).substring(7)}`;
-          await this.redisService.getClient().zadd(key, now, eventId);
-          await this.redisService.getClient().expire(key, 3600); // 1 hour TTL
-
-          const count = await this.redisService.getClient().zcard(key);
-          if (count >= threshold) {
-            await this.redisService.getClient().del(key); // Reset after trigger
-            await this.fireAlarm(ruleId, ruleName, deviceId, factValue);
-          }
-        } else if (debounce.strategy === 'time') {
-          const key = `alarm:state:${ruleId}:${deviceId}`;
-          const existingTime = await this.redisService.getClient().get(key);
-
-          if (!existingTime) {
-            await this.redisService.getClient().set(key, now, 'EX', threshold * 60 * 2); // 2x TTL
-          } else {
-            const diffMinutes = (now - parseInt(existingTime, 10)) / (1000 * 60);
-            if (diffMinutes >= threshold) {
-              await this.redisService.getClient().del(key); // Reset after trigger
-              await this.fireAlarm(ruleId, ruleName, deviceId, factValue);
-            }
-          }
-        }
-      } else {
-        // Immediate alarm
-        await this.fireAlarm(ruleId, ruleName, deviceId, factValue);
-      }
+      await this.handleRuleMatch(ruleId, ruleName, deviceId, factValue, debounce);
     });
 
-    // FAILURE HANDLER (Rule Not Matched → 检查是否需要恢复通知)
-    this.engine.on('failure', async (event, almanac, _ruleResult) => {
+    // FAILURE HANDLER — 规则未命中
+    engine.on('failure', async (event) => {
       const actions = event?.params?.ruleActions || {};
       const debounce = actions.debounce;
-
-      let deviceId = 'global';
-      try { deviceId = await almanac.factValue('deviceId') || await almanac.factValue('zoneCode') || 'global'; } catch(e) {}
-
       const ruleId = event?.params?.ruleId;
       const ruleName = event?.params?.ruleName || 'Unknown';
 
-      // 清理防抖状态
-      if (debounce && debounce.enabled) {
-        if (debounce.strategy === 'count') {
-          await this.redisService.getClient().del(`alarm:window:${ruleId}:${deviceId}`);
-        } else if (debounce.strategy === 'time') {
-          await this.redisService.getClient().del(`alarm:state:${ruleId}:${deviceId}`);
-        }
-      }
-
-      // 检查是否有活跃报警，若有则记录恢复事件
-      await this.tryRecovery(ruleId, ruleName, deviceId);
+      await this.handleRuleMismatch(ruleId, ruleName, deviceId, debounce);
     });
 
-    this.logger.log(`[Alarm Engine] 规则加载完成，已加载 ${rules.length} 条活跃规则`);
+    try {
+      await engine.run(facts);
+    } catch (e) {
+      this.logger.error(`[Alarm Engine] 规则评估异常 target=${targetType}:${targetKey}`, e);
+    }
+  }
+
+  /**
+   * 处理规则命中：防抖判断 → 触发报警
+   */
+  private async handleRuleMatch(
+    ruleId: number,
+    ruleName: string,
+    deviceId: string,
+    factValue: any,
+    debounce?: { enabled?: boolean; strategy?: string; threshold?: number },
+  ) {
+    if (debounce && debounce.enabled) {
+      const threshold = debounce.threshold || 1;
+      const now = Date.now();
+
+      if (debounce.strategy === 'count') {
+        const key = `alarm:window:${ruleId}:${deviceId}`;
+        const eventId = `${now}-${Math.random().toString(36).substring(7)}`;
+        await this.redisService.getClient().zadd(key, now, eventId);
+        await this.redisService.getClient().expire(key, 3600);
+
+        const count = await this.redisService.getClient().zcard(key);
+        if (count >= threshold) {
+          await this.redisService.getClient().del(key);
+          await this.fireAlarm(ruleId, ruleName, deviceId, factValue);
+        }
+        return;
+      }
+
+      if (debounce.strategy === 'time') {
+        const key = `alarm:state:${ruleId}:${deviceId}`;
+        const existingTime = await this.redisService.getClient().get(key);
+
+        if (!existingTime) {
+          await this.redisService.getClient().set(key, now, 'EX', threshold * 60 * 2);
+        } else {
+          const diffMinutes = (now - parseInt(existingTime, 10)) / (1000 * 60);
+          if (diffMinutes >= threshold) {
+            await this.redisService.getClient().del(key);
+            await this.fireAlarm(ruleId, ruleName, deviceId, factValue);
+          }
+        }
+        return;
+      }
+    }
+
+    // 无防抖，直接触发
+    await this.fireAlarm(ruleId, ruleName, deviceId, factValue);
+  }
+
+  /**
+   * 处理规则未命中：清理防抖状态 → 检查恢复
+   */
+  private async handleRuleMismatch(
+    ruleId: number,
+    ruleName: string,
+    deviceId: string,
+    debounce?: { enabled?: boolean; strategy?: string },
+  ) {
+    if (debounce && debounce.enabled) {
+      if (debounce.strategy === 'count') {
+        await this.redisService.getClient().del(`alarm:window:${ruleId}:${deviceId}`);
+      } else if (debounce.strategy === 'time') {
+        await this.redisService.getClient().del(`alarm:state:${ruleId}:${deviceId}`);
+      }
+    }
+
+    await this.tryRecovery(ruleId, ruleName, deviceId);
   }
 
   /**
    * 触发报警
    */
   private async fireAlarm(ruleId: number, ruleName: string, deviceId: string, factValue: any) {
-    // 防重复：检查是否已有该规则+设备的活跃报警
     const activeKey = `${this.ACTIVE_ALARM_PREFIX}${ruleId}:${deviceId}`;
     const existingId = await this.redisService.getClient().get(activeKey);
     if (existingId) {
-      this.logger.debug(`跳过重复报警: rule=${ruleName}, device=${deviceId} (已有活跃报警 #${existingId})`);
+      this.logger.debug(`跳过重复报警: rule=${ruleName}, target=${deviceId} (已有活跃报警 #${existingId})`);
       return;
     }
 
-    this.logger.warn(`[Alarm] 触发: rule=${ruleName}, device=${deviceId}, value=${factValue}`);
+    this.logger.warn(`[Alarm] 触发: rule=${ruleName}, target=${deviceId}, value=${factValue}`);
 
     const history = this.historyRep.create({
-      ruleId: ruleId,
-      ruleName: ruleName,
+      ruleId,
+      ruleName,
       alarmLevel: '2',
-      alarmContent: `触发报警规则: ${ruleName}, 设备: ${deviceId}, 检测值: ${factValue}`,
+      alarmContent: `触发报警规则: ${ruleName}, 目标: ${deviceId}, 检测值: ${factValue}`,
       alarmTime: new Date(),
       alarmSource: deviceId,
-      status: '0', // 未处理
+      status: '0',
     });
     const saved = await this.historyRep.save(history);
 
-    // 记录活跃报警
-    await this.redisService.getClient().set(activeKey, String(saved.alarmId), 'EX', 86400 * 7); // 7天过期
+    await this.redisService.getClient().set(activeKey, String(saved.alarmId), 'EX', 86400 * 7);
+
+    this.notifyService.sendAlarmNotification({
+      ruleId, ruleName, alarmLevel: '2', alarmContent: saved.alarmContent,
+      alarmSource: deviceId, alarmTime: saved.alarmTime, status: '0',
+    }).catch(e => this.logger.error(`通知发送异常: ${e?.message || e}`));
   }
 
   /**
-   * 尝试恢复通知：检查是否有活跃报警，若有则标记为自动恢复
+   * 尝试恢复：检查是否有活跃报警，若有则标记为自动恢复
    */
   private async tryRecovery(ruleId: number, ruleName: string, deviceId: string) {
     const activeKey = `${this.ACTIVE_ALARM_PREFIX}${ruleId}:${deviceId}`;
     const historyIdStr = await this.redisService.getClient().get(activeKey);
 
-    if (!historyIdStr) {
-      return; // 没有活跃报警，无需恢复
-    }
+    if (!historyIdStr) return;
 
     const historyId = parseInt(historyIdStr, 10);
 
     try {
       const history = await this.historyRep.findOne({ where: { alarmId: historyId } });
       if (!history || history.status !== '0') {
-        // 报警已被手动处理或不存在，清除活跃标记
         await this.redisService.getClient().del(activeKey);
         return;
       }
 
-      // 记录恢复事件（新建一条历史记录，状态为 2=自动恢复）
       const recovery = this.historyRep.create({
-        ruleId: ruleId,
-        ruleName: ruleName,
-        alarmLevel: '4', // 提示级别
-        alarmContent: `报警自动恢复: ${ruleName}, 设备: ${deviceId} 已恢复正常`,
+        ruleId,
+        ruleName,
+        alarmLevel: '4',
+        alarmContent: `报警自动恢复: ${ruleName}, 目标: ${deviceId} 已恢复正常`,
         alarmTime: new Date(),
         alarmSource: deviceId,
-        status: '2', // 自动恢复
+        status: '2',
       });
       await this.historyRep.save(recovery);
 
-      // 将原报警标记为已恢复
       history.status = '2';
       await this.historyRep.save(history);
 
-      // 清除活跃标记
       await this.redisService.getClient().del(activeKey);
 
-      this.logger.log(`[Alarm] 恢复: rule=${ruleName}, device=${deviceId} (原报警 #${historyId})`);
-    } catch (e) {
-      this.logger.error(`处理恢复通知失败: rule=${ruleName}, device=${deviceId}`, e);
-    }
-  }
+      this.logger.log(`[Alarm] 恢复: rule=${ruleName}, target=${deviceId} (原报警 #${historyId})`);
 
-  /**
-   * 评估事实数据
-   */
-  async evaluate(facts: Record<string, any>) {
-    if (!this.engine) {
-      this.logger.warn('Engine not initialized yet');
-      return null;
+      this.notifyService.sendAlarmNotification({
+        ruleId, ruleName, alarmLevel: '4', alarmContent: recovery.alarmContent,
+        alarmSource: deviceId, alarmTime: recovery.alarmTime, status: '2',
+      }).catch(e => this.logger.error(`恢复通知发送异常: ${e?.message || e}`));
+    } catch (e) {
+      this.logger.error(`处理恢复通知失败: rule=${ruleName}, target=${deviceId}`, e);
     }
-    // 跳过内部 ping 检测
-    if (facts._ping) {
-      return null;
-    }
-    return this.engine.run(facts);
   }
 }

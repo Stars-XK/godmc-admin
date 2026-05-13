@@ -1,49 +1,68 @@
 <template>
   <!-- 添加或修改数据字典内容配置 -->
-  <el-dialog :title="form.title" v-model="dialogTableVisible" width="600px" append-to-body>
+  <el-dialog :title="form.title" v-model="dialogTableVisible" width="650px" top="5vh" append-to-body class="sys-dialog" destroy-on-close>
+    <div class="dialog-scroll">
     <el-form ref="formRef" :model="form.model" :rules="form.rules" label-width="100px">
-      <el-form-item label="字典类型">
-        <el-input v-model="form.model.dictType" :disabled="true" />
-      </el-form-item>
-      <el-form-item label="数据标签" prop="dictLabel">
-        <el-input v-model="form.model.dictLabel" placeholder="请输入数据标签" />
-      </el-form-item>
-      <el-form-item label="数据键值" prop="dictValue">
-        <el-input v-model="form.model.dictValue" placeholder="请输入数据键值" />
-      </el-form-item>
-      <el-form-item label="回显样式" prop="listClass">
-        <el-select v-model="form.model.listClass">
-          <el-option v-for="item in listClassOptions" :key="item.value" :label="`${item.label}(${item.value})`" :value="item.value" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="显示排序" prop="dictSort">
-        <el-input-number v-model="form.model.dictSort" controls-position="right" :min="0" />
-      </el-form-item>
-      <el-form-item prop="cssClass">
-        <template #label>
-          <el-tooltip effect="dark" :content="tips" placement="top-start">
-            <div class="tips">
-              <QuestionFilled class="tips-icon" :size="'14px'"/>
-            </div>
-          </el-tooltip>
-          <span style="width: 80px">样式属性</span>
-        </template>
-
-        <el-input v-model="form.model.cssClass" placeholder="请输入样式属性" />
-      </el-form-item>
-      <el-form-item label="状态" prop="status">
-        <el-radio-group v-model="form.model.status">
-          <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.value">{{ dict.label }}</el-radio>
-        </el-radio-group>
-      </el-form-item>
-      <el-form-item label="备注" prop="remark">
-        <el-input v-model="form.model.remark" type="textarea" placeholder="请输入内容"></el-input>
-      </el-form-item>
+      <div class="form-card">
+        <div class="card-header">
+          <span class="card-dot"></span>
+          <el-icon class="card-icon"><Document /></el-icon>
+          <span class="card-title">基本信息</span>
+        </div>
+        <div class="card-body">
+          <el-form-item label="字典类型">
+            <el-input v-model="form.model.dictType" :disabled="true" />
+          </el-form-item>
+          <el-form-item label="数据标签" prop="dictLabel">
+            <el-input v-model="form.model.dictLabel" placeholder="请输入数据标签" />
+          </el-form-item>
+          <el-form-item label="数据键值" prop="dictValue">
+            <el-input v-model="form.model.dictValue" placeholder="请输入数据键值" />
+          </el-form-item>
+          <el-form-item label="显示排序" prop="dictSort">
+            <el-input-number v-model="form.model.dictSort" controls-position="right" :min="0" />
+          </el-form-item>
+        </div>
+      </div>
+      <div class="form-card">
+        <div class="card-header">
+          <span class="card-dot dot-purple"></span>
+          <el-icon class="card-icon"><Setting /></el-icon>
+          <span class="card-title">样式与状态</span>
+        </div>
+        <div class="card-body">
+          <el-form-item label="回显样式" prop="listClass">
+            <el-select v-model="form.model.listClass" style="width: 100%">
+              <el-option v-for="item in listClassOptions" :key="item.value" :label="`${item.label}(${item.value})`" :value="item.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item prop="cssClass">
+            <template #label>
+              <el-tooltip effect="dark" :content="tips" placement="top-start">
+                <div class="tips">
+                  <QuestionFilled class="tips-icon" :size="'14px'"/>
+                </div>
+              </el-tooltip>
+              <span style="width: 80px">样式属性</span>
+            </template>
+            <el-input v-model="form.model.cssClass" placeholder="请输入样式属性" />
+          </el-form-item>
+          <el-form-item label="状态" prop="status">
+            <el-radio-group v-model="form.model.status">
+              <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.value">{{ dict.label }}</el-radio>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label="备注" prop="remark">
+            <el-input v-model="form.model.remark" type="textarea" placeholder="请输入内容"></el-input>
+          </el-form-item>
+        </div>
+      </div>
     </el-form>
+    </div>
     <template #footer>
       <div class="dialog-footer">
-        <el-button :loading="form.loading" type="primary" @click="form.submit">确 定</el-button>
         <el-button @click="form.cancel">取 消</el-button>
+        <el-button :loading="form.loading" type="primary" @click="form.submit">确 定</el-button>
       </div>
     </template>
   </el-dialog>
@@ -51,6 +70,7 @@
 
 <script setup name="Data">
 import { addData, updateData } from '@/api/system/dict/data'
+import { Document, Setting } from '@element-plus/icons-vue'
 
 const { proxy } = getCurrentInstance()
 const { sys_normal_disable } = proxy.useDict('sys_normal_disable')
@@ -139,3 +159,67 @@ defineExpose({
   handleDialogOpen
 })
 </script>
+
+<style scoped>
+:deep(.sys-dialog .el-dialog__header) {
+  background: linear-gradient(135deg, #f8fafc 0%, #ecf5ff 100%);
+  border-bottom: 1px solid #e4e7ed;
+  padding: 16px 24px;
+  margin: 0;
+}
+:deep(.sys-dialog .el-dialog__title) {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: 0.3px;
+}
+:deep(.sys-dialog .el-dialog__body) {
+  padding: 0;
+  background: #f8fafc;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(90vh - 110px);
+}
+:deep(.sys-dialog .el-dialog__footer) {
+  padding: 12px 24px;
+  border-top: 1px solid #f0f2f5;
+  background: #fff;
+}
+
+.dialog-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+}
+.dialog-scroll::-webkit-scrollbar { width: 5px; }
+.dialog-scroll::-webkit-scrollbar-thumb { background: #c0c4cc; border-radius: 3px; }
+.dialog-scroll::-webkit-scrollbar-track { background: transparent; }
+
+.form-card {
+  background: #fff;
+  border: 1px solid #e8ecf1;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  transition: box-shadow 0.2s;
+}
+.form-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  background: #fafbfc;
+  border-bottom: 1px solid #f0f2f5;
+  gap: 10px;
+}
+.card-dot { width: 8px; height: 8px; border-radius: 50%; background: #409eff; flex-shrink: 0; }
+.card-dot.dot-purple { background: #8b5cf6; }
+
+.card-icon { font-size: 16px; color: #64748b; }
+.card-title { font-size: 14px; font-weight: 600; color: #334155; }
+.card-body { padding: 18px 20px; }
+</style>

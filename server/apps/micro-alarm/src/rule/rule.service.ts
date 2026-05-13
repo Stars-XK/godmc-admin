@@ -23,12 +23,15 @@ export class RuleService {
 
   async findAll(query: any) {
     const qb = this.ruleRepository.createQueryBuilder('rule');
-    
+
     if (query.ruleName) {
       qb.andWhere('rule.ruleName LIKE :ruleName', { ruleName: `%${query.ruleName}%` });
     }
     if (query.ruleType) {
       qb.andWhere('rule.ruleType = :ruleType', { ruleType: query.ruleType });
+    }
+    if (query.scopeType) {
+      qb.andWhere('rule.scopeType = :scopeType', { scopeType: query.scopeType });
     }
     if (query.status) {
       qb.andWhere('rule.status = :status', { status: query.status });

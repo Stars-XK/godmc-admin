@@ -157,6 +157,18 @@ export class ZoneController {
     return this.zoneService.globalBindRevenueTemplate(res);
   }
 
+  @ApiOperation({ summary: '下载全局指标配置模板' })
+  @Post('global-bind/metric/template')
+  globalBindMetricTemplate(@Res() res: Response) {
+    return this.zoneService.globalBindMetricTemplate(res);
+  }
+
+  @ApiOperation({ summary: '通过Excel全局批量导入指标配置' })
+  @Post('global-bind/metric/import')
+  globalImportBindMetrics(@Body() body: { dataList: any[] }) {
+    return this.zoneService.globalImportBindMetrics(body.dataList);
+  }
+
   @ApiOperation({ summary: '通过Excel全局批量导入设备及指标配置' })
   @Post('global-bind/device/import')
   globalImportBindDevices(@Body() body: { dataList: any[] }) {

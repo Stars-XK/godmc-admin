@@ -143,7 +143,7 @@ export class QueryController {
     if (!zoneCode) {
       return ResultData.fail(500, '缺少必要参数 zoneCode');
     }
-    // 暂无实际报警表，占位返回空数组
-    return ResultData.ok([]);
+    const result = await this.queryService.getZoneAlarms(zoneCode);
+    return ResultData.ok(result);
   }
 }
