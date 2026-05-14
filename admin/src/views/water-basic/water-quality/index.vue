@@ -23,12 +23,14 @@
                 <span class="dg-name">{{ g.deviceName }}</span>
                 <el-tag size="small">{{ g.points.length }}个</el-tag>
               </div>
-              <div v-for="p in g.points" :key="p.id" v-show="searchKey || !collapsed[g.deviceCode]"
-                class="point-item" :class="{ active: selectedPoint?.id === p.id }"
-                @click="selectPoint(p)">
-                <span class="point-label">{{ p.name || p.code }}</span>
-                <span class="point-type-tag">{{ p.typeLabel }}</span>
-              </div>
+              <template v-for="p in g.points" :key="p.id">
+                <div v-if="searchKey || !collapsed[g.deviceCode]"
+                  class="point-item" :class="{ active: selectedPoint?.id === p.id }"
+                  @click="selectPoint(p)">
+                  <span class="point-label">{{ p.name || p.code }}</span>
+                  <span class="point-type-tag">{{ p.typeLabel }}</span>
+                </div>
+              </template>
             </div>
             <div v-if="groups.length === 0 && !loading" class="empty-hint">暂未配置水质监测点</div>
           </div>
@@ -154,6 +156,8 @@ function fetchPoints() {
       const types = new Set()
       groups.value.forEach(g => g.points.forEach(p => types.add(p.type)))
       paramCount.value = types.size
+      collapsed.value = {}
+      groups.value.forEach(g => { collapsed.value[g.deviceCode] = true })
     }
   }).finally(() => { loading.value = false })
 }

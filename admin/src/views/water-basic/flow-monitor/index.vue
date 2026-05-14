@@ -23,15 +23,17 @@
                 <span class="dg-name">{{ g.deviceName }}</span>
                 <el-tag size="small">{{ g.points.length }}</el-tag>
               </div>
-              <div v-for="p in g.points" :key="p.id" v-show="searchKey || !collapsed[g.deviceCode]"
-                class="point-row" :class="{ active: selectedPoint?.id === p.id }"
-                @click="selectPoint(p)">
-                <div class="p-info">
-                  <span class="p-name">{{ p.name || p.code }}</span>
-                  <span class="p-type">{{ p.typeLabel }}</span>
+              <template v-for="p in g.points" :key="p.id">
+                <div v-if="searchKey || !collapsed[g.deviceCode]"
+                  class="point-row" :class="{ active: selectedPoint?.id === p.id }"
+                  @click="selectPoint(p)">
+                  <div class="p-info">
+                    <span class="p-name">{{ p.name || p.code }}</span>
+                    <span class="p-type">{{ p.typeLabel }}</span>
+                  </div>
+                  <span class="p-unit">{{ p.unit }}</span>
                 </div>
-                <span class="p-unit">{{ p.unit }}</span>
-              </div>
+              </template>
             </div>
             <div v-if="groups.length === 0 && !loading" class="empty-hint">暂未配置流量监测点</div>
           </div>
@@ -152,6 +154,9 @@ function fetchPoints() {
       const types = new Set()
       groups.value.forEach(g => g.points.forEach(p => types.add(p.type)))
       typeCount.value = types.size
+      // 默认全部折叠，避免大量测点行 DOM 阻塞渲染
+      collapsed.value = {}
+      groups.value.forEach(g => { collapsed.value[g.deviceCode] = true })
     }
   }).finally(() => { loading.value = false })
 }
