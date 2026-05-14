@@ -10,14 +10,20 @@
       <el-col :xs="24" :lg="6">
         <el-card shadow="never" class="f-card">
           <template #header><div class="card-title"><el-icon><Grid /></el-icon><span>设备监测点</span></div></template>
-          <el-input v-model="searchKey" placeholder="搜索设备/测点" size="small" clearable style="margin-bottom:12px" />
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <el-input v-model="searchKey" placeholder="搜索设备/测点" size="small" clearable style="flex:1" />
+            <el-button text size="small" @click="Object.keys(collapsed).length ? expandAll() : collapseAll()">
+              {{ Object.keys(collapsed).length ? '展开全部' : '收起全部' }}
+            </el-button>
+          </div>
           <div v-loading="loading" class="point-list">
             <div v-for="g in filteredGroups" :key="g.deviceCode" class="device-group">
-              <div class="dg-header">
+              <div class="dg-header" @click="toggleGroup(g.deviceCode)">
+                <el-icon class="dg-arrow" :class="{ collapsed: collapsed[g.deviceCode] }"><ArrowDown /></el-icon>
                 <span class="dg-name">{{ g.deviceName }}</span>
                 <el-tag size="small">{{ g.points.length }}</el-tag>
               </div>
-              <div v-for="p in g.points" :key="p.id"
+              <div v-for="p in g.points" :key="p.id" v-show="searchKey || !collapsed[g.deviceCode]"
                 class="point-row" :class="{ active: selectedPoint?.id === p.id }"
                 @click="selectPoint(p)">
                 <div class="p-info">
@@ -79,7 +85,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { Grid, TrendCharts, Search } from '@element-plus/icons-vue'
+import { Grid, TrendCharts, Search, ArrowDown } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import request from '@/utils/request'
 import { getLatestDataBatch } from '@/api/data-integration/query'
@@ -88,9 +94,20 @@ import dayjs from 'dayjs'
 const loading = ref(false)
 const searchKey = ref('')
 const groups = ref([])
+const collapsed = ref({})
 const totalPoints = ref(0)
 const deviceCount = ref(0)
 const typeCount = ref(0)
+
+function toggleGroup(code) {
+  collapsed.value[code] = !collapsed.value[code]
+}
+function collapseAll() {
+  groups.value.forEach(g => { collapsed.value[g.deviceCode] = true })
+}
+function expandAll() {
+  collapsed.value = {}
+}
 
 const selectedPoint = ref(null)
 const currentValue = ref(null)
@@ -199,13 +216,15 @@ onMounted(() => { fetchPoints() })
 .point-list { max-height: calc(100vh - 320px); overflow-y: auto; }
 
 .device-group { margin-bottom: 10px; }
-.dg-header { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #F1F5F9; margin-bottom: 3px; }
-.dg-name { font-size: 13px; font-weight: 600; color: #475569; }
+.dg-header { display: flex; align-items: center; gap: 4px; padding: 4px 0; border-bottom: 1px solid #F1F5F9; margin-bottom: 3px; cursor: pointer; user-select: none; }
+.dg-arrow { font-size: 12px; color: #94A3B8; transition: transform .2s; flex-shrink: 0; &.collapsed { transform: rotate(-90deg); } }
+.dg-name { font-size: 13px; font-weight: 600; color: #475569; flex: 1; }
+.dg-header .el-tag { --el-tag-bg-color: rgba(13,148,136,.1); --el-tag-text-color: #0D9488; --el-tag-border-color: rgba(13,148,136,.2); }
 
 .point-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; border-radius: 6px; cursor: pointer; margin: 2px 0; border: 1px solid transparent; &:hover { background: #EFF6FF; } &.active { background: #EFF6FF; border-color: #2563EB; } }
 .p-info { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .p-name { font-size: 13px; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.p-type { font-size: 11px; color: #94A3B8; }
+.p-type { font-size: 11px; color: #64748B; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 4px; padding: 1px 6px; }
 .p-unit { font-size: 11px; color: #94A3B8; margin-left: 8px; flex-shrink: 0; }
 
 .realtime-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }

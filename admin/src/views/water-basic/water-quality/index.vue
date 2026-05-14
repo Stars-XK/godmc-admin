@@ -10,14 +10,20 @@
       <el-col :xs="24" :lg="7">
         <el-card shadow="never" class="wq-card">
           <template #header><div class="card-title"><el-icon><Grid /></el-icon><span>设备监测点</span></div></template>
-          <el-input v-model="searchKey" placeholder="搜索设备/测点" size="small" clearable style="margin-bottom:12px" />
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <el-input v-model="searchKey" placeholder="搜索设备/测点" size="small" clearable style="flex:1" />
+            <el-button text size="small" @click="Object.keys(collapsed).length ? expandAll() : collapseAll()">
+              {{ Object.keys(collapsed).length ? '展开全部' : '收起全部' }}
+            </el-button>
+          </div>
           <div v-loading="loading" class="point-list">
             <div v-for="g in filteredGroups" :key="g.deviceCode" class="device-group">
-              <div class="dg-header">
+              <div class="dg-header" @click="toggleGroup(g.deviceCode)">
+                <el-icon class="dg-arrow" :class="{ collapsed: collapsed[g.deviceCode] }"><ArrowDown /></el-icon>
                 <span class="dg-name">{{ g.deviceName }}</span>
                 <el-tag size="small">{{ g.points.length }}个</el-tag>
               </div>
-              <div v-for="p in g.points" :key="p.id"
+              <div v-for="p in g.points" :key="p.id" v-show="searchKey || !collapsed[g.deviceCode]"
                 class="point-item" :class="{ active: selectedPoint?.id === p.id }"
                 @click="selectPoint(p)">
                 <span class="point-label">{{ p.name || p.code }}</span>
@@ -83,7 +89,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { Grid, TrendCharts, Search } from '@element-plus/icons-vue'
+import { Grid, TrendCharts, Search, ArrowDown } from '@element-plus/icons-vue'
 import { listQualityPoints, getQualityTrend } from '@/api/water-basic/water-quality'
 import { getLatestDataBatch } from '@/api/data-integration/query'
 import * as echarts from 'echarts'
@@ -92,9 +98,20 @@ import dayjs from 'dayjs'
 const loading = ref(false)
 const searchKey = ref('')
 const groups = ref([])
+const collapsed = ref({})
 const totalPoints = ref(0)
 const deviceCount = ref(0)
 const paramCount = ref(0)
+
+function toggleGroup(code) {
+  collapsed.value[code] = !collapsed.value[code]
+}
+function collapseAll() {
+  groups.value.forEach(g => { collapsed.value[g.deviceCode] = true })
+}
+function expandAll() {
+  collapsed.value = {}
+}
 
 const selectedPoint = ref(null)
 const currentValue = ref(null)
@@ -246,10 +263,12 @@ onMounted(() => { fetchPoints() })
 
 .device-group { margin-bottom: 12px; }
 .dg-header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 6px 0 4px; border-bottom: 1px solid #F1F5F9; margin-bottom: 4px;
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 0 4px; border-bottom: 1px solid #F1F5F9; margin-bottom: 4px; cursor: pointer; user-select: none;
 }
-.dg-name { font-size: 13px; font-weight: 600; color: #475569; }
+.dg-arrow { font-size: 12px; color: #94A3B8; transition: transform .2s; flex-shrink: 0; &.collapsed { transform: rotate(-90deg); } }
+.dg-name { font-size: 13px; font-weight: 600; color: #475569; flex: 1; }
+.dg-header .el-tag { --el-tag-bg-color: rgba(13,148,136,.1); --el-tag-text-color: #0D9488; --el-tag-border-color: rgba(13,148,136,.2); }
 
 .point-item {
   display: flex; justify-content: space-between; align-items: center;

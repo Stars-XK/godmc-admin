@@ -1809,95 +1809,106 @@ html.dark-mode {
 	  .ov-value.bad { color: #EF4444 !important; }
 
 	  /* ---- 水质监测 ---- */
-	  .water-quality {
-	    .wq-card { border-color: #334155 !important; }
-	    .card-title { color: #F1F5F9 !important; .el-icon { color: #5EEAD4 !important; } }
-	    .cat-name, .tg-name { color: #94A3B8 !important; }
-	    .point-item {
-	      &:hover { background: #252F3F !important; }
-	      &.active { background: rgba(13, 148, 136, 0.12) !important; border-color: #0D9488 !important; }
-	      .point-label { color: #CBD5E1 !important; }
-	      .point-type-tag { color: #64748B !important; border-color: #475569 !important; }
-	    }
-	    .rt-item { background: #252F3F !important; }
-	    .rt-label { color: #94A3B8 !important; }
-	    .rt-value {
-	      color: #F1F5F9 !important;
-	      &.normal { color: #5EEAD4 !important; }
-	      &.code { color: #CBD5E1 !important; }
-	      &.time { color: #64748B !important; }
-	    }
-	    .rt-unit { color: #64748B !important; }
-	    .empty-state, .empty-hint { color: #64748B !important; }
-	  }
+		  .water-quality {
+		    .wq-card { border-color: #334155 !important; }
+		    .card-title { color: #F1F5F9 !important; .el-icon { color: #5EEAD4 !important; } }
+		    .dg-name { color: #94A3B8 !important; }
+		    .dg-header { border-bottom-color: #334155 !important; }
+		    .dg-arrow { color: #64748B !important; }
+		    .dg-header .el-tag { --el-tag-bg-color: rgba(94,234,212,.1) !important; --el-tag-text-color: #5EEAD4 !important; --el-tag-border-color: rgba(94,234,212,.2) !important; }
+		    .point-item {
+		      &:hover { background: #252F3F !important; }
+		      &.active { background: rgba(13, 148, 136, 0.12) !important; border-color: #0D9488 !important; }
+		      .point-label { color: #CBD5E1 !important; }
+		      .point-type-tag { color: #64748B !important; border-color: #475569 !important; background: #252F3F !important; }
+		    }
+		    .rt-item { background: #252F3F !important; }
+		    .rt-label { color: #94A3B8 !important; }
+		    .rt-value {
+		      color: #F1F5F9 !important;
+		      &.normal { color: #5EEAD4 !important; }
+		      &.code { color: #CBD5E1 !important; }
+		      &.time { color: #64748B !important; }
+		    }
+		    .rt-unit { color: #64748B !important; }
+		    .empty-state, .empty-hint { color: #64748B !important; }
+		  }
 
-	  /* ---- 压力监测 ---- */
-	  .pressure-page {
-	    .p-card { border-color: #334155 !important; }
-	    .card-title { color: #F1F5F9 !important; .el-icon { color: #5EEAD4 !important; } }
-	    .point-row {
-	      &:hover { background: #252F3F !important; }
-	      &.active { background: rgba(13, 148, 136, 0.12) !important; border-color: #0D9488 !important; }
-	    }
-	    .p-name { color: #CBD5E1 !important; }
-	    .p-type { color: #64748B !important; }
-	    .p-status.unknown { background: #475569 !important; }
-	    .gi-item { background: #252F3F !important; }
-	    .gi-label { color: #94A3B8 !important; }
-	    .gi-value {
-	      color: #F1F5F9 !important;
-	      &.normal { color: #5EEAD4 !important; }
-	      &.time { color: #64748B !important; }
-	      &.code { color: #CBD5E1 !important; }
-	      small { color: #64748B !important; }
-	    }
-	    .empty-state { color: #64748B !important; }
-	  }
+		  /* ---- 压力监测 ---- */
+		  .pressure-page {
+		    .p-card { border-color: #334155 !important; }
+		    .card-title { color: #F1F5F9 !important; .el-icon { color: #5EEAD4 !important; } }
+		    .dg-name { color: #94A3B8 !important; }
+		    .dg-header { border-bottom-color: #334155 !important; }
+		    .dg-arrow { color: #64748B !important; }
+		    .dg-header .el-tag { --el-tag-bg-color: rgba(94,234,212,.1) !important; --el-tag-text-color: #5EEAD4 !important; --el-tag-border-color: rgba(94,234,212,.2) !important; }
+		    .point-row {
+		      &:hover { background: #252F3F !important; }
+		      &.active { background: rgba(13, 148, 136, 0.12) !important; border-color: #0D9488 !important; }
+		    }
+		    .p-name { color: #CBD5E1 !important; }
+		    .p-type { color: #64748B !important; border-color: #475569 !important; background: #252F3F !important; }
+		    .p-status.unknown { background: #475569 !important; }
+		    .gi-item { background: #252F3F !important; }
+		    .gi-label { color: #94A3B8 !important; }
+		    .gi-value {
+		      color: #F1F5F9 !important;
+		      &.normal { color: #5EEAD4 !important; }
+		      &.time { color: #64748B !important; }
+		      &.code { color: #CBD5E1 !important; }
+		      small { color: #64748B !important; }
+		    }
+		    .empty-state, .empty-hint { color: #64748B !important; }
+		  }
 
-	  /* ---- 泵站监控 ---- */
-	  .pump-monitor {
-	    .station-card {
-	      background: #1E293B !important;
-	      border-color: #334155 !important;
-	      &:hover { box-shadow: 0 4px 16px rgba(0,0,0,.25) !important; }
-	      &.offline { opacity: 0.6; }
-	    }
-	    .sc-name { color: #F1F5F9 !important; }
-	    .sc-status {
-	      &.online { background: rgba(16, 185, 129, 0.15) !important; color: #10B981 !important; }
-	      &.offline { background: rgba(239, 68, 68, 0.15) !important; color: #EF4444 !important; }
-	    }
-	    .sc-label { color: #94A3B8 !important; }
-	    .sc-val { color: #CBD5E1 !important; }
-	    .sc-footer { border-top-color: #334155 !important; }
-	    .sc-manager { color: #64748B !important; }
-	    .empty-hint { color: #64748B !important; }
-	  }
+		  /* ---- 泵站监控 ---- */
+		  .pump-monitor {
+		    .station-card {
+		      background: #1E293B !important;
+		      border-color: #334155 !important;
+		      &:hover { box-shadow: 0 4px 16px rgba(0,0,0,.25) !important; }
+		      &.offline { opacity: 0.6; }
+		    }
+		    .sc-name { color: #F1F5F9 !important; }
+		    .sc-status {
+		      &.online { background: rgba(16, 185, 129, 0.15) !important; color: #10B981 !important; }
+		      &.offline { background: rgba(239, 68, 68, 0.15) !important; color: #EF4444 !important; }
+		    }
+		    .sc-label { color: #94A3B8 !important; }
+		    .sc-val { color: #CBD5E1 !important; }
+		    .sc-footer { border-top-color: #334155 !important; }
+		    .sc-manager { color: #64748B !important; }
+		    .empty-hint { color: #64748B !important; }
+		  }
 
-	  /* ---- 流量监测 ---- */
-	  .flow-monitor {
-	    .f-card { border-color: #334155 !important; }
-	    .card-title { color: #F1F5F9 !important; .el-icon { color: #5EEAD4 !important; } }
-	    .tg-name { color: #94A3B8 !important; }
-	    .point-row {
-	      &:hover { background: #252F3F !important; }
-	      &.active { background: rgba(37, 99, 235, 0.12) !important; border-color: #2563EB !important; }
-	    }
-	    .p-name { color: #CBD5E1 !important; }
-	    .p-unit { color: #64748B !important; }
-	    .rt-item { background: #252F3F !important; }
-	    .rt-label { color: #94A3B8 !important; }
-	    .rt-value {
-	      color: #60A5FA !important;
-	      &.normal { color: #5EEAD4 !important; }
-	      &.time { color: #64748B !important; }
-	      &.code { color: #CBD5E1 !important; }
-	    }
-	    .rt-unit { color: #64748B !important; }
-	    .empty-state { color: #64748B !important; }
-	  }
+		  /* ---- 流量监测 ---- */
+		  .flow-monitor-page {
+		    .f-card { border-color: #334155 !important; }
+		    .card-title { color: #F1F5F9 !important; .el-icon { color: #5EEAD4 !important; } }
+		    .dg-name { color: #94A3B8 !important; }
+		    .dg-header { border-bottom-color: #334155 !important; }
+		    .dg-arrow { color: #64748B !important; }
+		    .dg-header .el-tag { --el-tag-bg-color: rgba(94,234,212,.1) !important; --el-tag-text-color: #5EEAD4 !important; --el-tag-border-color: rgba(94,234,212,.2) !important; }
+		    .point-row {
+		      &:hover { background: #252F3F !important; }
+		      &.active { background: rgba(37, 99, 235, 0.12) !important; border-color: #2563EB !important; }
+		    }
+		    .p-name { color: #CBD5E1 !important; }
+		    .p-unit { color: #64748B !important; }
+		    .p-type { color: #64748B !important; border-color: #475569 !important; background: #252F3F !important; }
+		    .rt-item { background: #252F3F !important; }
+		    .rt-label { color: #94A3B8 !important; }
+		    .rt-value {
+		      color: #60A5FA !important;
+		      &.normal { color: #5EEAD4 !important; }
+		      &.time { color: #64748B !important; }
+		      &.code { color: #CBD5E1 !important; }
+		    }
+		    .rt-unit { color: #64748B !important; }
+		    .empty-state, .empty-hint { color: #64748B !important; }
+		  }
 
-	  /* ---- 能耗分析 ---- */
+/* ---- 能耗分析 ---- */
 	  .energy-page {
 	    .e-card { border-color: #334155 !important; }
 	    .card-title { color: #F1F5F9 !important; .el-icon { color: #5EEAD4 !important; } }
