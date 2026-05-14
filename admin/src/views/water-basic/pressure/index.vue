@@ -2,25 +2,32 @@
   <div class="pressure-page">
     <div class="overview-bar">
       <div class="ov-item"><span class="ov-label">压力监测点</span><span class="ov-value">{{ totalPoints }}</span></div>
-      <div class="ov-item"><span class="ov-label">平均压力</span><span class="ov-value">{{ avgPressure }} <small>MPa</small></span></div>
-      <div class="ov-item"><span class="ov-label">超压报警</span><span class="ov-value bad">{{ overPressureCount }}</span></div>
+      <div class="ov-item"><span class="ov-label">绑定设备</span><span class="ov-value">{{ deviceCount }}</span></div>
+      <div class="ov-item"><span class="ov-label">压力类型</span><span class="ov-value">{{ typeCount }}</span></div>
     </div>
 
     <el-row :gutter="20">
       <el-col :xs="24" :lg="6">
         <el-card shadow="never" class="p-card">
-          <template #header><div class="card-title"><el-icon><Grid /></el-icon><span>监测点列表</span></div></template>
-          <el-input v-model="searchKey" placeholder="搜索测点" size="small" clearable style="margin-bottom:12px" />
+          <template #header><div class="card-title"><el-icon><Grid /></el-icon><span>设备监测点</span></div></template>
+          <el-input v-model="searchKey" placeholder="搜索设备/测点" size="small" clearable style="margin-bottom:12px" />
           <div v-loading="loading" class="point-list">
-            <div v-for="p in filteredPoints" :key="p.code"
-              class="point-row" :class="{ active: selectedPoint?.code === p.code }"
-              @click="selectPoint(p)">
-              <div class="p-info">
-                <span class="p-name">{{ p.name || p.code }}</span>
-                <span class="p-type">{{ p.typeLabel }}</span>
+            <div v-for="g in filteredGroups" :key="g.deviceCode" class="device-group">
+              <div class="dg-header">
+                <span class="dg-name">{{ g.deviceName }}</span>
+                <el-tag size="small">{{ g.points.length }}</el-tag>
               </div>
-              <span class="p-status" :class="getStatus(p.code)"></span>
+              <div v-for="p in g.points" :key="p.id"
+                class="point-row" :class="{ active: selectedPoint?.id === p.id }"
+                @click="selectPoint(p)">
+                <div class="p-info">
+                  <span class="p-name">{{ p.name || p.code }}</span>
+                  <span class="p-type">{{ p.typeLabel }}</span>
+                </div>
+                <span class="p-status" :class="getStatus(p.code)"></span>
+              </div>
             </div>
+            <div v-if="groups.length === 0 && !loading" class="empty-hint">暂未配置压力监测点</div>
           </div>
         </el-card>
       </el-col>
@@ -37,7 +44,6 @@
               </el-radio-group>
             </div>
           </template>
-          <!-- 压力表盘 -->
           <div class="gauge-row">
             <div ref="gaugeRef" class="gauge-box"></div>
             <div class="gauge-info">
@@ -47,7 +53,6 @@
               <div class="gi-item"><span class="gi-label">测点编码</span><span class="gi-value code">{{ selectedPoint.code }}</span></div>
             </div>
           </div>
-          <!-- 趋势图 -->
           <div ref="trendChartRef" class="chart-box"></div>
         </el-card>
 
@@ -64,18 +69,29 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { Grid, Odometer, Search } from '@element-plus/icons-vue'
+import { Grid, Odometer, Search, ArrowDown } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import request from '@/utils/request'
 import { getLatestDataBatch } from '@/api/data-integration/query'
 import dayjs from 'dayjs'
 
 const loading = ref(false)
-const points = ref([])
-const totalPoints = ref(0)
-const avgPressure = ref(0)
-const overPressureCount = ref(0)
 const searchKey = ref('')
+const groups = ref([])
+const collapsed = ref({})
+const totalPoints = ref(0)
+const deviceCount = ref(0)
+const typeCount = ref(0)
+
+function toggleGroup(code) {
+  collapsed.value[code] = !collapsed.value[code]
+}
+function collapseAll() {
+  groups.value.forEach(g => { collapsed.value[g.deviceCode] = true })
+}
+function expandAll() {
+  collapsed.value = {}
+}
 
 const selectedPoint = ref(null)
 const currentValue = ref(null)
@@ -88,10 +104,19 @@ let gaugeChart = null
 let trendChart = null
 const statusMap = ref({})
 
-const filteredPoints = computed(() => {
-  if (!searchKey.value) return points.value
+const filteredGroups = computed(() => {
+  if (!searchKey.value) return groups.value
   const kw = searchKey.value.toLowerCase()
-  return points.value.filter(p => (p.name || p.code || '').toLowerCase().includes(kw))
+  return groups.value
+    .map(g => ({
+      ...g,
+      points: g.points.filter(p =>
+        (p.name || '').toLowerCase().includes(kw) ||
+        (p.code || '').toLowerCase().includes(kw) ||
+        (g.deviceName || '').toLowerCase().includes(kw)
+      ),
+    }))
+    .filter(g => g.points.length > 0 || g.deviceName.toLowerCase().includes(kw))
 })
 
 const currentValStr = computed(() => currentValue.value !== null ? currentValue.value.toFixed(3) : '--')
@@ -109,8 +134,12 @@ function fetchPoints() {
   loading.value = true
   request({ url: '/water-basic/pressure/points', method: 'get' }).then(res => {
     if (res.data) {
-      points.value = res.data.points || []
+      groups.value = res.data.groups || []
       totalPoints.value = res.data.total || 0
+      deviceCount.value = groups.value.length
+      const types = new Set()
+      groups.value.forEach(g => g.points.forEach(p => types.add(p.type)))
+      typeCount.value = types.size
     }
   }).finally(() => { loading.value = false })
 }
@@ -185,33 +214,21 @@ onMounted(() => { fetchPoints() })
 <style lang="scss" scoped>
 .pressure-page { padding: 20px 24px; }
 
-.overview-bar {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;
-}
-.ov-item {
-  background: #FFF; border-radius: 10px; padding: 16px 20px; border: 1px solid #E2E8F0;
-  display: flex; justify-content: space-between; align-items: center;
-}
+.overview-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+.ov-item { background: #FFF; border-radius: 10px; padding: 16px 20px; border: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; }
 .ov-label { font-size: 13px; color: #64748B; }
 .ov-value { font-size: 28px; font-weight: 700; color: #0F172A; }
-.ov-value small { font-size: 14px; font-weight: 400; color: #94A3B8; }
-.ov-value.bad { color: #EF4444; }
 
 .p-card { border-radius: 10px; border: 1px solid #E2E8F0; box-shadow: none; margin-bottom: 0; height: 100%; }
+.card-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #0F172A; .el-icon { color: #0D9488; } }
 
-.card-title {
-  display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #0F172A;
-  .el-icon { color: #0D9488; }
-}
+.point-list { max-height: calc(100vh - 320px); overflow-y: auto; }
 
-.point-list { max-height: calc(100vh - 300px); overflow-y: auto; }
-.point-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 8px 10px; border-radius: 6px; cursor: pointer; margin: 3px 0;
-  border: 1px solid transparent;
-  &:hover { background: #F0FDFA; }
-  &.active { background: #F0FDFA; border-color: #0D9488; }
-}
+.device-group { margin-bottom: 10px; }
+.dg-header { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #F1F5F9; margin-bottom: 3px; }
+.dg-name { font-size: 13px; font-weight: 600; color: #475569; }
+
+.point-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; border-radius: 6px; cursor: pointer; margin: 2px 0; border: 1px solid transparent; &:hover { background: #F0FDFA; } &.active { background: #F0FDFA; border-color: #0D9488; } }
 .p-info { display: flex; flex-direction: column; min-width: 0; }
 .p-name { font-size: 13px; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .p-type { font-size: 11px; color: #94A3B8; }
@@ -221,7 +238,6 @@ onMounted(() => { fetchPoints() })
 .p-status.bad { background: #EF4444; }
 .p-status.unknown { background: #CBD5E1; }
 
-// Gauge
 .gauge-row { display: flex; gap: 24px; align-items: center; }
 .gauge-box { width: 200px; height: 200px; flex-shrink: 0; }
 .gauge-info { flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
@@ -234,10 +250,8 @@ onMounted(() => { fetchPoints() })
 .gi-value small { font-size: 12px; font-weight: 400; color: #94A3B8; }
 
 .chart-box { width: 100%; height: 260px; margin-top: 16px; }
-
 .empty-state { display: flex; flex-direction: column; align-items: center; padding: 80px 0; color: #94A3B8; p { margin-top: 12px; } }
+.empty-hint { text-align: center; color: #94A3B8; font-size: 13px; padding: 24px 0; }
 
-@media (max-width: 992px) {
-  .gauge-row { flex-direction: column; }
-}
+@media (max-width: 992px) { .gauge-row { flex-direction: column; } }
 </style>

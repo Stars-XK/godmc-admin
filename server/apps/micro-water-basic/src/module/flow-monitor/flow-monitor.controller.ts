@@ -7,7 +7,7 @@ import { FlowMonitorService } from './flow-monitor.service';
 export class FlowMonitorController {
   constructor(private readonly service: FlowMonitorService) {}
 
-  @ApiOperation({ summary: '获取流量监测点列表（按类型分组）' })
+  @ApiOperation({ summary: '获取流量监测点列表（按设备分组）' })
   @Get('points')
   async getPoints() {
     return this.service.getFlowPoints();

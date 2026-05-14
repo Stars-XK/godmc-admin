@@ -8,7 +8,7 @@ import { ResultData } from '@app/common/utils/result';
 export class PressureController {
   constructor(private readonly service: PressureService) {}
 
-  @ApiOperation({ summary: '获取压力监测点列表（按分区/站点分组）' })
+  @ApiOperation({ summary: '获取压力监测点列表（按设备分组）' })
   @Get('points')
   async getPoints() {
     return this.service.getPressurePoints();

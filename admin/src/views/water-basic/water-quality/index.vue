@@ -1,25 +1,24 @@
 <template>
   <div class="water-quality">
-    <!-- 顶部总览 -->
     <div class="overview-bar">
       <div class="ov-item"><span class="ov-label">监测点总数</span><span class="ov-value">{{ totalPoints }}</span></div>
-      <div class="ov-item"><span class="ov-label">在线率</span><span class="ov-value" :class="onlineRate >= 80 ? 'good' : onlineRate >= 50 ? 'warn' : 'bad'">{{ onlineRate }}%</span></div>
-      <div class="ov-item"><span class="ov-label">今日报警</span><span class="ov-value bad">{{ alarmCount }}</span></div>
+      <div class="ov-item"><span class="ov-label">绑定设备</span><span class="ov-value">{{ deviceCount }}</span></div>
+      <div class="ov-item"><span class="ov-label">参数类型</span><span class="ov-value">{{ paramCount }}</span></div>
     </div>
 
     <el-row :gutter="20">
-      <!-- 左侧：测点分类列表 -->
       <el-col :xs="24" :lg="7">
         <el-card shadow="never" class="wq-card">
-          <template #header><div class="card-title"><el-icon><Grid /></el-icon><span>监测分类</span></div></template>
-          <div v-loading="loading">
-            <div v-for="g in groups" :key="g.category" class="category-group">
-              <div class="cat-header">
-                <span class="cat-name">{{ g.category }}</span>
-                <el-tag size="small">{{ g.points.length }}个测点</el-tag>
+          <template #header><div class="card-title"><el-icon><Grid /></el-icon><span>设备监测点</span></div></template>
+          <el-input v-model="searchKey" placeholder="搜索设备/测点" size="small" clearable style="margin-bottom:12px" />
+          <div v-loading="loading" class="point-list">
+            <div v-for="g in filteredGroups" :key="g.deviceCode" class="device-group">
+              <div class="dg-header">
+                <span class="dg-name">{{ g.deviceName }}</span>
+                <el-tag size="small">{{ g.points.length }}个</el-tag>
               </div>
-              <div v-for="p in g.points" :key="p.code"
-                class="point-item" :class="{ active: selectedPoint?.code === p.code }"
+              <div v-for="p in g.points" :key="p.id"
+                class="point-item" :class="{ active: selectedPoint?.id === p.id }"
                 @click="selectPoint(p)">
                 <span class="point-label">{{ p.name || p.code }}</span>
                 <span class="point-type-tag">{{ p.typeLabel }}</span>
@@ -30,9 +29,7 @@
         </el-card>
       </el-col>
 
-      <!-- 右侧：详情 + 趋势 -->
       <el-col :xs="24" :lg="17">
-        <!-- 实时值 -->
         <el-card shadow="never" class="wq-card" v-if="selectedPoint">
           <template #header><div class="card-title"><el-icon><TrendCharts /></el-icon><span>实时监测 — {{ selectedPoint.name || selectedPoint.code }}</span></div></template>
           <div class="realtime-grid">
@@ -59,7 +56,6 @@
           </div>
         </el-card>
 
-        <!-- 趋势图 -->
         <el-card shadow="never" class="wq-card" v-if="selectedPoint" style="margin-top:16px">
           <template #header>
             <div class="card-title">
@@ -74,7 +70,6 @@
           <div ref="trendChartRef" class="chart-box"></div>
         </el-card>
 
-        <!-- 未选择 -->
         <el-card shadow="never" class="wq-card" v-if="!selectedPoint">
           <div class="empty-state">
             <el-icon :size="48"><Search /></el-icon>
@@ -87,7 +82,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { Grid, TrendCharts, Search } from '@element-plus/icons-vue'
 import { listQualityPoints, getQualityTrend } from '@/api/water-basic/water-quality'
 import { getLatestDataBatch } from '@/api/data-integration/query'
@@ -95,10 +90,11 @@ import * as echarts from 'echarts'
 import dayjs from 'dayjs'
 
 const loading = ref(false)
+const searchKey = ref('')
 const groups = ref([])
 const totalPoints = ref(0)
-const onlineRate = ref(0)
-const alarmCount = ref(0)
+const deviceCount = ref(0)
+const paramCount = ref(0)
 
 const selectedPoint = ref(null)
 const currentValue = ref(null)
@@ -108,7 +104,21 @@ const trendInterval = ref('1h')
 const trendChartRef = ref(null)
 let trendChart = null
 
-// 水质合规颜色
+const filteredGroups = computed(() => {
+  if (!searchKey.value) return groups.value
+  const kw = searchKey.value.toLowerCase()
+  return groups.value
+    .map(g => ({
+      ...g,
+      points: g.points.filter(p =>
+        (p.name || '').toLowerCase().includes(kw) ||
+        (p.code || '').toLowerCase().includes(kw) ||
+        (g.deviceName || '').toLowerCase().includes(kw)
+      ),
+    }))
+    .filter(g => g.points.length > 0 || g.deviceName.toLowerCase().includes(kw))
+})
+
 function qualityColor(val, min, max) {
   if (val === null || val === undefined) return '#94A3B8'
   if (val < min || val > max) return '#EF4444'
@@ -123,8 +133,10 @@ function fetchPoints() {
     if (res.data) {
       groups.value = res.data.groups || []
       totalPoints.value = res.data.total || 0
-      onlineRate.value = 80 // placeholder, can compute from real data
-      alarmCount.value = 0 // placeholder, can compute from real data
+      deviceCount.value = groups.value.length
+      const types = new Set()
+      groups.value.forEach(g => g.points.forEach(p => types.add(p.type)))
+      paramCount.value = types.size
     }
   }).finally(() => { loading.value = false })
 }
@@ -194,8 +206,7 @@ function renderTrendChart(dates, vals, pointInfo) {
       type: 'line', data: vals, smooth: true, symbol: 'none',
       lineStyle: { width: 2, color: '#0D9488' },
       markLine: {
-        silent: true,
-        symbol: 'none',
+        silent: true, symbol: 'none',
         lineStyle: { type: 'dashed' },
         data: [
           { yAxis: min, label: { formatter: `下限${min}`, fontSize: 10 }, lineStyle: { color: '#F59E0B' } },
@@ -213,97 +224,45 @@ onMounted(() => { fetchPoints() })
 .water-quality { padding: 20px 24px; }
 
 .overview-bar {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;
 }
-
 .ov-item {
-  background: #FFF;
-  border-radius: 10px;
-  padding: 16px 20px;
-  border: 1px solid #E2E8F0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  background: #FFF; border-radius: 10px; padding: 16px 20px; border: 1px solid #E2E8F0;
+  display: flex; justify-content: space-between; align-items: center;
 }
-
 .ov-label { font-size: 13px; color: #64748B; }
 .ov-value { font-size: 28px; font-weight: 700; color: #0F172A; }
-.ov-value.good { color: #10B981; }
-.ov-value.warn { color: #F59E0B; }
-.ov-value.bad { color: #EF4444; }
+
+.point-list { max-height: calc(100vh - 320px); overflow-y: auto; }
 
 .wq-card {
-  border-radius: 10px;
-  border: 1px solid #E2E8F0;
-  box-shadow: none;
-  margin-bottom: 0;
+  border-radius: 10px; border: 1px solid #E2E8F0; box-shadow: none; margin-bottom: 0;
 }
 
 .card-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #0F172A;
+  display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #0F172A;
   .el-icon { color: #0D9488; }
 }
 
-.category-group {
-  margin-bottom: 14px;
+.device-group { margin-bottom: 12px; }
+.dg-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0 4px; border-bottom: 1px solid #F1F5F9; margin-bottom: 4px;
 }
-
-.cat-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 0 4px;
-}
-
-.cat-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: #475569;
-}
+.dg-name { font-size: 13px; font-weight: 600; color: #475569; }
 
 .point-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all .15s;
-  margin: 3px 0;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 10px; border-radius: 6px; cursor: pointer; transition: all .15s; margin: 2px 0;
   border: 1px solid transparent;
-
   &:hover { background: #F0FDFA; }
   &.active { background: #F0FDFA; border-color: #0D9488; }
-
   .point-label { font-size: 13px; color: #334155; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .point-type-tag { font-size: 11px; color: #94A3B8; border: 1px solid #E2E8F0; border-radius: 4px; padding: 1px 6px; flex-shrink: 0; margin-left: 8px; }
 }
 
-// 实时值
-.realtime-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-.rt-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 12px;
-  background: #F8FAFC;
-  border-radius: 8px;
-}
-
+.realtime-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.rt-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px; background: #F8FAFC; border-radius: 8px; }
 .rt-label { font-size: 12px; color: #94A3B8; }
 .rt-value { font-size: 24px; font-weight: 700; }
 .rt-value.normal { font-size: 16px; color: #0D9488; }
@@ -313,21 +272,8 @@ onMounted(() => { fetchPoints() })
 
 .chart-box { width: 100%; height: 300px; }
 
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 60px 0;
-  color: #94A3B8;
-  p { margin-top: 12px; font-size: 14px; }
-}
-
-.empty-hint {
-  text-align: center;
-  color: #94A3B8;
-  font-size: 13px;
-  padding: 24px 0;
-}
+.empty-state { display: flex; flex-direction: column; align-items: center; padding: 60px 0; color: #94A3B8; p { margin-top: 12px; font-size: 14px; } }
+.empty-hint { text-align: center; color: #94A3B8; font-size: 13px; padding: 24px 0; }
 
 @media (max-width: 992px) {
   .realtime-grid { grid-template-columns: repeat(2, 1fr); }

@@ -115,16 +115,61 @@ export class ReportCenterService {
     const startDate = dayjs(startStr).toDate();
     const endDate = dayjs(endStr).toDate();
 
-    const [zoneCount, stationCount, deviceCount, pointCount, deviceOnline, alarmCount] = await Promise.all([
+    const [zoneCount, stationCount, deviceCount, pointCount, deviceOnline, alarmCount, pointTypeRaw] = await Promise.all([
       this.zoneRep.count({ where: { delFlag: '0' } }),
       this.stationRep.count({ where: { delFlag: '0' } }),
       this.deviceRep.count({ where: { delFlag: '0' } }),
       this.pointRep.count({ where: { delFlag: '0' } }),
       this.deviceRep.count({ where: { delFlag: '0', iotStatus: '1' as any } }),
       this.alarmHistoryRep.count({ where: { alarmTime: Between(startDate, endDate) } as any }),
+      this.pointRep
+        .createQueryBuilder('p')
+        .select('p.type', 'type')
+        .addSelect('COUNT(*)', 'count')
+        .where('p.delFlag = :df', { df: '0' })
+        .groupBy('p.type')
+        .getRawMany(),
     ]);
 
     const alarmByLevel = await this.countAlarmByLevel(startDate, endDate);
+
+    const typeCategoryLabels: Record<string, { category: string; label: string }> = {
+      '1': { category: '流量', label: '流量' }, '2': { category: '流量', label: '累计流量' },
+      '3': { category: '流量', label: '瞬时流量' }, '4': { category: '流量', label: '进水流量' },
+      '5': { category: '流量', label: '出水流量' }, '6': { category: '流量', label: '原水流量' },
+      '7': { category: '流量', label: '清水流量' },
+      '8': { category: '压力', label: '压力' }, '9': { category: '压力', label: '进水压力' },
+      '10': { category: '压力', label: '出水压力' }, '11': { category: '压力', label: '管网压力' },
+      '12': { category: '压力', label: '泵站压力' },
+      '13': { category: '液位', label: '液位' }, '14': { category: '液位', label: '水库液位' },
+      '15': { category: '液位', label: '水池液位' }, '16': { category: '液位', label: '水井液位' },
+      '17': { category: '水质', label: '余氯' }, '34': { category: '水质', label: '进水余氯' },
+      '35': { category: '水质', label: '出水余氯' }, '18': { category: '水质', label: '浊度' },
+      '36': { category: '水质', label: '进水浊度' }, '37': { category: '水质', label: '出水浊度' },
+      '19': { category: '水质', label: 'pH值' }, '38': { category: '水质', label: '进水pH' },
+      '39': { category: '水质', label: '出水pH' }, '20': { category: '水质', label: '高锰酸盐' },
+      '41': { category: '水质', label: '进水高锰酸盐' }, '42': { category: '水质', label: '出水高锰酸盐' },
+      '21': { category: '水质', label: '氨氮' }, '43': { category: '水质', label: '进水氨氮' },
+      '44': { category: '水质', label: '出水氨氮' }, '22': { category: '水质', label: '溶解氧' },
+      '45': { category: '水质', label: '进水溶解氧' }, '46': { category: '水质', label: '出水溶解氧' },
+      '23': { category: '水质', label: '温度' }, '47': { category: '水质', label: '进水温度' },
+      '48': { category: '水质', label: '出水温度' },
+      '28': { category: '电力', label: '电量' }, '29': { category: '电力', label: '功率' },
+      '30': { category: '电力', label: '电流' }, '31': { category: '电力', label: '电压' },
+      '24': { category: '状态', label: '设备状态' }, '25': { category: '状态', label: '阀门状态' },
+      '26': { category: '状态', label: '水泵状态' }, '27': { category: '状态', label: '风机状态' },
+      '32': { category: '其他', label: '频率' }, '40': { category: '其他', label: '转速' },
+      '33': { category: '其他', label: '时间' },
+    };
+
+    const categoryAgg: Record<string, number> = {};
+    for (const r of pointTypeRaw) {
+      const cat = typeCategoryLabels[r.type]?.category || '其他';
+      categoryAgg[cat] = (categoryAgg[cat] || 0) + Number(r.count);
+    }
+    const pointCategoryRows = Object.entries(categoryAgg)
+      .sort((a, b) => b[1] - a[1])
+      .map(([cat, count]) => [cat, String(count), pointCount > 0 ? ((count / pointCount) * 100).toFixed(1) + '%' : '0%']);
 
     const sections = [
       { type: 'text', title: '概述', content: `${period} 供水运行月报。本报告覆盖 ${zoneCount} 个管理分区、${stationCount} 座站点设施、${deviceCount} 台设备（在线 ${deviceOnline} 台）、${pointCount} 个监测点位。` },
@@ -141,6 +186,7 @@ export class ReportCenterService {
         { label: '次要', value: alarmByLevel['3'], unit: '条', color: '#3B82F6' },
         { label: '提示', value: alarmByLevel['4'], unit: '条', color: '#94A3B8' },
       ]},
+      { type: 'table', title: '测点类型分布', headers: ['分类', '数量', '占比'], rows: pointCategoryRows },
     ];
 
     return { sections, generatedAt: dayjs().format('YYYY-MM-DD HH:mm:ss') };
