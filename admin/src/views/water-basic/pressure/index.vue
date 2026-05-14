@@ -10,14 +10,20 @@
       <el-col :xs="24" :lg="6">
         <el-card shadow="never" class="p-card">
           <template #header><div class="card-title"><el-icon><Grid /></el-icon><span>设备监测点</span></div></template>
-          <el-input v-model="searchKey" placeholder="搜索设备/测点" size="small" clearable style="margin-bottom:12px" />
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <el-input v-model="searchKey" placeholder="搜索设备/测点" size="small" clearable style="flex:1" />
+            <el-button text size="small" @click="Object.keys(collapsed).length ? expandAll() : collapseAll()">
+              {{ Object.keys(collapsed).length ? '展开全部' : '收起全部' }}
+            </el-button>
+          </div>
           <div v-loading="loading" class="point-list">
             <div v-for="g in filteredGroups" :key="g.deviceCode" class="device-group">
-              <div class="dg-header">
+              <div class="dg-header" @click="toggleGroup(g.deviceCode)">
+                <el-icon class="dg-arrow" :class="{ collapsed: collapsed[g.deviceCode] }"><ArrowDown /></el-icon>
                 <span class="dg-name">{{ g.deviceName }}</span>
                 <el-tag size="small">{{ g.points.length }}</el-tag>
               </div>
-              <div v-for="p in g.points" :key="p.id"
+              <div v-for="p in g.points" :key="p.id" v-show="searchKey || !collapsed[g.deviceCode]"
                 class="point-row" :class="{ active: selectedPoint?.id === p.id }"
                 @click="selectPoint(p)">
                 <div class="p-info">
@@ -225,8 +231,9 @@ onMounted(() => { fetchPoints() })
 .point-list { max-height: calc(100vh - 320px); overflow-y: auto; }
 
 .device-group { margin-bottom: 10px; }
-.dg-header { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #F1F5F9; margin-bottom: 3px; }
-.dg-name { font-size: 13px; font-weight: 600; color: #475569; }
+.dg-header { display: flex; align-items: center; gap: 4px; padding: 4px 0; border-bottom: 1px solid #F1F5F9; margin-bottom: 3px; cursor: pointer; user-select: none; }
+.dg-arrow { font-size: 12px; color: #94A3B8; transition: transform .2s; flex-shrink: 0; &.collapsed { transform: rotate(-90deg); } }
+.dg-name { font-size: 13px; font-weight: 600; color: #475569; flex: 1; }
 
 .point-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; border-radius: 6px; cursor: pointer; margin: 2px 0; border: 1px solid transparent; &:hover { background: #F0FDFA; } &.active { background: #F0FDFA; border-color: #0D9488; } }
 .p-info { display: flex; flex-direction: column; min-width: 0; }
