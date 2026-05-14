@@ -571,6 +571,79 @@ CREATE TABLE `sys_menu` (
 ) ENGINE=InnoDB AUTO_INCREMENT=2000 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 菜单菜单表】菜单权限表';
 
 -- ----------------------------
+-- Table structure for sys_report (专题报告中心)
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_report`;
+CREATE TABLE `sys_report` (
+  `report_id` bigint NOT NULL AUTO_INCREMENT COMMENT '报告ID',
+  `title` varchar(200) NOT NULL COMMENT '报告标题',
+  `report_type` varchar(50) NOT NULL COMMENT '报告类型(monthly_ops/device_ops/alarm_analysis/zone_water/revenue/custom)',
+  `report_period` varchar(20) NOT NULL COMMENT '报告周期(YYYY-MM或YYYY-MM-DD)',
+  `report_status` varchar(20) NOT NULL DEFAULT 'draft' COMMENT '报告状态(draft/published/archived)',
+  `summary` varchar(500) DEFAULT '' COMMENT '报告摘要',
+  `content` longtext COMMENT '报告内容(JSON: sections数组)',
+  `cover_image` varchar(500) DEFAULT '' COMMENT '封面图片URL',
+  `file_url` varchar(500) DEFAULT '' COMMENT '导出文件URL',
+  `tags` varchar(300) DEFAULT '' COMMENT '报告标签(逗号分隔)',
+  `view_count` int DEFAULT 0 COMMENT '浏览次数',
+  `generate_time` datetime DEFAULT NULL COMMENT '生成时间',
+  `create_by` varchar(64) DEFAULT '' COMMENT '创建者',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `update_by` varchar(64) DEFAULT '' COMMENT '更新者',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  `status` char(1) DEFAULT '0' COMMENT '状态(0正常 1停用)',
+  `del_flag` char(1) DEFAULT '0' COMMENT '删除标志(0存在 1删除)',
+  PRIMARY KEY (`report_id`),
+  KEY `idx_report_type` (`report_type`),
+  KEY `idx_report_period` (`report_period`),
+  KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【系统管理模块 - 专题报告中心表】';
+
+-- ----------------------------
+-- Table structure for water_energy_record (能耗记录)
+-- ----------------------------
+DROP TABLE IF EXISTS `water_energy_record`;
+CREATE TABLE `water_energy_record` (
+  `record_id` bigint NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+  `station_code` varchar(50) NOT NULL COMMENT '站点编码',
+  `station_name` varchar(100) DEFAULT '' COMMENT '站点名称',
+  `record_period` varchar(20) NOT NULL COMMENT '记录周期(YYYY-MM-DD或YYYY-MM)',
+  `period_type` varchar(10) NOT NULL DEFAULT '1d' COMMENT '周期类型(1d/1mo)',
+  `power_consumption` decimal(12,2) DEFAULT 0 COMMENT '耗电量(kWh)',
+  `water_output` decimal(12,2) DEFAULT 0 COMMENT '供水量(m³)',
+  `unit_consumption` decimal(8,4) DEFAULT 0 COMMENT '单位能耗(kWh/m³)',
+  `peak_power` decimal(12,2) DEFAULT 0 COMMENT '峰段电量',
+  `valley_power` decimal(12,2) DEFAULT 0 COMMENT '谷段电量',
+  `record_time` datetime DEFAULT NULL COMMENT '记录时间',
+  `create_by` varchar(64) DEFAULT '' COMMENT '创建者',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `update_by` varchar(64) DEFAULT '' COMMENT '更新者',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  `status` char(1) DEFAULT '0' COMMENT '状态',
+  `del_flag` char(1) DEFAULT '0' COMMENT '删除标志',
+  PRIMARY KEY (`record_id`),
+  KEY `idx_station_code` (`station_code`),
+  KEY `idx_record_period` (`record_period`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='【水务基础模块 - 能耗记录表】';
+
+-- ----------------------------
+-- 性能索引（加速新页面查询）
+-- ----------------------------
+-- 水质/压力/流量监测页：WHERE del_flag='0' AND type IN (...)
+CREATE INDEX IF NOT EXISTS `idx_point_delflag_type` ON `water_point` (`del_flag`, `type`);
+-- 泵站监控页：WHERE del_flag='0' GROUP BY iot_status
+CREATE INDEX IF NOT EXISTS `idx_station_delflag_iot` ON `water_station` (`del_flag`, `iot_status`);
+-- 能耗分析页：WHERE record_period=? AND period_type=? AND del_flag='0' GROUP BY station_code
+CREATE INDEX IF NOT EXISTS `idx_energy_period_type` ON `water_energy_record` (`del_flag`, `period_type`, `record_period`);
+-- 首页/报表中心：WHERE alarm_time BETWEEN ? AND ?  以及  GROUP BY alarm_level
+CREATE INDEX IF NOT EXISTS `idx_alarm_history_time` ON `sys_alarm_history` (`alarm_time`);
+-- 管网分析页：WHERE del_flag='0' GROUP BY pipe_type / material / diameter
+CREATE INDEX IF NOT EXISTS `idx_pipe_delflag_type` ON `water_pipe` (`del_flag`, `pipe_type`);
+CREATE INDEX IF NOT EXISTS `idx_pipe_delflag_material` ON `water_pipe` (`del_flag`, `material`);
+
+-- ----------------------------
 -- Records of sys_menu
 -- ----------------------------
 BEGIN;
@@ -753,6 +826,18 @@ INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`
 INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1130, '管线删除', 122, 22, '', '', '', '1', '0', 'F', '0', '0', 'water-basic:pipe:remove', '#', 'admin', NOW(), '', NULL, '', '0');
 INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1131, '管线导出', 122, 23, '', '', '', '1', '0', 'F', '0', '0', 'water-basic:pipe:export', '#', 'admin', NOW(), '', NULL, '', '0');
 INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1132, '管线导入', 122, 24, '', '', '', '1', '0', 'F', '0', '0', 'water-basic:pipe:import', '#', 'admin', NOW(), '', NULL, '', '0');
+
+-- 水务基础新增模块（水质/压力/泵站/流量/能耗/管析/SCADA）
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1133, '水质监测', 119, 5, 'water-quality', 'water-basic/water-quality/index', '', '1', '0', 'C', '0', '0', 'water-basic:water-quality:list', 'monitor', 'admin', NOW(), '', NULL, '水质在线监测页面', '0');
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1134, '压力监测', 119, 6, 'pressure', 'water-basic/pressure/index', '', '1', '0', 'C', '0', '0', 'water-basic:pressure:list', 'dashboard', 'admin', NOW(), '', NULL, '压力实时监测页面', '0');
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1135, '泵站监控', 119, 7, 'pump-station', 'water-basic/pump-station/index', '', '1', '0', 'C', '0', '0', 'water-basic:pump-station:list', 'monitor', 'admin', NOW(), '', NULL, '泵站运行监控页面', '0');
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1136, '流量监测', 119, 8, 'flow-monitor', 'water-basic/flow-monitor/index', '', '1', '0', 'C', '0', '0', 'water-basic:flow-monitor:list', 'chart', 'admin', NOW(), '', NULL, '流量实时监测页面', '0');
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1137, '能耗分析', 119, 9, 'energy', 'water-basic/energy/index', '', '1', '0', 'C', '0', '0', 'water-basic:energy:list', 'chart', 'admin', NOW(), '', NULL, '能耗统计分析页面', '0');
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1138, '管网分析', 119, 10, 'pipe-analysis', 'water-basic/pipe-analysis/index', '', '1', '0', 'C', '0', '0', 'water-basic:pipe-analysis:list', 'chart', 'admin', NOW(), '', NULL, '管网统计分析页面', '0');
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1139, 'SCADA监控', 119, 11, 'scada', 'scada/monitor/index', '', '1', '0', 'C', '0', '0', 'water-basic:scada:list', 'monitor', 'admin', NOW(), '', NULL, 'SCADA实时监控大屏', '0');
+-- 系统管理新增专题报告
+INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`, `del_flag`) VALUES (1140, '专题报告', 1, 10, 'report', 'system/report/index', '', '1', '0', 'C', '0', '0', 'system:report:list', 'documentation', 'admin', NOW(), '', NULL, '专题报告中心', '0');
+
 
 COMMIT; -- 【系统管理模块 - 菜单表】
 

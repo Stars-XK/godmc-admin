@@ -9,10 +9,11 @@ import { PointController } from './point.controller';
 import { PointService } from './point.service';
 import { PipeController } from './pipe.controller';
 import { PipeService } from './pipe.service';
+import { PipeAnalysisController } from './pipe-analysis.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([SysDictDataEntity, WaterStationEntity, WaterDeviceEntity, WaterPointEntity, WaterPipeEntity])],
-  controllers: [StationController, DeviceController, PointController, PipeController],
+  controllers: [StationController, DeviceController, PointController, PipeController, PipeAnalysisController],
   providers: [StationService, DeviceService, PointService, PipeService],
 })
 export class EquipmentModule {}

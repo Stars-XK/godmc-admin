@@ -1,9 +1,10 @@
 <template>
   <div class="app-container dma-report-page">
+    <!-- 顶部查询栏 -->
     <div class="query-bar">
       <div class="query-bar-left">
         <el-date-picker
-          v-model="queryParams.date" type="month" placeholder="选择月份"
+          v-model="queryParams.month" type="month" placeholder="选择月份"
           format="YYYY-MM" value-format="YYYY-MM" :clearable="false"
           @change="handleQuery"
         />
@@ -13,6 +14,7 @@
       </div>
     </div>
 
+    <!-- 汇总统计卡片 -->
     <el-row :gutter="16" class="summary-row">
       <el-col :span="6">
         <div class="sum-card sum-supply">
@@ -40,63 +42,68 @@
       </el-col>
     </el-row>
 
+    <!-- 双栏: 树形表格 + 趋势图/地图 -->
     <el-row :gutter="16" class="content-row">
+      <!-- 左侧: 树形表格 (同分区管理) -->
       <el-col :span="12" class="content-col">
         <div class="section-card">
           <div class="section-header">
             <span class="section-title">分区层级</span>
-            <span class="section-date">{{ queryParams.date }}</span>
+            <span class="section-date">{{ queryParams.month }}</span>
           </div>
-          <div class="tree-table-wrapper">
-            <el-table
-              v-loading="loading"
-              :data="reportList"
-              row-key="id"
-              :default-expanded-keys="defaultExpandedKeys"
-              :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
-              highlight-current-row
-              @row-click="handleRowClick"
-              height="100%"
-              size="small"
-            >
-              <el-table-column prop="name" label="分区名称" min-width="160" fixed="left">
-                <template #default="scope">
-                  <span class="zone-name-cell">
-                    <el-icon v-if="scope.row.hasChildren" class="zone-folder-icon"><FolderOpened /></el-icon>
-                    <el-icon v-else class="zone-leaf-icon"><MapLocation /></el-icon>
-                    {{ scope.row.name }}
-                  </span>
-                </template>
-              </el-table-column>
-              <el-table-column prop="code" label="编码" width="120" />
-              <el-table-column label="供水量" width="120" align="right">
-                <template #default="scope">
-                  <span class="col-supply">{{ scope.row.supply || '0.00' }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column label="售水量" width="120" align="right">
-                <template #default="scope">
-                  <span class="col-sales">{{ scope.row.sales || '0.00' }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column label="产销差" width="120" align="right">
-                <template #default="scope">
-                  <span class="col-nrw">{{ scope.row.nrwDiff || '0.00' }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column label="差率" width="80" align="center">
-                <template #default="scope">
-                  <el-tag :type="getNrwRatioTag(scope.row.nrwRatio)" size="small" effect="plain">
-                    {{ scope.row.nrwRatio || '0.00' }}%
-                  </el-tag>
-                </template>
-              </el-table-column>
-            </el-table>
-          </div>
+          <el-table
+            v-if="refreshTable"
+            v-loading="loading"
+            :data="reportList"
+            row-key="id"
+            :expand-row-keys="expandedRowKeys"
+            :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
+            lazy
+            :load="handleLoadNode"
+            highlight-current-row
+            @row-click="handleRowClick"
+            @expand-change="handleExpandChange"
+            size="small"
+            class="flex-table"
+          >
+            <el-table-column prop="name" label="分区名称" min-width="160" show-overflow-tooltip>
+              <template #default="scope">
+                <span class="zone-name-cell">
+                  <el-icon v-if="scope.row.hasChildren" class="zone-folder-icon"><FolderOpened /></el-icon>
+                  <el-icon v-else class="zone-leaf-icon"><MapLocation /></el-icon>
+                  {{ scope.row.name }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="code" label="编码" width="120" />
+            <el-table-column label="供水量" width="110" align="right">
+              <template #default="scope">
+                <span class="col-supply">{{ scope.row.supply || '0.00' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="售水量" width="110" align="right">
+              <template #default="scope">
+                <span class="col-sales">{{ scope.row.sales || '0.00' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="产销差" width="110" align="right">
+              <template #default="scope">
+                <span class="col-nrw">{{ scope.row.nrwDiff || '0.00' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="差率" width="80" align="center">
+              <template #default="scope">
+                <el-tag :type="getNrwRatioTag(scope.row.nrwRatio)" size="small" effect="plain">
+                  {{ scope.row.nrwRatio || '0.00' }}%
+                </el-tag>
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
       </el-col>
 
-      <el-col :span="12" class="content-col">
+      <!-- 右侧: 趋势图 + 地图 -->
+      <el-col :span="12" class="content-col right-col">
         <div class="section-card trend-panel">
           <div class="section-header">
             <span class="section-title">历史趋势</span>
@@ -127,14 +134,31 @@
 
           <div class="trend-toolbar">
             <span class="toolbar-label">范围</span>
-            <el-radio-group v-model="trendMonths" @change="fetchTrend" size="small">
-              <el-radio-button :value="6">6月</el-radio-button>
-              <el-radio-button :value="12">12月</el-radio-button>
-              <el-radio-button :value="24">24月</el-radio-button>
+            <el-radio-group v-model="trendMonths" @change="(val) => fetchTrend(val)" size="small">
+              <el-radio-button :value="6">6个月</el-radio-button>
+              <el-radio-button :value="12">12个月</el-radio-button>
+              <el-radio-button :value="24">24个月</el-radio-button>
             </el-radio-group>
           </div>
 
           <div v-loading="trendLoading" class="chart-container" ref="chartRef"></div>
+        </div>
+
+        <!-- 地图 -->
+        <div class="section-card map-panel">
+          <div class="section-header">
+            <span class="section-title">分区位置</span>
+            <span v-if="selectedZone" class="section-subtitle">{{ selectedZone.name }}</span>
+            <span v-else class="section-subtitle">选择分区后定位</span>
+          </div>
+          <div class="mini-map-container" ref="mapContainer">
+            <div v-if="!mapInstance" class="map-placeholder">
+              <div class="map-content">
+                <el-icon style="font-size:36px;color:#909399;"><MapLocation /></el-icon>
+                <p>{{ amapKey ? '定位中...' : '未配置地图Key' }}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </el-col>
     </el-row>
@@ -142,10 +166,15 @@
 </template>
 
 <script setup name="DmaMonthlyReport">
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, shallowRef, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Search, Refresh, DataLine, MapLocation, FolderOpened } from '@element-plus/icons-vue'
 import request from '@/utils/request'
+import { listZoneTree, lazyZoneChildren } from '@/api/water-basic/zone'
+import { getConfigKey } from '@/api/system/config'
 import * as echarts from 'echarts'
+import AMapLoader from '@amap/amap-jsapi-loader'
+import dayjs from 'dayjs'
 
 const loading = ref(false)
 const triggering = ref(false)
@@ -153,12 +182,23 @@ const reportList = ref([])
 const selectedZone = ref(null)
 const trendLoading = ref(false)
 const trendMonths = ref(12)
-const defaultExpandedKeys = ref([])
+const refreshTable = ref(true)
+const expandedRowKeys = ref([])
+const userExpandedKeys = ref(new Set())
 const chartRef = ref(null)
 let chartInstance = null
 
+// 地图
+const mapContainer = ref(null)
+const amapKey = ref('')
+const amapSecurity = ref('')
+const amapStyle = ref('amap://styles/light')
+const mapInstance = shallowRef(null)
+const mapReady = ref(false)
+let markers = []
+
 const queryParams = reactive({
-  date: new Date().toISOString().substring(0, 7)
+  month: dayjs().subtract(1, 'month').format('YYYY-MM')
 })
 
 const rootStats = reactive({ supply: '0.00', sales: '0.00', nrwDiff: '0.00', nrwRatio: '0.00' })
@@ -170,40 +210,156 @@ const ratioClass = computed(() => {
   return 'ratio-bad'
 })
 
+function cleanHasChildren(list) {
+  if (!list || !list.length) return []
+  return list.map(item => {
+    if (item.children && item.children.length > 0) {
+      delete item.hasChildren
+      item.children = cleanHasChildren(item.children)
+    } else {
+      if (item.hasChildren) {
+        delete item.children
+      } else {
+        item.children = undefined
+      }
+    }
+    return item
+  })
+}
+
+function getExpandedKeys(data, maxLevel, currentLevel = 1) {
+  let keys = []
+  if (currentLevel > maxLevel) return keys
+  data.forEach(item => {
+    keys.push(item.id)
+    if (item.children && item.children.length > 0) {
+      keys = keys.concat(getExpandedKeys(item.children, maxLevel, currentLevel + 1))
+    }
+  })
+  return keys
+}
+
+function collectZoneCodes(nodes, maxLevel, depth = 1) {
+  const codes = []
+  for (const node of nodes) {
+    if (node.code && depth <= maxLevel) codes.push(node.code)
+    if (node.children && node.children.length > 0 && depth < maxLevel) {
+      codes.push(...collectZoneCodes(node.children, maxLevel, depth + 1))
+    }
+  }
+  return codes
+}
+
+async function loadNrwForZones(zoneCodes) {
+  if (!zoneCodes || zoneCodes.length === 0) return {}
+  try {
+    const res = await request({
+      url: '/report/nrw-batch',
+      method: 'get',
+      params: { zoneCodes: zoneCodes.join(','), date: queryParams.month, type: '1mo' }
+    })
+    return res.data || {}
+  } catch (e) { return {} }
+}
+
+function mergeNrwToTree(nodes, nrwMap) {
+  for (const node of nodes) {
+    const nrw = nrwMap[node.code]
+    if (nrw) {
+      node.supply = nrw.supply; node.sales = nrw.sales
+      node.nrwDiff = nrw.nrwDiff; node.nrwRatio = nrw.nrwRatio
+    } else {
+      node.supply = 0; node.sales = 0; node.nrwDiff = 0; node.nrwRatio = 0
+    }
+    if (node.children && node.children.length > 0) mergeNrwToTree(node.children, nrwMap)
+  }
+}
+
 function getList() {
   loading.value = true
   selectedZone.value = null
-  request({
-    url: '/report/tree-summary',
-    method: 'get',
-    params: { date: queryParams.date, type: '1mo' }
-  }).then(res => {
-    const tree = res.data || []
-    reportList.value = tree
-    if (tree.length > 0) {
-      rootStats.supply = (tree[0].supply || 0).toFixed(2)
-      rootStats.sales = (tree[0].sales || 0).toFixed(2)
-      rootStats.nrwDiff = (tree[0].nrwDiff || 0).toFixed(2)
-      rootStats.nrwRatio = (tree[0].nrwRatio || 0).toFixed(2)
-      defaultExpandedKeys.value = tree.map(n => n.id)
-      nextTick(() => {
-        selectedZone.value = tree[0]
-        nextTick(() => fetchTrend())
-      })
+  listZoneTree({}).then(async (response) => {
+    refreshTable.value = false
+    const rawData = response.data || response
+    const cleanData = cleanHasChildren(rawData)
+    reportList.value = cleanData
+
+    if (userExpandedKeys.value.size === 0) {
+      const defaultKeys = getExpandedKeys(cleanData, 2)
+      defaultKeys.forEach(key => userExpandedKeys.value.add(key))
     }
+    expandedRowKeys.value = Array.from(userExpandedKeys.value)
+
+    const visibleCodes = collectZoneCodes(cleanData, 2)
+    if (visibleCodes.length > 0) {
+      const nrwMap = await loadNrwForZones(visibleCodes)
+      mergeNrwToTree(cleanData, nrwMap)
+      if (cleanData.length > 0) {
+        rootStats.supply = (cleanData[0].supply || 0).toFixed(2)
+        rootStats.sales = (cleanData[0].sales || 0).toFixed(2)
+        rootStats.nrwDiff = (cleanData[0].nrwDiff || 0).toFixed(2)
+        rootStats.nrwRatio = (cleanData[0].nrwRatio || 0).toFixed(2)
+      }
+    }
+
     loading.value = false
+    nextTick(() => { refreshTable.value = true })
+
+    const firstLeaf = findFirstLeaf(cleanData)
+    if (firstLeaf) {
+      selectedZone.value = firstLeaf
+      nextTick(() => { fetchTrend(); locateZoneOnMap(firstLeaf) })
+    } else {
+      nextTick(() => renderEmptyChart())
+    }
   }).catch(() => { loading.value = false })
+}
+
+function findFirstLeaf(nodes) {
+  for (const node of nodes) {
+    if (!node.hasChildren || !node.children || node.children.length === 0) return node
+    const leaf = findFirstLeaf(node.children)
+    if (leaf) return leaf
+  }
+  return nodes[0] || null
+}
+
+async function handleLoadNode(row, treeNode, resolve) {
+  try {
+    const res = await lazyZoneChildren(row.code, {})
+    const children = cleanHasChildren(res.data || [])
+    const codes = children.filter(c => c.code).map(c => c.code)
+    if (codes.length > 0) {
+      const nrwMap = await loadNrwForZones(codes)
+      mergeNrwToTree(children, nrwMap)
+    }
+    resolve(children)
+  } catch (e) { resolve([]) }
+}
+
+function handleExpandChange(row, expanded) {
+  if (expanded) {
+    userExpandedKeys.value.add(row.id)
+  } else {
+    userExpandedKeys.value.delete(row.id)
+  }
 }
 
 function handleRowClick(row) {
   selectedZone.value = row
-  nextTick(() => fetchTrend())
+  nextTick(() => {
+    fetchTrend()
+    locateZoneOnMap(row)
+  })
 }
 
-function handleQuery() { getList() }
+function handleQuery() {
+  userExpandedKeys.value.clear()
+  getList()
+}
 
 function resetQuery() {
-  queryParams.date = new Date().toISOString().substring(0, 7)
+  queryParams.month = dayjs().subtract(1, 'month').format('YYYY-MM')
   handleQuery()
 }
 
@@ -212,9 +368,9 @@ function handleTriggerAgg() {
   request({
     url: '/report/trigger-agg',
     method: 'get',
-    params: { date: queryParams.date, type: '1mo' }
+    params: { date: queryParams.month, type: '1mo' }
   }).then(() => {
-    ElMessage.success('触发月度重新计算成功')
+    ElMessage.success('触发重新计算成功')
     setTimeout(() => { getList(); triggering.value = false }, 2000)
   }).catch(() => { triggering.value = false })
 }
@@ -226,54 +382,57 @@ function getNrwRatioTag(ratio) {
   return 'danger'
 }
 
-async function fetchTrend() {
-  if (!selectedZone.value) { renderEmptyChart(); return }
-  const endMonth = queryParams.date
-  const startDate = new Date(endMonth + '-01')
-  startDate.setMonth(startDate.getMonth() - trendMonths.value + 1)
-  const start = startDate.toISOString().substring(0, 7)
+let trendSeq = 0
 
+async function fetchTrend(months) {
+  if (!selectedZone.value) { renderEmptyChart(); return }
+  const range = months || trendMonths.value
+  const endDate = dayjs(queryParams.month).endOf('month').format('YYYY-MM-DD')
+  const startDate = dayjs(queryParams.month).subtract(range - 1, 'month').startOf('month').format('YYYY-MM-DD')
+
+  const seq = ++trendSeq
   trendLoading.value = true
   try {
     const res = await request({
       url: '/report/nrw-trend',
       method: 'get',
-      params: { zoneCode: selectedZone.value.code, startDate: start, endDate: endMonth, type: '1mo' }
+      params: { zoneCode: selectedZone.value.code, startDate, endDate, type: '1mo' }
     })
-    renderChart(res.data || [])
+    if (seq !== trendSeq) return
+    renderChart(res.data || [], range)
   } catch (e) {
+    if (seq !== trendSeq) return
     console.error(e)
+    renderEmptyChart(range)
   } finally {
-    trendLoading.value = false
+    if (seq === trendSeq) trendLoading.value = false
   }
 }
 
 function buildMonthLabels(months) {
   const labels = []
-  const [y, m] = queryParams.date.split('-').map(Number)
-  const base = new Date(y, m - 1, 1)
   for (let i = months - 1; i >= 0; i--) {
-    const d = new Date(base)
-    d.setMonth(d.getMonth() - i)
-    labels.push(d.toISOString().substring(0, 7))
+    const d = dayjs(queryParams.month).subtract(i, 'month')
+    labels.push(d.format('YYYY-MM'))
   }
   return labels
 }
 
-function renderChart(dataList) {
+function renderChart(dataList, range) {
   if (!chartRef.value) return
   if (!chartInstance) {
     chartInstance = echarts.init(chartRef.value)
   }
+  const actualRange = range || trendMonths.value
 
   const hasData = dataList && dataList.length > 0
-  const dates = hasData ? dataList.map(d => d.date) : buildMonthLabels(trendMonths.value)
+  const months = hasData ? dataList.map(d => d.date) : buildMonthLabels(actualRange)
   const supplyData = hasData ? dataList.map(d => d.supply) : []
   const salesData = hasData ? dataList.map(d => d.sales) : []
   const nrwData = hasData ? dataList.map(d => d.nrw_diff) : []
   const ratioData = hasData ? dataList.map(d => d.nrw_ratio) : []
 
-  const option = {
+  chartInstance.setOption({
     tooltip: { trigger: 'axis' },
     legend: {
       data: ['供水量', '售水量', '产销差', '产销差率'],
@@ -282,8 +441,8 @@ function renderChart(dataList) {
     },
     grid: { left: '3%', right: '5%', top: '8%', bottom: '14%', containLabel: true },
     xAxis: {
-      type: 'category', data: dates,
-      axisLabel: { fontSize: 10, color: '#94A3B8' },
+      type: 'category', data: months,
+      axisLabel: { fontSize: 10, rotate: 30, color: '#94A3B8' },
       axisLine: { lineStyle: { color: '#E2E8F0' } }
     },
     yAxis: [
@@ -306,39 +465,75 @@ function renderChart(dataList) {
       { name: '产销差', type: 'bar', data: nrwData, itemStyle: { color: '#E6A23C', borderRadius: [3,3,0,0] }, barWidth: '30%' },
       { name: '产销差率', type: 'line', yAxisIndex: 1, data: ratioData, itemStyle: { color: '#F56C6C' }, symbol: 'circle', symbolSize: 6, lineStyle: { width: 2 } }
     ]
-  }
-  chartInstance.setOption(option, true)
+  }, true)
 }
 
-function renderEmptyChart() {
+function renderEmptyChart(range) {
   if (!chartRef.value) return
   if (!chartInstance) {
     chartInstance = echarts.init(chartRef.value)
   }
-  const dates = buildMonthLabels(trendMonths.value)
+  const months = buildMonthLabels(range || trendMonths.value)
   chartInstance.setOption({
-    xAxis: {
-      type: 'category', data: dates,
-      axisLabel: { fontSize: 10, color: '#94A3B8' },
-      axisLine: { lineStyle: { color: '#E2E8F0' } }
-    },
+    xAxis: { type: 'category', data: months, axisLabel: { fontSize: 10, rotate: 30, color: '#94A3B8' }, axisLine: { lineStyle: { color: '#E2E8F0' } } },
     yAxis: [
-      {
-        type: 'value', name: '水量(m³)',
-        nameTextStyle: { fontSize: 10, color: '#94A3B8' },
-        splitLine: { lineStyle: { type: 'dashed', color: '#F1F5F9' } },
-        axisLabel: { fontSize: 10, color: '#94A3B8' }
-      },
-      {
-        type: 'value', name: '比率(%)',
-        nameTextStyle: { fontSize: 10, color: '#94A3B8' },
-        splitLine: { show: false },
-        axisLabel: { fontSize: 10, color: '#94A3B8' }
-      }
+      { type: 'value', name: '水量(m³)', nameTextStyle: { fontSize: 10, color: '#94A3B8' }, splitLine: { lineStyle: { type: 'dashed', color: '#F1F5F9' } }, axisLabel: { fontSize: 10, color: '#94A3B8' } },
+      { type: 'value', name: '比率(%)', nameTextStyle: { fontSize: 10, color: '#94A3B8' }, splitLine: { show: false }, axisLabel: { fontSize: 10, color: '#94A3B8' } }
     ],
     grid: { left: '3%', right: '5%', top: '8%', bottom: '14%', containLabel: true },
     series: []
   }, true)
+}
+
+// ==== 地图 ====
+async function initMapKey() {
+  try {
+    const results = await Promise.all([
+      getConfigKey('gis.map.amap.key'),
+      getConfigKey('gis.map.amap.security'),
+      getConfigKey('gis.map.style')
+    ])
+    if (results[0] && results[0].data) {
+      amapKey.value = results[0].data
+      amapSecurity.value = (results[1] && results[1].data) || ''
+      amapStyle.value = (results[2] && results[2].data) || 'amap://styles/light'
+      initAMap()
+    }
+  } catch (e) { console.error('获取地图Key失败', e) }
+}
+
+function initAMap() {
+  if (!amapKey.value || !mapContainer.value) return
+  if (amapSecurity.value) {
+    window._AMapSecurityConfig = { securityJsCode: amapSecurity.value }
+  }
+  AMapLoader.load({ key: amapKey.value, version: '2.0', plugins: ['AMap.Marker'] })
+    .then((AMap) => {
+      mapInstance.value = new AMap.Map(mapContainer.value, {
+        viewMode: '2D', zoom: 12, center: [118.6, 24.9],
+        mapStyle: amapStyle.value
+      })
+      mapReady.value = true
+      if (selectedZone.value) locateZoneOnMap(selectedZone.value)
+    })
+    .catch(e => { console.error('高德地图加载失败', e) })
+}
+
+function locateZoneOnMap(zone) {
+  if (!mapInstance.value || !zone) return
+  const AMap = window.AMap
+  if (!AMap) return
+
+  markers.forEach(m => mapInstance.value.remove(m))
+  markers = []
+
+  const lng = zone.longitude ? parseFloat(zone.longitude) : (118.6 + (Math.random() - 0.5) * 0.1)
+  const lat = zone.latitude ? parseFloat(zone.latitude) : (24.9 + (Math.random() - 0.5) * 0.1)
+
+  const marker = new AMap.Marker({ position: [lng, lat], title: zone.name || zone.code })
+  mapInstance.value.add(marker)
+  markers.push(marker)
+  mapInstance.value.setZoomAndCenter(14, [lng, lat], false, 1000)
 }
 
 function handleResize() {
@@ -347,56 +542,66 @@ function handleResize() {
 
 onMounted(() => {
   getList()
+  initMapKey()
   window.addEventListener('resize', handleResize)
-  nextTick(() => renderEmptyChart())
+  setTimeout(() => renderEmptyChart(), 200)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+  if (chartInstance) chartInstance.dispose()
+  if (mapInstance.value) mapInstance.value.destroy()
 })
 </script>
 
-<style scoped>
+<style>
+/* ===== DMA 月报 — 全局样式(非 scoped，确保暗色模式可覆盖) ===== */
 .dma-report-page {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  height: 100%;
+  height: calc(100vh - 84px);
   overflow: hidden;
 }
 
-.query-bar { display: flex; align-items: center; flex-shrink: 0; }
-.query-bar-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dma-report-page .query-bar { display: flex; align-items: center; flex-shrink: 0; }
+.dma-report-page .query-bar-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
-.summary-row { flex-shrink: 0; }
-.sum-card {
+/* 汇总卡片 */
+.dma-report-page .summary-row { flex-shrink: 0; }
+.dma-report-page .sum-card {
   background: #F8FAFC;
   border-radius: 10px;
   border: 1px solid #E2E8F0;
   padding: 14px 18px;
   text-align: center;
 }
-.sum-label { font-size: 12px; color: #94A3B8; margin-bottom: 4px; letter-spacing: 0.3px; }
-.sum-num { font-size: 26px; font-weight: 700; color: #1E293B; font-variant-numeric: tabular-nums; }
-.sum-num small { font-size: 12px; font-weight: 400; color: #94A3B8; margin-left: 2px; }
-.sum-supply .sum-num { color: #409EFF; }
-.sum-sales .sum-num { color: #67C23A; }
-.sum-nrw .sum-num { color: #E6A23C; }
-.sum-ratio.ratio-ok .sum-num { color: #67C23A; }
-.sum-ratio.ratio-warn .sum-num { color: #E6A23C; }
-.sum-ratio.ratio-bad .sum-num { color: #F56C6C; }
+.dma-report-page .sum-label { font-size: 12px; color: #94A3B8; margin-bottom: 4px; letter-spacing: 0.3px; }
+.dma-report-page .sum-num { font-size: 26px; font-weight: 700; color: #1E293B; font-variant-numeric: tabular-nums; }
+.dma-report-page .sum-num small { font-size: 12px; font-weight: 400; color: #94A3B8; margin-left: 2px; }
+.dma-report-page .sum-supply .sum-num { color: #409EFF; }
+.dma-report-page .sum-sales .sum-num { color: #67C23A; }
+.dma-report-page .sum-nrw .sum-num { color: #E6A23C; }
+.dma-report-page .sum-ratio.ratio-ok .sum-num { color: #67C23A; }
+.dma-report-page .sum-ratio.ratio-warn .sum-num { color: #E6A23C; }
+.dma-report-page .sum-ratio.ratio-bad .sum-num { color: #F56C6C; }
 
-.content-row { flex: 1; min-height: 0; margin: 0 !important; }
-.content-col { height: 100%; padding: 0 !important; }
-.content-col:first-child { padding-right: 8px !important; }
-.content-col:last-child { padding-left: 8px !important; }
+/* 内容双栏 */
+.dma-report-page .content-row { flex: 1; min-height: 0; margin: 0 !important; overflow: hidden; }
+.dma-report-page .content-col { padding: 0 !important; display: flex; flex-direction: column; gap: 12px; overflow: hidden; min-height: 0; }
+.dma-report-page .content-col:first-child .section-card { flex: 1; min-height: 0; overflow: hidden; }
+.dma-report-page .content-col:first-child { padding-right: 8px !important; }
+.dma-report-page .content-col.right-col { padding-left: 8px !important; }
 
-.section-card {
+.dma-report-page .section-card {
   background: #fff;
   border: 1px solid #E2E8F0;
   border-radius: 10px;
-  height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  min-height: 0;
 }
-.section-header {
+.dma-report-page .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -405,42 +610,51 @@ onMounted(() => {
   flex-shrink: 0;
   gap: 12px;
 }
-.section-title { font-size: 14px; font-weight: 600; color: #1E293B; }
-.section-subtitle { font-size: 12px; color: #94A3B8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.section-date { font-size: 12px; color: #94A3B8; }
+.dma-report-page .section-title { font-size: 14px; font-weight: 600; color: #1E293B; }
+.dma-report-page .section-subtitle { font-size: 12px; color: #94A3B8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.dma-report-page .section-date { font-size: 12px; color: #94A3B8; }
 
-.tree-table-wrapper { flex: 1; min-height: 0; overflow: hidden; }
-.tree-table-wrapper :deep(.el-table) { height: 100%; }
-.zone-name-cell { display: flex; align-items: center; gap: 6px; font-weight: 500; }
-.zone-folder-icon { color: #409EFF; font-size: 15px; flex-shrink: 0; }
-.zone-leaf-icon { color: #94A3B8; font-size: 14px; flex-shrink: 0; }
-.col-supply { color: #409EFF; font-weight: 600; }
-.col-sales { color: #67C23A; font-weight: 600; }
-.col-nrw { color: #E6A23C; font-weight: 500; }
+/* 左侧树形表格 — 与分区管理完全一致的 flex 布局 */
+.dma-report-page .flex-table {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.dma-report-page .flex-table .el-table__inner-wrapper {
+  height: 100% !important;
+}
+.dma-report-page .zone-name-cell { display: flex; align-items: center; gap: 6px; font-weight: 500; }
+.dma-report-page .zone-folder-icon { color: #409EFF; font-size: 15px; flex-shrink: 0; }
+.dma-report-page .zone-leaf-icon { color: #94A3B8; font-size: 14px; flex-shrink: 0; }
+.dma-report-page .col-supply { color: #409EFF; font-weight: 600; }
+.dma-report-page .col-sales { color: #67C23A; font-weight: 600; }
+.dma-report-page .col-nrw { color: #E6A23C; font-weight: 500; }
 
-.trend-panel { background: #F8FAFC; }
-
-.zone-mini-stats {
+/* 右侧趋势面板 */
+.dma-report-page .trend-panel {
+  flex: 1;
+  min-height: 180px;
+  background: #F8FAFC;
+}
+.dma-report-page .zone-mini-stats {
   display: flex;
   gap: 0;
   padding: 10px 18px;
   border-bottom: 1px solid #F1F5F9;
   flex-shrink: 0;
 }
-.zone-stat-item {
+.dma-report-page .zone-stat-item {
   flex: 1;
   text-align: center;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.zone-stat-item:not(:last-child) {
-  border-right: 1px solid #E2E8F0;
-}
-.zone-stat-label { font-size: 11px; color: #94A3B8; }
-.zone-stat-val { font-size: 13px; font-weight: 600; }
+.dma-report-page .zone-stat-item:not(:last-child) { border-right: 1px solid #E2E8F0; }
+.dma-report-page .zone-stat-label { font-size: 11px; color: #94A3B8; }
+.dma-report-page .zone-stat-val { font-size: 13px; font-weight: 600; }
 
-.trend-toolbar {
+.dma-report-page .trend-toolbar {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -448,18 +662,41 @@ onMounted(() => {
   border-bottom: 1px solid #F1F5F9;
   flex-shrink: 0;
 }
-.toolbar-label { font-size: 11px; color: #94A3B8; font-weight: 500; }
+.dma-report-page .toolbar-label { font-size: 11px; color: #94A3B8; font-weight: 500; }
 
-.trend-empty {
+.dma-report-page .chart-container {
   flex: 1;
+  min-height: 150px;
+  width: 100%;
+}
+
+/* 地图面板 */
+.dma-report-page .map-panel {
+  flex: 2;
+  min-height: 200px;
+  overflow: hidden;
+}
+.dma-report-page .mini-map-container {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+.dma-report-page .map-placeholder {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: radial-gradient(circle at center, #f5f7fa 0%, #e4e7ed 100%);
+  z-index: 10;
 }
-
-.chart-container {
-  flex: 1;
-  min-height: 0;
-  width: 100%;
+.dma-report-page .map-placeholder .map-content {
+  text-align: center;
+  color: #606266;
+  padding: 36px;
+  background: rgba(255,255,255,0.8);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
 }
 </style>

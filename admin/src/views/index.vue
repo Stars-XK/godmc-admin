@@ -1,116 +1,150 @@
 <template>
   <div class="iot-home">
-    <!-- 欢迎横幅 -->
-    <div class="welcome-banner">
-      <div class="banner-inner">
-        <div class="banner-text">
-          <h1 class="banner-title">智慧水务 IoT 管理平台</h1>
-          <p class="banner-desc">实时监控 · 智能报警 · 数据分析 · DMA 漏损管理</p>
+    <!-- KPI 统计卡片 -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background: #E0F2FE;"><el-icon :size="22" color="#0284C7"><MapLocation /></el-icon></div>
+        <div class="kpi-body">
+          <span class="kpi-num">{{ stats.zoneCount ?? '--' }}</span>
+          <span class="kpi-label">管理分区</span>
         </div>
-        <div class="banner-stats">
-          <div class="banner-stat">
-            <span class="banner-stat-num">{{ stats.zoneCount ?? '--' }}</span>
-            <span class="banner-stat-label">管理分区</span>
-          </div>
-          <div class="banner-stat">
-            <span class="banner-stat-num">{{ stats.deviceCount ?? '--' }}</span>
-            <span class="banner-stat-label">在线设备</span>
-          </div>
-          <div class="banner-stat">
-            <span class="banner-stat-num">{{ stats.pointCount ?? '--' }}</span>
-            <span class="banner-stat-label">监测点位</span>
-          </div>
-          <div class="banner-stat">
-            <span class="banner-stat-num">{{ stats.alarmCount ?? '--' }}</span>
-            <span class="banner-stat-label">今日报警</span>
-          </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background: #DCFCE7;"><el-icon :size="22" color="#16A34A"><OfficeBuilding /></el-icon></div>
+        <div class="kpi-body">
+          <span class="kpi-num">{{ stats.stationCount ?? '--' }}</span>
+          <span class="kpi-label">站点设施</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background: #E0F2FE;"><el-icon :size="22" color="#2563EB"><Cpu /></el-icon></div>
+        <div class="kpi-body">
+          <span class="kpi-num">{{ stats.deviceOnline ?? '--' }}<span class="kpi-total"> / {{ stats.deviceCount ?? '--' }}</span></span>
+          <span class="kpi-label">在线设备</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background: #FEF3C7;"><el-icon :size="22" color="#D97706"><Grid /></el-icon></div>
+        <div class="kpi-body">
+          <span class="kpi-num">{{ stats.pointCount ?? '--' }}</span>
+          <span class="kpi-label">监测点位</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background: #FEE2E2;"><el-icon :size="22" color="#DC2626"><BellFilled /></el-icon></div>
+        <div class="kpi-body">
+          <span class="kpi-num">{{ stats.alarmCount ?? '--' }}</span>
+          <span class="kpi-label">今日报警</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background: #F3E8FF;"><el-icon :size="22" color="#9333EA"><WarningFilled /></el-icon></div>
+        <div class="kpi-body">
+          <span class="kpi-num">{{ stats.unresolvedAlarmCount ?? '--' }}</span>
+          <span class="kpi-label">待处理报警</span>
         </div>
       </div>
     </div>
 
-    <!-- 内容区 -->
-    <div class="iot-content">
-      <el-row :gutter="20">
-        <el-col :xs="24" :lg="14">
-          <el-card class="iot-card" shadow="never">
-            <template #header>
-              <div class="card-title"><el-icon :size="18"><Cpu /></el-icon><span>微服务状态</span></div>
-            </template>
-            <div class="service-grid">
-              <div v-for="svc in services" :key="svc.name" class="service-item">
-                <span class="service-dot" :class="svc.online ? 'online' : 'offline'"></span>
-                <span class="service-name">{{ svc.name }}</span>
-                <span class="service-port">{{ svc.port }}</span>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
+    <!-- 图表区 -->
+    <el-row :gutter="20">
+      <el-col :xs="24" :lg="14">
+        <el-card class="iot-card" shadow="never">
+          <template #header>
+            <div class="card-title"><el-icon :size="18"><TrendCharts /></el-icon><span>近7天报警趋势</span></div>
+          </template>
+          <div ref="alarmTrendRef" class="chart-box"></div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :lg="10">
+        <el-card class="iot-card" shadow="never">
+          <template #header>
+            <div class="card-title"><el-icon :size="18"><PieChart /></el-icon><span>今日报警级别分布</span></div>
+          </template>
+          <div ref="alarmPieRef" class="chart-box"></div>
+        </el-card>
+      </el-col>
+    </el-row>
 
-        <el-col :xs="24" :lg="10">
-          <el-card class="iot-card" shadow="never">
-            <template #header>
-              <div class="card-title"><el-icon :size="18"><Grid /></el-icon><span>快捷入口</span></div>
-            </template>
-            <div class="quick-links">
-              <div class="quick-link" @click="$router.push('/water-basic/zone')">
-                <el-icon :size="24"><MapLocation /></el-icon>
-                <span>分区管理</span>
-              </div>
-              <div class="quick-link" @click="$router.push('/water-basic/station-device-point')">
-                <el-icon :size="24"><Setting /></el-icon>
-                <span>设备管理</span>
-              </div>
-              <div class="quick-link" @click="$router.push('/alarm/rule')">
-                <el-icon :size="24"><BellFilled /></el-icon>
-                <span>报警规则</span>
-              </div>
-              <div class="quick-link" @click="$router.push('/data-integration/source')">
-                <el-icon :size="24"><Connection /></el-icon>
-                <span>数据接入</span>
-              </div>
-              <div class="quick-link" @click="$router.push('/system/config')">
-                <el-icon :size="24"><Tools /></el-icon>
-                <span>系统配置</span>
-              </div>
-              <div class="quick-link" @click="$router.push('/monitor/server')">
-                <el-icon :size="24"><Monitor /></el-icon>
-                <span>服务监控</span>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
+    <!-- 列表区 -->
+    <el-row :gutter="20">
+      <el-col :xs="24" :lg="14">
+        <el-card class="iot-card" shadow="never">
+          <template #header>
+            <div class="card-title"><el-icon :size="18"><List /></el-icon><span>最近报警</span></div>
+          </template>
+          <el-table :data="stats.recentAlarms || []" size="small" stripe>
+            <el-table-column prop="alarmContent" label="报警内容" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="alarmSource" label="报警源" width="120" show-overflow-tooltip />
+            <el-table-column prop="alarmLevel" label="级别" width="70">
+              <template #default="{ row }">
+                <el-tag :type="levelTag(row.alarmLevel)" size="small">{{ levelLabel(row.alarmLevel) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="status" label="状态" width="80">
+              <template #default="{ row }">
+                <el-tag :type="row.status === '0' ? 'danger' : 'success'" size="small">{{ row.status === '0' ? '未处理' : row.status === '1' ? '已处理' : '已恢复' }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="alarmTime" label="报警时间" width="160">
+              <template #default="{ row }">{{ formatTime(row.alarmTime) }}</template>
+            </el-table-column>
+          </el-table>
+          <div v-if="!stats.recentAlarms?.length" class="empty-hint">今日暂无报警</div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :lg="10">
+        <el-card class="iot-card" shadow="never">
+          <template #header>
+            <div class="card-title"><el-icon :size="18"><PieChart /></el-icon><span>分区类型分布</span></div>
+          </template>
+          <div ref="zoneTypeRef" class="chart-box"></div>
+        </el-card>
+      </el-col>
+    </el-row>
 
-      <el-card class="iot-card" shadow="never">
-        <template #header>
-          <div class="card-title"><el-icon :size="18"><Stamp /></el-icon><span>技术架构</span></div>
-        </template>
-        <div class="tech-stack">
-          <span class="tech-tag">NestJS 10</span>
-          <span class="tech-tag">Vue 3</span>
-          <span class="tech-tag">TypeScript</span>
-          <span class="tech-tag">TDengine 3.x</span>
-          <span class="tech-tag">MySQL 8.0</span>
-          <span class="tech-tag">Redis 6.2</span>
-          <span class="tech-tag">Kafka</span>
-          <span class="tech-tag">Docker</span>
-          <span class="tech-tag">PM2</span>
-        </div>
-      </el-card>
-    </div>
+    <!-- 服务状态 -->
+    <el-row :gutter="20">
+      <el-col :span="24">
+        <el-card class="iot-card" shadow="never">
+          <template #header>
+            <div class="card-title"><el-icon :size="18"><Monitor /></el-icon><span>微服务状态</span></div>
+          </template>
+          <div class="service-grid">
+            <div v-for="svc in services" :key="svc.name" class="service-item">
+              <span class="service-dot" :class="svc.online ? 'online' : 'offline'"></span>
+              <span class="service-name">{{ svc.name }}</span>
+              <span class="service-port">{{ svc.port }}</span>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { Cpu, Grid, MapLocation, Setting, BellFilled, Connection, Tools, Monitor, Stamp } from '@element-plus/icons-vue'
+import { ref, onMounted, nextTick, watch } from 'vue'
+import {
+  MapLocation, OfficeBuilding, Cpu, Grid, BellFilled, WarningFilled,
+  TrendCharts, PieChart, List, Monitor
+} from '@element-plus/icons-vue'
+import * as echarts from 'echarts'
 import request from '@/utils/request'
+import dayjs from 'dayjs'
 
 const stats = ref({
   zoneCount: 0,
+  stationCount: 0,
   deviceCount: 0,
+  deviceOnline: 0,
   pointCount: 0,
   alarmCount: 0,
+  unresolvedAlarmCount: 0,
+  alarmByLevel: {},
+  zoneByType: {},
+  alarmTrend: [],
+  recentAlarms: [],
 })
 
 const services = ref([
@@ -125,17 +159,121 @@ const services = ref([
   { name: '报警中心', port: '3008', online: true },
 ])
 
+const alarmTrendRef = ref(null)
+const alarmPieRef = ref(null)
+const zoneTypeRef = ref(null)
+
+let trendChart = null
+let pieChart = null
+let zoneChart = null
+
+// 工具函数
+const levelLabel = (v) => ({ '1': '紧急', '2': '重要', '3': '次要', '4': '提示' }[v] || v)
+const levelTag = (v) => ({ '1': 'danger', '2': 'warning', '3': 'info', '4': '' }[v] || '')
+const formatTime = (t) => t ? dayjs(t).format('YYYY-MM-DD HH:mm:ss') : ''
+const zoneTypeLabel = (t) => ({ '1': '行政营业', '2': 'DMA漏损', '3': '控压高程', '4': '供水调度' }[t] || ('类型' + t))
+
 function fetchStats() {
   request({ url: '/system/home/stats', method: 'get' }).then(res => {
     if (res.data) {
       stats.value = res.data
+      nextTick(() => {
+        renderTrendChart()
+        renderPieChart()
+        renderZoneTypeChart()
+      })
     }
   }).catch(() => {})
+}
+
+function renderTrendChart() {
+  if (!alarmTrendRef.value) return
+  if (!trendChart) trendChart = echarts.init(alarmTrendRef.value)
+  const data = stats.value.alarmTrend || []
+  trendChart.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 40, right: 20, top: 20, bottom: 30 },
+    xAxis: {
+      type: 'category',
+      data: data.map(d => d.date.slice(5)),
+      axisLabel: { fontSize: 11 },
+    },
+    yAxis: {
+      type: 'value',
+      minInterval: 1,
+      axisLabel: { fontSize: 11 },
+    },
+    series: [{
+      name: '报警数',
+      type: 'line',
+      data: data.map(d => d.count),
+      smooth: true,
+      symbol: 'circle',
+      symbolSize: 6,
+      lineStyle: { color: '#EF4444', width: 2 },
+      itemStyle: { color: '#EF4444' },
+      areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: 'rgba(239, 68, 68, 0.2)' },
+        { offset: 1, color: 'rgba(239, 68, 68, 0.02)' },
+      ])},
+    }],
+  }, true)
+}
+
+function renderPieChart() {
+  if (!alarmPieRef.value) return
+  if (!pieChart) pieChart = echarts.init(alarmPieRef.value)
+  const byLevel = stats.value.alarmByLevel || {}
+  const data = [
+    { value: byLevel['1'] || 0, name: '紧急', itemStyle: { color: '#DC2626' } },
+    { value: byLevel['2'] || 0, name: '重要', itemStyle: { color: '#F59E0B' } },
+    { value: byLevel['3'] || 0, name: '次要', itemStyle: { color: '#3B82F6' } },
+    { value: byLevel['4'] || 0, name: '提示', itemStyle: { color: '#94A3B8' } },
+  ]
+  pieChart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    legend: { bottom: 0, textStyle: { fontSize: 11 } },
+    series: [{
+      type: 'pie',
+      radius: ['50%', '75%'],
+      center: ['50%', '45%'],
+      data,
+      label: { fontSize: 11 },
+      emphasis: { label: { fontSize: 14, fontWeight: 'bold' } },
+    }],
+  }, true)
+}
+
+function renderZoneTypeChart() {
+  if (!zoneTypeRef.value) return
+  if (!zoneChart) zoneChart = echarts.init(zoneTypeRef.value)
+  const byType = stats.value.zoneByType || {}
+  const data = Object.entries(byType).map(([k, v]) => ({ value: v, name: zoneTypeLabel(k) }))
+  const colors = ['#0D9488', '#2563EB', '#D97706', '#9333EA', '#64748B']
+  zoneChart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c}' },
+    legend: { bottom: 0, textStyle: { fontSize: 11 } },
+    series: [{
+      type: 'pie',
+      radius: ['50%', '75%'],
+      center: ['50%', '45%'],
+      data: data.map((d, i) => ({ ...d, itemStyle: { color: colors[i % colors.length] } })),
+      label: { fontSize: 11 },
+    }],
+  }, true)
+}
+
+// 窗口大小变化时重绘
+function handleResize() {
+  trendChart?.resize()
+  pieChart?.resize()
+  zoneChart?.resize()
 }
 
 onMounted(() => {
   document.title = '智慧水务 IoT 管理平台'
   fetchStats()
+  window.addEventListener('resize', handleResize)
 })
 </script>
 
@@ -143,106 +281,103 @@ onMounted(() => {
 .iot-home {
   min-height: calc(100vh - 84px);
   background: #F8FAFC;
+  padding: 20px 24px 40px;
 }
 
-.welcome-banner {
-  background: linear-gradient(135deg, #0F766E 0%, #0D9488 50%, #14B8A6 100%);
+// KPI 卡片行
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
-.banner-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 36px 32px 40px;
+.kpi-card {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 24px;
+  gap: 14px;
+  padding: 18px 20px;
+  background: #FFFFFF;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: transform 0.15s, box-shadow 0.15s;
+  cursor: default;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  }
 }
 
-.banner-text {
-  flex: 1;
-  min-width: 220px;
-}
-
-.banner-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #FFFFFF;
-  margin: 0 0 8px 0;
-  letter-spacing: 0.02em;
-}
-
-.banner-desc {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.72);
-  margin: 0;
-  letter-spacing: 0.04em;
-}
-
-.banner-stats {
+.kpi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   display: flex;
-  flex-direction: row;
-  gap: 32px;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
-.banner-stat {
-  text-align: center;
-  min-width: 64px;
+.kpi-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.banner-stat-num {
-  display: block;
-  font-size: 28px;
-  font-weight: 800;
-  color: #FFFFFF;
+.kpi-num {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0F172A;
   line-height: 1.2;
 }
 
-.banner-stat-label {
-  display: block;
+.kpi-total {
+  font-size: 13px;
+  font-weight: 400;
+  color: #94A3B8;
+}
+
+.kpi-label {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.65);
-  margin-top: 4px;
+  color: #64748B;
+  margin-top: 2px;
 }
 
-.iot-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px 32px 40px;
-}
-
+// 图表区域
 .iot-card {
   border-radius: 10px;
   border: 1px solid #E2E8F0;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   margin-bottom: 20px;
 }
 
 .iot-card :deep(.el-card__header) {
-  padding: 16px 20px 12px;
+  padding: 14px 20px 10px;
   border-bottom: 1px solid #F1F5F9;
   background: #FAFBFC;
 }
 
 .iot-card :deep(.el-card__body) {
-  padding: 20px;
+  padding: 16px 20px;
 }
 
 .card-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: #0F172A;
+  .el-icon { color: #0D9488; }
 }
 
-.card-title .el-icon {
-  color: #0D9488;
+.chart-box {
+  width: 100%;
+  height: 260px;
 }
 
+// 服务网格
 .service-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -253,15 +388,12 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 10px 14px;
   background: #F8FAFC;
   border-radius: 8px;
   font-size: 13px;
   transition: background 0.15s;
-}
-
-.service-item:hover {
-  background: #F0FDFA;
+  &:hover { background: #F0FDFA; }
 }
 
 .service-dot {
@@ -269,16 +401,14 @@ onMounted(() => {
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-}
-
-.service-dot.online {
-  background: #10B981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
-}
-
-.service-dot.offline {
-  background: #EF4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+  &.online {
+    background: #10B981;
+    box-shadow: 0 0 0 3px rgba(16,185,129,0.12);
+  }
+  &.offline {
+    background: #EF4444;
+    box-shadow: 0 0 0 3px rgba(239,68,68,0.12);
+  }
 }
 
 .service-name {
@@ -291,79 +421,26 @@ onMounted(() => {
 
 .service-port {
   color: #94A3B8;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  font-family: 'JetBrains Mono','Fira Code','Courier New',monospace;
   font-size: 12px;
   flex-shrink: 0;
 }
 
-.quick-links {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.quick-link {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 18px 12px;
-  background: #F8FAFC;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: #475569;
-}
-
-.quick-link:hover {
-  background: #F0FDFA;
-  color: #0D9488;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.08);
-}
-
-.quick-link span {
+.empty-hint {
+  text-align: center;
+  color: #94A3B8;
   font-size: 13px;
-  font-weight: 500;
+  padding: 24px 0;
 }
 
-.tech-stack {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+@media (max-width: 1200px) {
+  .kpi-row { grid-template-columns: repeat(3, 1fr); }
+  .service-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-.tech-tag {
-  padding: 6px 16px;
-  background: #F0FDFA;
-  color: #0F766E;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-}
-
-@media (max-width: 992px) {
-  .banner-inner {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .banner-stats {
-    width: 100%;
-    justify-content: space-around;
-  }
-
-  .service-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .quick-links {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .iot-content {
-    padding: 20px 16px 32px;
-  }
+@media (max-width: 768px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .service-grid { grid-template-columns: 1fr; }
+  .iot-home { padding: 16px 12px 24px; }
 }
 </style>

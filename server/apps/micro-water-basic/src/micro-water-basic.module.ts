@@ -8,6 +8,11 @@ import { ZoneModule } from './module/zone/zone.module';
 import { RevenueUserModule } from './module/revenue/revenue-user.module';
 import { GisModule } from './module/gis/gis.module';
 import { BillModule } from './module/billing/bill.module';
+import { WaterQualityModule } from './module/water-quality/water-quality.module';
+import { PressureModule } from './module/pressure/pressure.module';
+import { PumpStationModule } from './module/pump-station/pump-station.module';
+import { FlowMonitorModule } from './module/flow-monitor/flow-monitor.module';
+import { EnergyModule } from './module/energy/energy.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from '@app/common/guards/auth.guard';
 import { JwtStrategy } from '@app/common/guards/jwt.strategy';
@@ -50,7 +55,7 @@ import { MicroWaterBasicService } from './micro-water-basic.service';
       },
     }),
     SharedModule,
-    ZoneModule, EquipmentModule, RevenueUserModule, GisModule, BillModule,
+    ZoneModule, EquipmentModule, RevenueUserModule, GisModule, BillModule, WaterQualityModule, PressureModule, PumpStationModule, FlowMonitorModule, EnergyModule,
     RegistryModule,
     TypeOrmModule.forFeature([WaterPointEntity, WaterDeviceEntity, WaterStationEntity]),
   ],

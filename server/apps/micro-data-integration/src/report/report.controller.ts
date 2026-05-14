@@ -66,6 +66,24 @@ export class ReportController {
     return this.reportService.getNrwTrend(zoneCode, startDate, endDate, type);
   }
 
+  @ApiOperation({ summary: '批量查询指定分区的产销差数据（按需加载，配合分区树使用）' })
+  @ApiQuery({ name: 'zoneCodes', required: true, description: '分区编码列表，逗号分隔' })
+  @ApiQuery({ name: 'date', required: true, description: '目标日期(YYYY-MM-DD)或月份(YYYY-MM)' })
+  @ApiQuery({ name: 'type', required: true, description: '报表类型: 1d(日) / 1mo(月)' })
+  @Get('nrw-batch')
+  @NotRequireAuth()
+  async getNrwBatch(
+    @Query('zoneCodes') zoneCodes: string,
+    @Query('date') date: string,
+    @Query('type') type: '1d' | '1mo'
+  ) {
+    if (!zoneCodes || !date || !type) {
+      return ResultData.fail(500, '必须提供 zoneCodes, date 和 type');
+    }
+    const codes = zoneCodes.split(',').map(c => c.trim()).filter(Boolean);
+    return this.reportService.getNrwBatch(codes, date, type);
+  }
+
   @ApiOperation({ summary: '获取分区产销差报表树（含所有节点数据，一次返回，替代前端N+1递归调用）' })
   @ApiQuery({ name: 'date', required: true, description: '目标日期(YYYY-MM-DD)或月份(YYYY-MM)' })
   @ApiQuery({ name: 'type', required: true, description: '报表类型: 1d(日) / 1mo(月)' })

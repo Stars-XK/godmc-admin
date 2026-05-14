@@ -978,17 +978,48 @@ html.dark-mode {
     background: #0F172A !important;
   }
 
-  .iot-content {
-    background: transparent;
+  .kpi-card {
+    background: #1E293B !important;
+    border-color: #334155 !important;
   }
 
-  .welcome-banner {
-    background: linear-gradient(135deg, #0F766E 0%, #0D9488 50%, #14B8A6 100%) !important;
+  .kpi-num {
+    color: #F1F5F9 !important;
   }
 
-  .tech-tag {
-    background: #252F3F !important;
-    color: #5EEAD4 !important;
+  .kpi-label {
+    color: #94A3B8 !important;
+  }
+
+  .kpi-total {
+    color: #64748B !important;
+  }
+
+  .iot-card {
+    background: #1E293B !important;
+    border-color: #334155 !important;
+
+    .el-card__header {
+      background: #252F3F !important;
+      border-bottom-color: #334155 !important;
+    }
+  }
+
+  .card-title {
+    color: #F1F5F9 !important;
+  }
+
+  .service-item {
+    background: #0F172A !important;
+    color: #CBD5E1 !important;
+
+    &:hover {
+      background: #1A2A3F !important;
+    }
+  }
+
+  .service-name {
+    color: #E2E8F0 !important;
   }
 
   /* ---- 监控页面 ---- */
@@ -1758,53 +1789,223 @@ html.dark-mode {
     .expand-icon { color: #64748B !important; }
     .expand-icon:hover { color: #60A5FA !important; }
 
-    /* ---- DMA 产销差报表 ---- */
-    .dma-report-page {
-      .sum-card {
-        background: #1E293B !important;
-        border-color: #334155 !important;
-      }
-      .sum-label { color: #64748B !important; }
-      .sum-num { color: #F1F5F9 !important; }
-      .sum-num small { color: #64748B !important; }
-      .sum-supply .sum-num { color: #60A5FA !important; }
-      .sum-sales .sum-num { color: #67C23A !important; }
-      .sum-nrw .sum-num { color: #F59E0B !important; }
-      .sum-ratio.ratio-ok .sum-num { color: #67C23A !important; }
-      .sum-ratio.ratio-warn .sum-num { color: #F59E0B !important; }
-      .sum-ratio.ratio-bad .sum-num { color: #F56C6C !important; }
+  }
 
-      .section-card {
-        background: #1E293B !important;
-        border-color: #334155 !important;
-      }
-      .section-header {
-        border-bottom-color: #334155 !important;
-      }
-      .section-title { color: #E2E8F0 !important; }
-      .section-subtitle { color: #64748B !important; }
-      .section-date { color: #64748B !important; }
 
-      .trend-panel {
-        background: #1E293B !important;
-      }
+	  /* ===== 通用 overview-bar / 统计卡片（水质/压力/泵站/流量/能耗/管析） ===== */
+	  .overview-bar .ov-item,
+	  .summary-row .sum-card {
+	    background: #1E293B !important;
+	    border-color: #334155 !important;
+	  }
+	  .ov-label,
+	  .sum-label { color: #94A3B8 !important; }
+	  .ov-value,
+	  .sum-val { color: #F1F5F9 !important; }
+	  .ov-value small,
+	  .sum-val small { color: #64748B !important; }
+	  .ov-value.good { color: #10B981 !important; }
+	  .ov-value.warn { color: #F59E0B !important; }
+	  .ov-value.bad { color: #EF4444 !important; }
 
-      .zone-mini-stats {
-        border-bottom-color: #334155 !important;
-      }
-      .zone-stat-item:not(:last-child) {
-        border-right-color: #334155 !important;
-      }
-      .zone-stat-label { color: #64748B !important; }
+	  /* ---- 水质监测 ---- */
+	  .water-quality {
+	    .wq-card { border-color: #334155 !important; }
+	    .card-title { color: #F1F5F9 !important; .el-icon { color: #5EEAD4 !important; } }
+	    .cat-name, .tg-name { color: #94A3B8 !important; }
+	    .point-item {
+	      &:hover { background: #252F3F !important; }
+	      &.active { background: rgba(13, 148, 136, 0.12) !important; border-color: #0D9488 !important; }
+	      .point-label { color: #CBD5E1 !important; }
+	      .point-type-tag { color: #64748B !important; border-color: #475569 !important; }
+	    }
+	    .rt-item { background: #252F3F !important; }
+	    .rt-label { color: #94A3B8 !important; }
+	    .rt-value {
+	      color: #F1F5F9 !important;
+	      &.normal { color: #5EEAD4 !important; }
+	      &.code { color: #CBD5E1 !important; }
+	      &.time { color: #64748B !important; }
+	    }
+	    .rt-unit { color: #64748B !important; }
+	    .empty-state, .empty-hint { color: #64748B !important; }
+	  }
 
-      .trend-toolbar {
-        border-bottom-color: #334155 !important;
-      }
-      .toolbar-label { color: #64748B !important; }
+	  /* ---- 压力监测 ---- */
+	  .pressure-page {
+	    .p-card { border-color: #334155 !important; }
+	    .card-title { color: #F1F5F9 !important; .el-icon { color: #5EEAD4 !important; } }
+	    .point-row {
+	      &:hover { background: #252F3F !important; }
+	      &.active { background: rgba(13, 148, 136, 0.12) !important; border-color: #0D9488 !important; }
+	    }
+	    .p-name { color: #CBD5E1 !important; }
+	    .p-type { color: #64748B !important; }
+	    .p-status.unknown { background: #475569 !important; }
+	    .gi-item { background: #252F3F !important; }
+	    .gi-label { color: #94A3B8 !important; }
+	    .gi-value {
+	      color: #F1F5F9 !important;
+	      &.normal { color: #5EEAD4 !important; }
+	      &.time { color: #64748B !important; }
+	      &.code { color: #CBD5E1 !important; }
+	      small { color: #64748B !important; }
+	    }
+	    .empty-state { color: #64748B !important; }
+	  }
 
-      .col-supply { color: #60A5FA !important; }
-      .col-sales { color: #67C23A !important; }
-      .col-nrw { color: #F59E0B !important; }
+	  /* ---- 泵站监控 ---- */
+	  .pump-monitor {
+	    .station-card {
+	      background: #1E293B !important;
+	      border-color: #334155 !important;
+	      &:hover { box-shadow: 0 4px 16px rgba(0,0,0,.25) !important; }
+	      &.offline { opacity: 0.6; }
+	    }
+	    .sc-name { color: #F1F5F9 !important; }
+	    .sc-status {
+	      &.online { background: rgba(16, 185, 129, 0.15) !important; color: #10B981 !important; }
+	      &.offline { background: rgba(239, 68, 68, 0.15) !important; color: #EF4444 !important; }
+	    }
+	    .sc-label { color: #94A3B8 !important; }
+	    .sc-val { color: #CBD5E1 !important; }
+	    .sc-footer { border-top-color: #334155 !important; }
+	    .sc-manager { color: #64748B !important; }
+	    .empty-hint { color: #64748B !important; }
+	  }
+
+	  /* ---- 流量监测 ---- */
+	  .flow-monitor {
+	    .f-card { border-color: #334155 !important; }
+	    .card-title { color: #F1F5F9 !important; .el-icon { color: #5EEAD4 !important; } }
+	    .tg-name { color: #94A3B8 !important; }
+	    .point-row {
+	      &:hover { background: #252F3F !important; }
+	      &.active { background: rgba(37, 99, 235, 0.12) !important; border-color: #2563EB !important; }
+	    }
+	    .p-name { color: #CBD5E1 !important; }
+	    .p-unit { color: #64748B !important; }
+	    .rt-item { background: #252F3F !important; }
+	    .rt-label { color: #94A3B8 !important; }
+	    .rt-value {
+	      color: #60A5FA !important;
+	      &.normal { color: #5EEAD4 !important; }
+	      &.time { color: #64748B !important; }
+	      &.code { color: #CBD5E1 !important; }
+	    }
+	    .rt-unit { color: #64748B !important; }
+	    .empty-state { color: #64748B !important; }
+	  }
+
+	  /* ---- 能耗分析 ---- */
+	  .energy-page {
+	    .e-card { border-color: #334155 !important; }
+	    .card-title { color: #F1F5F9 !important; .el-icon { color: #5EEAD4 !important; } }
+	    .good { color: #10B981 !important; }
+	    .bad { color: #EF4444 !important; }
+	  }
+
+	  /* ---- 管网分析 ---- */
+	  .pipe-analysis {
+	    .p-card { border-color: #334155 !important; }
+	    .card-title { color: #F1F5F9 !important; .el-icon { color: #5EEAD4 !important; } }
+	  }
+
+  /* ---- DMA 产销差报表 ---- */
+  .dma-report-page {
+    .sum-card {
+      background: #1E293B !important;
+      border-color: #334155 !important;
     }
+    .sum-label { color: #64748B !important; }
+    .sum-num { color: #F1F5F9 !important; }
+    .sum-num small { color: #64748B !important; }
+    .sum-supply .sum-num { color: #60A5FA !important; }
+    .sum-sales .sum-num { color: #67C23A !important; }
+    .sum-nrw .sum-num { color: #F59E0B !important; }
+    .sum-ratio.ratio-ok .sum-num { color: #67C23A !important; }
+    .sum-ratio.ratio-warn .sum-num { color: #F59E0B !important; }
+    .sum-ratio.ratio-bad .sum-num { color: #F56C6C !important; }
+
+    .section-card {
+      background: #1E293B !important;
+      border-color: #334155 !important;
+    }
+    .section-header {
+      border-bottom-color: #334155 !important;
+    }
+    .section-title { color: #E2E8F0 !important; }
+    .section-subtitle { color: #64748B !important; }
+    .section-date { color: #64748B !important; }
+
+    .trend-panel {
+      background: #1E293B !important;
+    }
+
+    .zone-mini-stats {
+      border-bottom-color: #334155 !important;
+    }
+    .zone-stat-item:not(:last-child) {
+      border-right-color: #334155 !important;
+    }
+    .zone-stat-label { color: #64748B !important; }
+
+    .trend-toolbar {
+      border-bottom-color: #334155 !important;
+    }
+    .toolbar-label { color: #64748B !important; }
+
+    /* 树形表格 */
+    .flex-table {
+      background: #1E293B !important;
+    }
+    .zone-folder-icon { color: #60A5FA !important; }
+    .zone-leaf-icon { color: #64748B !important; }
+
+    .col-supply { color: #60A5FA !important; }
+    .col-sales { color: #67C23A !important; }
+    .col-nrw { color: #F59E0B !important; }
+    .ratio-ok { color: #67C23A !important; }
+    .ratio-warn { color: #F59E0B !important; }
+    .ratio-bad { color: #F56C6C !important; }
+
+    .map-placeholder {
+      background: #1E293B !important;
+      color: #64748B !important;
+    }
+    .map-placeholder .map-content {
+      background: rgba(30, 41, 59, 0.9) !important;
+      color: #94A3B8 !important;
+    }
+  }
+
+  /* ---- 专题报告中心 ---- */
+  .report-center {
+    .type-card {
+      background: #1E293B !important;
+      border-color: #334155 !important;
+    }
+    .type-name { color: #F1F5F9 !important; }
+    .type-desc { color: #64748B !important; }
+
+    .list-card {
+      background: #1E293B !important;
+      border-color: #334155 !important;
+      .el-card__body { background: #1E293B !important; }
+    }
+
+    .report-summary {
+      background: #252F3F !important;
+      color: #CBD5E1 !important;
+    }
+
+    .sec-text { color: #CBD5E1 !important; }
+    .report-section h4 { color: #F1F5F9 !important; }
+
+    .grid-item {
+      background: #252F3F !important;
+    }
+    .grid-val { color: #F1F5F9 !important; }
+    .grid-label { color: #94A3B8 !important; }
   }
 }

@@ -50,6 +50,7 @@ export * from './entities/water-basic/water-point.entity';
 export * from './entities/water-basic/water-pipe.entity';
 export * from './entities/water-basic/water-bill.entity';
 export * from './entities/water-basic/water-zone-metric-calc.entity';
+export * from './entities/water-basic/water-energy.entity';
 
 export * from './entities/data-integration/data-source.entity';
 export * from './entities/data-integration/data-task.entity';
@@ -57,6 +58,8 @@ export * from './entities/data-integration/data-mapping.entity';
 
 export * from './entities/alarm/sys-alarm-rule.entity';
 export * from './entities/alarm/sys-alarm-history.entity';
+
+export * from './entities/sys-report.entity';
 
 export * from './registry/registry.module';
 export * from './registry/registry.service';

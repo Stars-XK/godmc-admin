@@ -201,6 +201,61 @@ export class ReportService {
   }
 
   /**
+   * 批量查询指定分区的产销差数据（仅查询，不构建树）
+   */
+  async getNrwBatch(zoneCodes: string[], dateStr: string, dataType: '1d' | '1mo') {
+    if (!zoneCodes || zoneCodes.length === 0) return ResultData.ok({});
+
+    let startTime: string;
+    let endTime: string;
+    if (dataType === '1d') {
+      startTime = `${dateStr} 00:00:00`;
+      endTime = `${dateStr} 23:59:59`;
+    } else {
+      startTime = `${dateStr}-01 00:00:00`;
+      endTime = dayjs(startTime).endOf('month').format('YYYY-MM-DD 23:59:59');
+    }
+
+    const codeList = zoneCodes.map(c => `'${c}'`).join(',');
+    const supplySql = `SELECT zone_code, SUM(total_val) FROM water_iot.zone_meters_${dataType} WHERE metric_type = 'water_supply' AND ts >= '${startTime}' AND ts <= '${endTime}' AND zone_code IN (${codeList}) GROUP BY zone_code`;
+    const salesSql = `SELECT zone_code, SUM(total_val) FROM water_iot.zone_revenue_${dataType} WHERE metric_type = 'water_sales' AND ts >= '${startTime}' AND ts <= '${endTime}' AND zone_code IN (${codeList}) GROUP BY zone_code`;
+
+    const supplyMap = new Map<string, number>();
+    const salesMap = new Map<string, number>();
+
+    try {
+      const [supplyRes, salesRes] = await Promise.all([
+        this.tdengineService.querySql(supplySql),
+        this.tdengineService.querySql(salesSql),
+      ]);
+
+      if (supplyRes?.data) {
+        supplyRes.data.forEach((row: any) => {
+          supplyMap.set(String(row[0]), Number(Number(row[1] || 0).toFixed(3)));
+        });
+      }
+      if (salesRes?.data) {
+        salesRes.data.forEach((row: any) => {
+          salesMap.set(String(row[0]), Number(Number(row[1] || 0).toFixed(3)));
+        });
+      }
+    } catch (e) {
+      this.logger.warn(`批量查询NRW数据失败: ${e.message}`);
+    }
+
+    const result: Record<string, { supply: number; sales: number; nrwDiff: number; nrwRatio: number }> = {};
+    for (const code of zoneCodes) {
+      const supply = supplyMap.get(code) || 0;
+      const sales = salesMap.get(code) || 0;
+      const nrwDiff = Number((supply - sales).toFixed(3));
+      const nrwRatio = supply > 0 ? Number(((nrwDiff / supply) * 100).toFixed(2)) : 0;
+      result[code] = { supply, sales, nrwDiff, nrwRatio };
+    }
+
+    return ResultData.ok(result);
+  }
+
+  /**
    * 一次性返回完整分区树 + 每个节点的产销差数据（替代前端的 N+1 递归调用）
    * @param dateStr 目标日期(YYYY-MM-DD) 或 月份(YYYY-MM)
    * @param dataType '1d' 或 '1mo'

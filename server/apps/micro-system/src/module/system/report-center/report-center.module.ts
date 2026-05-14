@@ -1,7 +1,9 @@
-import { Module, Global } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { HomeController } from './home.controller';
+import { ReportCenterController } from './report-center.controller';
+import { ReportCenterService } from './report-center.service';
 import {
+  SysReportEntity,
   WaterZoneEntity,
   WaterStationEntity,
   WaterDeviceEntity,
@@ -9,10 +11,10 @@ import {
   SysAlarmHistoryEntity,
 } from '@app/common';
 
-@Global()
 @Module({
   imports: [
     TypeOrmModule.forFeature([
+      SysReportEntity,
       WaterZoneEntity,
       WaterStationEntity,
       WaterDeviceEntity,
@@ -20,6 +22,8 @@ import {
       SysAlarmHistoryEntity,
     ]),
   ],
-  controllers: [HomeController],
+  controllers: [ReportCenterController],
+  providers: [ReportCenterService],
+  exports: [ReportCenterService],
 })
-export class HomeModule {}
+export class ReportCenterModule {}

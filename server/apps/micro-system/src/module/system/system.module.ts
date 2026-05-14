@@ -12,6 +12,7 @@ import { UserModule } from './user/user.module';
 import { BackupModule } from './backup/backup.module';
 import { DbUpdaterModule } from './db-updater/db-updater.module';
 import { HomeModule } from './home/home.module';
+import { ReportCenterModule } from './report-center/report-center.module';
 
 @Global()
 @Module({
@@ -29,6 +30,7 @@ import { HomeModule } from './home/home.module';
     BackupModule,
     DbUpdaterModule,
     HomeModule,
+    ReportCenterModule,
   ],
 })
 export class SystemModule {}
