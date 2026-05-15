@@ -46,12 +46,15 @@ export class PumpStationService {
 
     const statusMap = new Map<string, number>();
     statusCounts.forEach((r: any) => statusMap.set(r.status, Number(r.count)));
-    const online = statusMap.get('1') || 0;
-    const offline = statusMap.get('0') || 0;
+    // iotStatus: 0=在线 1=异常 2=离线 3=报警
+    const online = statusMap.get('0') || 0;
+    const offline = statusMap.get('2') || 0;
+    const abnormal = statusMap.get('1') || 0;
+    const alarm = statusMap.get('3') || 0;
     const onlineRate = total > 0 ? ((online / total) * 100).toFixed(1) : '0';
 
     return ResultData.ok({
-      summary: { total, online, offline, onlineRate },
+      summary: { total, online, offline, abnormal, alarm, onlineRate },
       stations: stations.map(s => ({
         id: s.id, name: s.name, code: s.code, type: s.type,
         typeLabel: STATION_TYPE_LABELS[s.type] || ('类型' + s.type),

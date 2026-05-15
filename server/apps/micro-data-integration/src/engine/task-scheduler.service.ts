@@ -190,19 +190,53 @@ export class TaskSchedulerService implements OnModuleInit {
   }
 
   private async executeFileTask(task: DataIntegrationTaskEntity, source: DataIntegrationSourceEntity) {
-    const filePath = task.querySqlOrTopic; // 假设存放的是文件或目录路径
+    // 安全：限制文件路径仅允许在 source.connectionStr 指定的目录下
+    const baseDir = (source.connectionStr || '').trim();
+    const rawPath = (task.querySqlOrTopic || '').trim();
+
+    let filePath: string;
+    if (baseDir) {
+      const resolvedBase = require('path').resolve(baseDir);
+      const resolvedFile = require('path').resolve(rawPath);
+      // 防止路径穿越攻击：确保解析后的文件路径在允许的目录内
+      if (!resolvedFile.startsWith(resolvedBase + require('path').sep) && resolvedFile !== resolvedBase) {
+        this.logger.error(`文件路径穿越检测: ${rawPath} 不在允许的目录 ${resolvedBase} 内`);
+        throw new Error(`文件路径不在允许的目录范围内`);
+      }
+      filePath = resolvedFile;
+    } else {
+      // 未配置 baseDir 时拒绝绝对路径，仅允许相对路径
+      if (require('path').isAbsolute(rawPath)) {
+        this.logger.error(`未配置 baseDir 时不允许使用绝对路径: ${rawPath}`);
+        throw new Error(`未配置 baseDir，不允许绝对路径`);
+      }
+      filePath = require('path').resolve(rawPath);
+    }
+
     if (!fs.existsSync(filePath)) return;
 
     const stats = fs.statSync(filePath);
     if (stats.isFile() && filePath.endsWith('.csv')) {
-      const results = [];
-      fs.createReadStream(filePath)
-        .pipe(csv())
-        .on('data', (data) => results.push(data))
-        .on('end', async () => {
-          await this.receiverService.receiveData(task.id, results, task.autoBackfill === 1, task.interpolation === 1);
-          // 处理完后可以选择重命名或删除文件，这里暂不处理
-        });
+      // 将 CSV 流解析包装为 Promise，确保等待完成后再返回
+      return new Promise<void>((resolve, reject) => {
+        const results: any[] = [];
+        fs.createReadStream(filePath)
+          .pipe(csv())
+          .on('data', (data) => results.push(data))
+          .on('end', async () => {
+            try {
+              await this.receiverService.receiveData(
+                task.id, results, task.autoBackfill === 1, task.interpolation === 1
+              );
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          })
+          .on('error', (err) => {
+            reject(err);
+          });
+      });
     }
   }
 }

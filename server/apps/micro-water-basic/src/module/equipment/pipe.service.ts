@@ -51,8 +51,8 @@ export class PipeService {
     const entity = this.rep.createQueryBuilder('pipe');
     entity.where('pipe.delFlag = :delFlag', { delFlag: '0' });
 
-    if (query.name) entity.andWhere(`pipe.name LIKE "%${query.name}%"`);
-    if (query.code) entity.andWhere(`pipe.code LIKE "%${query.code}%"`);
+    if (query.name) entity.andWhere('pipe.name LIKE :name', { name: `%${query.name}%` });
+    if (query.code) entity.andWhere('pipe.code LIKE :code', { code: `%${query.code}%` });
     if (query.pipeType) entity.andWhere('pipe.pipeType = :pipeType', { pipeType: query.pipeType });
     if (query.material) entity.andWhere('pipe.material = :material', { material: query.material });
     if (query.status) entity.andWhere('pipe.status = :status', { status: query.status });

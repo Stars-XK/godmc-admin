@@ -93,20 +93,64 @@ export class NotifyService {
         return false;
       }
 
-      // 构建邮件内容并写入 sys_alarm_notification 表供外部邮件服务消费
-      // 或通过 SMTP 直接发送，此处采用写入待发送队列的方式
-      const notificationData = {
-        channel: 'email',
-        recipient: toConfig.configValue,
-        subject: `[${this.levelLabel(alarm.alarmLevel)}] 水务报警: ${alarm.ruleName}`,
-        content: this.buildEmailContent(alarm),
-        status: '0', // 待发送
-      };
+      const subject = `[${this.levelLabel(alarm.alarmLevel)}] 水务报警: ${alarm.ruleName}`;
+      const content = this.buildEmailContent(alarm);
 
-      // 存储到数据库供外部邮件调度器消费，这里只记录日志
-      this.logger.log(`[Email] 待发送: to=${toConfig.configValue}, subject=${notificationData.subject}`);
+      // 尝试通过 sys_config 中配置的 SMTP 直接发送邮件
+      const smtpHost = await this.sysConfigRep.findOne({
+        where: { configKey: 'alarm.notify.email.smtp_host' }
+      });
+      const smtpPort = await this.sysConfigRep.findOne({
+        where: { configKey: 'alarm.notify.email.smtp_port' }
+      });
+      const smtpUser = await this.sysConfigRep.findOne({
+        where: { configKey: 'alarm.notify.email.smtp_user' }
+      });
+      const smtpPass = await this.sysConfigRep.findOne({
+        where: { configKey: 'alarm.notify.email.smtp_pass' }
+      });
 
-      return true;
+      if (smtpHost?.configValue && smtpUser?.configValue) {
+        try {
+          const nodemailer = require('nodemailer');
+          const transporter = nodemailer.createTransport({
+            host: smtpHost.configValue,
+            port: parseInt(smtpPort?.configValue || '465', 10),
+            secure: true,
+            auth: {
+              user: smtpUser.configValue,
+              pass: smtpPass?.configValue || '',
+            },
+          });
+          await transporter.sendMail({
+            from: smtpUser.configValue,
+            to: toConfig.configValue,
+            subject,
+            html: content,
+          });
+          this.logger.log(`[Email] 已发送报警邮件: to=${toConfig.configValue}, subject=${subject}`);
+          return true;
+        } catch (smtpErr) {
+          this.logger.warn(`[Email] SMTP 直发失败，回退到日志记录: ${smtpErr?.message || smtpErr}`);
+        }
+      }
+
+      // SMTP 未配置或发送失败：写入 sys_alarm_history 表持久化通知
+      // 使用 TypeORM 原生查询写入，确保通知数据不丢失
+      try {
+        const manager = this.sysConfigRep.manager;
+        await manager.query(
+          `INSERT INTO sys_alarm_notification (channel, recipient, subject, content, status, create_time)
+           VALUES (?, ?, ?, ?, '0', NOW())`,
+          ['email', toConfig.configValue, subject, content]
+        );
+        this.logger.log(`[Email] 通知已写入数据库待发送队列: to=${toConfig.configValue}, subject=${subject}`);
+        return true;
+      } catch (dbErr) {
+        this.logger.error(`[Email] 邮件通知写入数据库失败，通知丢失: ${dbErr?.message || dbErr}`);
+        this.logger.log(`[Email] 邮件内容(仅日志): to=${toConfig.configValue}, subject=${subject}, body=${content.substring(0, 200)}`);
+        return false;
+      }
     } catch (e) {
       this.logger.warn(`邮件通知准备失败: ${e?.message || e}`);
       return false;

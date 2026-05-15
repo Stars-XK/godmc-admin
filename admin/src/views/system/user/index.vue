@@ -466,7 +466,7 @@ const handleFileSuccess = (response, file, fileList) => {
   upload.open = false
   upload.isUploading = false
   proxy.$refs['uploadRef'].handleRemove(file)
-  proxy.$alert("<div style='overflow: auto;overflow-x: hidden;max-height: 70vh;padding: 10px 20px 0;'>" + response.msg + '</div>', '导入结果', { dangerouslyUseHTMLString: true })
+  proxy.$alert(response.msg || '导入完成', '导入结果', {})
   getList()
 }
 /** 提交上传文件 */

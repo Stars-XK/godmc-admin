@@ -62,8 +62,8 @@ export class DeviceService {
     const entity = this.rep.createQueryBuilder('device');
     entity.where('device.delFlag = :delFlag', { delFlag: '0' });
 
-    if (query.name) entity.andWhere(`device.name LIKE "%${query.name}%"`);
-    if (query.code) entity.andWhere(`device.code LIKE "%${query.code}%"`);
+    if (query.name) entity.andWhere('device.name LIKE :name', { name: `%${query.name}%` });
+    if (query.code) entity.andWhere('device.code LIKE :code', { code: `%${query.code}%` });
     if (query.type) entity.andWhere('device.type = :type', { type: query.type });
     if (query.status) entity.andWhere('device.status = :status', { status: query.status });
     if (query.stationCode) entity.andWhere('device.stationCode = :stationCode', { stationCode: query.stationCode });
@@ -199,24 +199,25 @@ export class DeviceService {
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber > 1) {
         let installDate = null;
-        if (row.getCell(7).value) {
-           const dateVal = new Date(row.getCell(7).value?.toString());
+        if (row.getCell(8).value) {
+           const dateVal = new Date(row.getCell(8).value?.toString());
            if (!isNaN(dateVal.getTime())) {
              installDate = dateVal;
            }
         }
         dataList.push({
           stationCode: row.getCell(1).value?.toString() || '',
-          name: row.getCell(2).value?.toString() || '',
-          code: row.getCell(3).value?.toString() || '',
-          type: row.getCell(4).value?.toString() || '1',
-          model: row.getCell(5).value?.toString() || '',
-          manufacturer: row.getCell(6).value?.toString() || '',
+          zoneCode: row.getCell(2).value?.toString() || '',
+          name: row.getCell(3).value?.toString() || '',
+          code: row.getCell(4).value?.toString() || '',
+          type: row.getCell(5).value?.toString() || '1',
+          model: row.getCell(6).value?.toString() || '',
+          manufacturer: row.getCell(7).value?.toString() || '',
           installDate: installDate,
-          lifespan: parseInt(row.getCell(8).value?.toString() || '0') || null,
-          power: row.getCell(9).value?.toString() || '',
-          managerName: row.getCell(10).value?.toString() || '',
-          managerPhone: row.getCell(11).value?.toString() || '',
+          lifespan: parseInt(row.getCell(9).value?.toString() || '0') || null,
+          power: row.getCell(10).value?.toString() || '',
+          managerName: row.getCell(11).value?.toString() || '',
+          managerPhone: row.getCell(12).value?.toString() || '',
         });
       }
     });

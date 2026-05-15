@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Query, Body } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Query, Body, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { EnergyService } from './energy.service';
 import { ResultData } from '@app/common/utils/result';
@@ -38,7 +38,7 @@ export class EnergyController {
 
   @ApiOperation({ summary: '删除能耗记录' })
   @Delete(':id')
-  async delete(@Query('id') id: number) {
+  async delete(@Param('id') id: number) {
     await this.service.delete(id);
     return ResultData.ok(null, '删除成功');
   }

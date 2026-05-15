@@ -62,7 +62,7 @@ service.interceptors.request.use(config => {
   return config
 }, error => {
     console.log(error)
-    Promise.reject(error)
+    return Promise.reject(error)
 })
 
 // 响应拦截器
@@ -112,16 +112,15 @@ service.interceptors.response.use(res => {
       const code = message.substr(message.length - 3);
       if (['502', '503', '504'].includes(code)) {
         const url = error.config?.url || '';
-        if (url.includes('/alarm/') || url.includes('/report/') || url.includes('/data-integration/')) {
-          ElNotification({
-            title: '服务暂时离线',
-            message: `相关服务模块当前离线或重启中，请稍后再试。`,
-            type: 'warning',
-            position: 'bottom-right',
-            duration: 5000
-          });
-          return Promise.resolve({ code: 200, data: [], rows: [], total: 0, msg: 'Service offline fallback' });
-        }
+        ElNotification({
+          title: '服务暂时离线',
+          message: `相关服务模块当前离线或重启中(${code})，请稍后再试。`,
+          type: 'warning',
+          position: 'bottom-right',
+          duration: 5000
+        });
+        // 返回明确的错误状态，让业务层能够展示错误提示而非空数据
+        return Promise.reject(error);
       }
       message = "系统接口" + code + "异常";
     }

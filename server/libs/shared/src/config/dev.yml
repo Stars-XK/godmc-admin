@@ -25,18 +25,18 @@ cos:
   region: ''
   domain: ''
   location: ''
-# 数据库配置
+# 数据库配置 (通过环境变量 MYSQL_HOST/MYSQL_USERNAME/MYSQL_PASSWORD/MYSQL_DATABASE 覆盖)
 db:
   mysql:
-    host: '139.224.26.134'
-    username: 'dma'
-    password: 'QzwTwHR3YT85AbNf'
-    database: 'dma'
+    host: ${MYSQL_HOST:-127.0.0.1}
+    username: ${MYSQL_USERNAME:-root}
+    password: ${MYSQL_PASSWORD:-}
+    database: ${MYSQL_DATABASE:-dma}
     port: 3306
     charset: 'utf8mb4'
     logger: 'file'
     logging: true
-    multipleStatements: true
+    multipleStatements: false
     dropSchema: false
     synchronize: false  
     supportBigNumbers: true
@@ -46,24 +46,24 @@ db:
       enableKeepAlive: true
       keepAliveInitialDelay: 10000
 
-# redis 配置
+# redis 配置 (通过环境变量 REDIS_HOST/REDIS_PASSWORD 覆盖)
 redis:
-  host: 'localhost'
-  password: '123456'
+  host: ${REDIS_HOST:-localhost}
+  password: ${REDIS_PASSWORD:-}
   port: 6379
   db: 2
   keyPrefix: ''
 
-# TDengine 配置
+# TDengine 配置 (通过环境变量 TDENGINE_HOST/TDENGINE_PASSWORD 覆盖)
 tdengine:
-  host: '139.224.26.134'
+  host: ${TDENGINE_HOST:-127.0.0.1}
   port: 6041
   user: 'root'
-  password: 'taosdata'
+  password: ${TDENGINE_PASSWORD:-taosdata}
 
-# jwt 配置
+# jwt 配置 (生产环境务必通过环境变量 JWT_SECRET 覆盖)
 jwt:
-  secretkey: 'QzwTwHR3YT85AbNf'
+  secretkey: ${JWT_SECRET:-change-me-in-production}
   expiresin: '1h'
   refreshExpiresIn: '2h'
 # 权限 白名单配置

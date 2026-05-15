@@ -25,18 +25,18 @@ cos:
   region: ''
   domain: ''
   location: ''
-# 数据库配置
+# 数据库配置 (通过环境变量覆盖，生产环境禁止硬编码凭据)
 db:
   mysql:
-    host: '127.0.0.1'
-    username: 'root'
-    password: 'yehuozhili'
-    database: 'nest-admin'
+    host: ${MYSQL_HOST:-127.0.0.1}
+    username: ${MYSQL_USERNAME:-root}
+    password: ${MYSQL_PASSWORD:-}
+    database: ${MYSQL_DATABASE:-nest-admin}
     port: 3306
     charset: 'utf8mb4'
     logger: 'file'
     logging: true
-    multipleStatements: true
+    multipleStatements: false
     dropSchema: false
     synchronize: false  
     supportBigNumbers: true
@@ -61,9 +61,9 @@ tdengine:
   user: 'root'
   password: 'taosdata'
 
-# jwt 配置
+# jwt 配置 (生产环境务必通过环境变量 JWT_SECRET 设置强密钥)
 jwt:
-  secretkey: 'you_secretkey'
+  secretkey: ${JWT_SECRET:-}
   expiresin: '1h'
   refreshExpiresIn: '2h'
 # 权限 白名单配置

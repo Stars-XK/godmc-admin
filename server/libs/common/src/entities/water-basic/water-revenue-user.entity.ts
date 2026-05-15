@@ -4,7 +4,7 @@ import { BaseEntity } from '../base';
 @Entity({ name: 'scada_revenue_user' })
 export class WaterRevenueUserEntity extends BaseEntity {
   @PrimaryGeneratedColumn({ type: 'bigint', name: 'id', comment: '【水务基础】营收基础用户信息表' })
-  id: string;
+  id: number;
 
   @Index('uk_user_no', { unique: true })
   @Column({ type: 'varchar', length: 50, name: 'user_no', comment: '用户编号' })
@@ -59,7 +59,7 @@ export class WaterRevenueUserEntity extends BaseEntity {
   installDate: Date;
 
   @Column({ type: 'bigint', name: 'associated_user_id', nullable: true, comment: '关联系统用户ID' })
-  associatedUserId: string;
+  associatedUserId: number;
 
   @Column({ type: 'bigint', name: 'dept_id', comment: '部门ID', nullable: true })
   public deptId: number;

@@ -302,7 +302,7 @@ export class ReceiverService {
 
         // 如果目标是 tdengine
         if (task.targetEntity === 'tdengine') {
-          if (!extracted.deviceCode || !extracted.pointCode || extracted.value === undefined) {
+          if (!extracted.deviceCode || !extracted.pointCode || extracted.value == null) {
             failedCount++;
             return;
           }
@@ -310,6 +310,10 @@ export class ReceiverService {
           const deviceCode = String(extracted.deviceCode);
           const pointCode = String(extracted.pointCode);
           const val = Number(extracted.value);
+          if (!Number.isFinite(val)) {
+            failedCount++;
+            return;
+          }
           const ts = extracted.timestamp ? new Date(extracted.timestamp) : new Date();
 
           try {
@@ -347,15 +351,19 @@ export class ReceiverService {
         } 
         // 如果目标是 revenue (营收)
         else if (task.targetEntity === 'revenue') {
-          if (!extracted.user_no || !extracted.zone_code || extracted.val === undefined || !extracted.ts) {
+          if (!extracted.user_no || !extracted.zone_code || extracted.val == null || !extracted.ts) {
             failedCount++;
             return;
           }
-          
+
           try {
             const userNo = String(extracted.user_no);
             const zoneCode = String(extracted.zone_code);
             const val = Number(extracted.val);
+            if (!Number.isFinite(val)) {
+              failedCount++;
+              return;
+            }
             const ts = new Date(extracted.ts);
             // 假设我们这里默认插月度数据，或者根据任务约定
             await this.tdengineService.insertRevenueData('1mo', userNo, zoneCode, val, ts);

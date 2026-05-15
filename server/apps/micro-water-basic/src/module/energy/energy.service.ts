@@ -87,8 +87,15 @@ export class EnergyService {
   }
 
   async create(body: any) {
+    const powerConsumption = Number(body.powerConsumption) || 0;
+    const waterOutput = Number(body.waterOutput) || 0;
+    // 服务端自动计算单位能耗，防止客户端传入错误值
+    const unitConsumption = waterOutput > 0 ? powerConsumption / waterOutput : 0;
     const entity = this.energyRep.create({
       ...body,
+      powerConsumption,
+      waterOutput,
+      unitConsumption,
       recordTime: new Date(),
     });
     return this.energyRep.save(entity);

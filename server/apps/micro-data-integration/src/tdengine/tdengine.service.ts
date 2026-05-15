@@ -143,9 +143,9 @@ export class TdengineService implements OnModuleInit {
    * @param ts 时间戳 (可选，默认当前时间)
    */
   async insertData(deviceCode: string, pointCode: string, value: number, ts?: Date | string | number) {
-    // 确保子表名合法 (TDengine 表名不支持横线，这里替换为下划线)
-    const safeDeviceCode = deviceCode.replace(/-/g, '_').toLowerCase();
-    const safePointCode = pointCode.replace(/-/g, '_').toLowerCase();
+    // 确保子表名合法：替换横线、转义单引号防止SQL注入
+    const safeDeviceCode = deviceCode.replace(/-/g, '_').replace(/'/g, "''").toLowerCase();
+    const safePointCode = pointCode.replace(/-/g, '_').replace(/'/g, "''").toLowerCase();
     const tableName = `${this.dbName}.d_${safeDeviceCode}_${safePointCode}`;
     
     let timeStr = 'NOW';
@@ -172,8 +172,8 @@ export class TdengineService implements OnModuleInit {
    * @param ts 时间戳
    */
   async insertRevenueData(dataType: '1d' | '1mo', userNo: string, zoneCode: string, value: number, ts: Date | string | number) {
-    const safeUserNo = userNo.replace(/-/g, '_').toLowerCase();
-    const safeZoneCode = zoneCode.replace(/-/g, '_').toLowerCase();
+    const safeUserNo = userNo.replace(/-/g, '_').replace(/'/g, "''").toLowerCase();
+    const safeZoneCode = zoneCode.replace(/-/g, '_').replace(/'/g, "''").toLowerCase();
     const tableName = `${this.dbName}.rev_${dataType}_${safeUserNo}_${safeZoneCode}`;
     const sTable = `${this.dbName}.revenue_meters_${dataType}`;
     
@@ -196,7 +196,7 @@ export class TdengineService implements OnModuleInit {
    * 插入分区产销差聚合数据
    */
   async insertZoneRevenueAggData(dataType: '1d' | '1mo', zoneCode: string, value: number, ts: Date | string | number) {
-    const safeZoneCode = zoneCode.replace(/-/g, '_').toLowerCase();
+    const safeZoneCode = zoneCode.replace(/-/g, '_').replace(/'/g, "''").toLowerCase();
     const tableName = `${this.dbName}.zr_${dataType}_${safeZoneCode}`;
     const sTable = `${this.dbName}.zone_revenue_${dataType}`;
     

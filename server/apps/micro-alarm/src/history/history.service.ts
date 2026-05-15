@@ -61,8 +61,8 @@ export class HistoryService {
     if (!history) {
       return ResultData.fail(404, `报警记录 #${resolveDto.alarmId} 不存在`);
     }
-    if (history.status === '1') {
-      return ResultData.fail(409, `报警记录 #${resolveDto.alarmId} 已处理`);
+    if (history.status !== '0') {
+      return ResultData.fail(409, `报警记录 #${resolveDto.alarmId} 已${history.status === '1' ? '处理' : '恢复'}，无需重复操作`);
     }
 
     const updated = this.historyRepository.merge(history, {
@@ -80,27 +80,21 @@ export class HistoryService {
    * 获取报警统计数据
    */
   async statistics(query: any) {
-    const qb = this.historyRepository.createQueryBuilder('history');
-
-    if (query.startTime) {
-      qb.andWhere('history.alarmTime >= :startTime', { startTime: query.startTime });
-    }
-    if (query.endTime) {
-      qb.andWhere('history.alarmTime <= :endTime', { endTime: query.endTime });
-    }
-
     // 按报警级别统计
-    const levelStats = await this.historyRepository
-      .createQueryBuilder('history')
+    const levelQb = this.historyRepository.createQueryBuilder('history');
+    if (query.startTime) levelQb.andWhere('history.alarmTime >= :startTime', { startTime: query.startTime });
+    if (query.endTime) levelQb.andWhere('history.alarmTime <= :endTime', { endTime: query.endTime });
+    const levelStats = await levelQb
       .select('history.alarmLevel', 'level')
       .addSelect('COUNT(*)', 'count')
-      .where(qb.expressionMap.wheres?.length > 0 ? '1=1' : '1=1')
       .groupBy('history.alarmLevel')
       .getRawMany();
 
     // 按状态统计
-    const statusStats = await this.historyRepository
-      .createQueryBuilder('history')
+    const statusQb = this.historyRepository.createQueryBuilder('history');
+    if (query.startTime) statusQb.andWhere('history.alarmTime >= :startTime', { startTime: query.startTime });
+    if (query.endTime) statusQb.andWhere('history.alarmTime <= :endTime', { endTime: query.endTime });
+    const statusStats = await statusQb
       .select('history.status', 'status')
       .addSelect('COUNT(*)', 'count')
       .groupBy('history.status')
@@ -143,6 +137,7 @@ export class HistoryService {
 
     qb.orderBy('history.alarmTime', 'DESC');
 
+    qb.take(10000);
     const data = await qb.getMany();
 
     const header = [

@@ -63,8 +63,8 @@ export class StationService {
     const entity = this.rep.createQueryBuilder('station');
     entity.where('station.delFlag = :delFlag', { delFlag: '0' });
 
-    if (query.name) entity.andWhere(`station.name LIKE "%${query.name}%"`);
-    if (query.code) entity.andWhere(`station.code LIKE "%${query.code}%"`);
+    if (query.name) entity.andWhere('station.name LIKE :name', { name: `%${query.name}%` });
+    if (query.code) entity.andWhere('station.code LIKE :code', { code: `%${query.code}%` });
     if (query.type) entity.andWhere('station.type = :type', { type: query.type });
     if (query.status) entity.andWhere('station.status = :status', { status: query.status });
     if (query.zoneCode) entity.andWhere('station.zoneCode = :zoneCode', { zoneCode: query.zoneCode });

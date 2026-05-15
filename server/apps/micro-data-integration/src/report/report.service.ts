@@ -113,7 +113,7 @@ export class ReportService {
     let insertCount = 0;
     
     for (const [zoneCode, val] of zoneSalesMap.entries()) {
-      if (val > 0) {
+      if (val >= 0) {
         try {
           await this.tdengineService.insertZoneRevenueAggData(dataType, zoneCode, val, tsDate);
           insertCount++;
@@ -182,7 +182,7 @@ export class ReportService {
         const supply = supplyMap.get(tsStr) || 0;
         const sales = salesMap.get(tsStr) || 0;
         const diff = Number((supply - sales).toFixed(3));
-        const ratio = supply > 0 ? Number(((diff / supply) * 100).toFixed(2)) : 0;
+        const ratio = supply > 0 ? Number(((diff / supply) * 100).toFixed(2)) : (supply === 0 && sales === 0 ? 0 : null);
 
         result.push({
           date: tsStr,

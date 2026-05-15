@@ -133,11 +133,11 @@ export class UserService {
     }
 
     if (query.userName) {
-      entity.andWhere(`user.userName LIKE "%${query.userName}%"`);
+      entity.andWhere('user.userName LIKE :userName', { userName: `%${query.userName}%` });
     }
 
     if (query.phonenumber) {
-      entity.andWhere(`user.phonenumber LIKE "%${query.phonenumber}%"`);
+      entity.andWhere('user.phonenumber LIKE :phonenumber', { phonenumber: `%${query.phonenumber}%` });
     }
 
     if (query.status) {
@@ -736,11 +736,11 @@ export class UserService {
     entity.andWhere('user.status = :status', { status: '0' });
     entity.andWhere('user.userId IN (:...userIds)', { userIds: userIds });
     if (query.userName) {
-      entity.andWhere(`user.userName LIKE "%${query.userName}%"`);
+      entity.andWhere('user.userName LIKE :userName', { userName: `%${query.userName}%` });
     }
 
     if (query.phonenumber) {
-      entity.andWhere(`user.phonenumber LIKE "%${query.phonenumber}%"`);
+      entity.andWhere('user.phonenumber LIKE :phonenumber', { phonenumber: `%${query.phonenumber}%` });
     }
     entity.skip(query.pageSize * (query.pageNum - 1)).take(query.pageSize);
     //联查部门详情
@@ -773,11 +773,11 @@ export class UserService {
       userId: Not(In(userIds)),
     });
     if (query.userName) {
-      entity.andWhere(`user.userName LIKE "%${query.userName}%"`);
+      entity.andWhere('user.userName LIKE :userName', { userName: `%${query.userName}%` });
     }
 
     if (query.phonenumber) {
-      entity.andWhere(`user.phonenumber LIKE "%${query.phonenumber}%"`);
+      entity.andWhere('user.phonenumber LIKE :phonenumber', { phonenumber: `%${query.phonenumber}%` });
     }
     entity.skip(query.pageSize * (query.pageNum - 1)).take(query.pageSize);
     //联查部门详情
@@ -866,7 +866,7 @@ export class UserService {
     if (updatePwdDto.oldPassword === updatePwdDto.newPassword) {
       return ResultData.fail(500, '新密码不能与旧密码相同');
     }
-    if (bcrypt.compareSync(user.user.password, updatePwdDto.oldPassword)) {
+    if (!bcrypt.compareSync(updatePwdDto.oldPassword, user.user.password)) {
       return ResultData.fail(500, '修改密码失败，旧密码错误');
     }
 

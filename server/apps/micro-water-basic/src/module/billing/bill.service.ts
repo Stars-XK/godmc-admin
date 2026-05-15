@@ -18,6 +18,23 @@ export class BillService {
   async create(createDto: any, user: any) {
     createDto.createBy = user.userName;
     createDto.deptId = user.deptId;
+    // 服务端计算金额，不信任客户端传值
+    const waterUsage = Number(createDto.waterUsage) || 0;
+    const unitPrice = Number(createDto.unitPrice) || 0;
+    createDto.totalAmount = waterUsage * unitPrice;
+    const paidAmount = Number(createDto.paidAmount) || 0;
+    createDto.unpaidAmount = Math.max(0, createDto.totalAmount - paidAmount);
+    // 自动推导账单状态
+    if (createDto.unpaidAmount <= 0) {
+      createDto.billStatus = '1'; // 已缴清
+    } else if (paidAmount > 0) {
+      createDto.billStatus = '2'; // 部分缴纳
+    } else {
+      createDto.billStatus = '0'; // 未缴
+    }
+    if (!createDto.generateTime) {
+      createDto.generateTime = new Date();
+    }
     await this.rep.save(createDto);
     return ResultData.ok();
   }
@@ -26,7 +43,7 @@ export class BillService {
     const entity = this.rep.createQueryBuilder('bill');
     entity.where('bill.delFlag = :delFlag', { delFlag: '0' });
 
-    if (query.userNo) entity.andWhere(`bill.userNo LIKE "%${query.userNo}%"`);
+    if (query.userNo) entity.andWhere('bill.userNo LIKE :userNo', { userNo: `%${query.userNo}%` });
     if (query.billPeriod) entity.andWhere('bill.billPeriod = :billPeriod', { billPeriod: query.billPeriod });
     if (query.billStatus) entity.andWhere('bill.billStatus = :billStatus', { billStatus: query.billStatus });
     if (query.zoneCode) entity.andWhere('bill.zoneCode = :zoneCode', { zoneCode: query.zoneCode });

@@ -287,12 +287,20 @@ export class EngineService implements OnModuleInit {
 
       if (debounce.strategy === 'count') {
         const key = `alarm:window:${ruleId}:${deviceId}`;
+        const firedKey = `alarm:fired:${ruleId}:${deviceId}`;
+        // 检查是否已触发过，防止同一轮窗口内重复触发
+        const alreadyFired = await this.redisService.getClient().get(firedKey);
+        if (alreadyFired) return;
+
         const eventId = `${now}-${Math.random().toString(36).substring(7)}`;
         await this.redisService.getClient().zadd(key, now, eventId);
         await this.redisService.getClient().expire(key, 3600);
 
         const count = await this.redisService.getClient().zcard(key);
         if (count >= threshold) {
+          // SETNX 防并发：同一规则+设备在窗口内只触发一次
+          const doFire = await this.redisService.getClient().set(firedKey, '1', 'NX', 'EX', 3600);
+          if (!doFire) return;
           await this.redisService.getClient().del(key);
           await this.fireAlarm(ruleId, ruleName, deviceId, factValue);
         }
@@ -341,13 +349,15 @@ export class EngineService implements OnModuleInit {
   }
 
   /**
-   * 触发报警
+   * 触发报警：使用 SETNX 原子化去重，防止并发重复报警
    */
   private async fireAlarm(ruleId: number, ruleName: string, deviceId: string, factValue: any) {
     const activeKey = `${this.ACTIVE_ALARM_PREFIX}${ruleId}:${deviceId}`;
-    const existingId = await this.redisService.getClient().get(activeKey);
-    if (existingId) {
-      this.logger.debug(`跳过重复报警: rule=${ruleName}, target=${deviceId} (已有活跃报警 #${existingId})`);
+
+    // 使用 SETNX 原子操作防竞态：先占位，防止并发创建重复报警记录
+    const acquired = await this.redisService.getClient().set(activeKey, 'pending', 'NX', 'EX', 10);
+    if (!acquired) {
+      this.logger.debug(`跳过重复报警: rule=${ruleName}, target=${deviceId} (已有活跃报警)`);
       return;
     }
 
@@ -364,7 +374,8 @@ export class EngineService implements OnModuleInit {
     });
     const saved = await this.historyRep.save(history);
 
-    await this.redisService.getClient().set(activeKey, String(saved.alarmId), 'EX', 86400 * 7);
+    // 更新占位符为真实的 alarmId
+    await this.redisService.getClient().set(activeKey, String(saved.alarmId), 'XX', 'EX', 86400 * 7);
 
     this.notifyService.sendAlarmNotification({
       ruleId, ruleName, alarmLevel: '2', alarmContent: saved.alarmContent,
@@ -379,38 +390,39 @@ export class EngineService implements OnModuleInit {
     const activeKey = `${this.ACTIVE_ALARM_PREFIX}${ruleId}:${deviceId}`;
     const historyIdStr = await this.redisService.getClient().get(activeKey);
 
-    if (!historyIdStr) return;
+    if (!historyIdStr || historyIdStr === 'pending') return;
 
     const historyId = parseInt(historyIdStr, 10);
 
     try {
       const history = await this.historyRep.findOne({ where: { alarmId: historyId } });
       if (!history || history.status !== '0') {
+        // 报警已处理或不存在，清理 activeKey
         await this.redisService.getClient().del(activeKey);
         return;
       }
 
-      const recovery = this.historyRep.create({
-        ruleId,
-        ruleName,
-        alarmLevel: '4',
-        alarmContent: `报警自动恢复: ${ruleName}, 目标: ${deviceId} 已恢复正常`,
-        alarmTime: new Date(),
-        alarmSource: deviceId,
-        status: '2',
-      });
-      await this.historyRep.save(recovery);
+      // 在删除 activeKey 前再次验证 key 值未被新报警覆盖
+      const currentIdStr = await this.redisService.getClient().get(activeKey);
+      if (currentIdStr !== historyIdStr) {
+        // activeKey 已被新报警覆盖，不做恢复处理
+        this.logger.debug(`跳过恢复: activeKey 已变更 rule=${ruleName} target=${deviceId}`);
+        return;
+      }
 
+      // 在原记录上直接更新恢复信息，不创建独立记录
       history.status = '2';
+      history.recoveryTime = new Date();
+      history.alarmContent = history.alarmContent + ` [自动恢复于 ${new Date().toISOString()}]`;
       await this.historyRep.save(history);
 
       await this.redisService.getClient().del(activeKey);
 
-      this.logger.log(`[Alarm] 恢复: rule=${ruleName}, target=${deviceId} (原报警 #${historyId})`);
+      this.logger.log(`[Alarm] 恢复: rule=${ruleName}, target=${deviceId} (报警 #${historyId})`);
 
       this.notifyService.sendAlarmNotification({
-        ruleId, ruleName, alarmLevel: '4', alarmContent: recovery.alarmContent,
-        alarmSource: deviceId, alarmTime: recovery.alarmTime, status: '2',
+        ruleId, ruleName, alarmLevel: '4', alarmContent: history.alarmContent,
+        alarmSource: deviceId, alarmTime: new Date(), status: '2',
       }).catch(e => this.logger.error(`恢复通知发送异常: ${e?.message || e}`));
     } catch (e) {
       this.logger.error(`处理恢复通知失败: rule=${ruleName}, target=${deviceId}`, e);

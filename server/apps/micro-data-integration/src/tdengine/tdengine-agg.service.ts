@@ -24,7 +24,7 @@ export class TdengineAggService {
   }
 
   private safeCode(code: string) {
-    return String(code || '').replace(/-/g, '_').toLowerCase();
+    return String(code || '').replace(/-/g, '_').replace(/'/g, "''").toLowerCase();
   }
 
   private toTdTimeString(tsMs: number) {
@@ -133,9 +133,10 @@ export class TdengineAggService {
           INTERVAL(${interval}) FILL(PREV)
         `);
       } else if (kind === 'incremental') {
+        // avg_val=窗口内平均增量, spread_val=增量波动幅度, diff_val=窗口内累计增量(下游分区聚合使用)
         await this.tdengineService.querySql(`
           INSERT INTO ${child}
-          SELECT _wstart, ROUND(SUM(val), 3), ROUND(MAX(val), 3), ROUND(MIN(val), 3), ROUND(SUM(val), 3), ROUND(SUM(val), 3)
+          SELECT _wstart, ROUND(AVG(val), 3), ROUND(MAX(val), 3), ROUND(MIN(val), 3), ROUND(SPREAD(val), 3), ROUND(SUM(val), 3)
           FROM ${rawTable}
           WHERE ts >= ${startMs} AND ts <= ${endMs}
           INTERVAL(${interval}) FILL(VALUE, 0)

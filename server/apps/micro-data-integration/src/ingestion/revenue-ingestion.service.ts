@@ -192,10 +192,9 @@ export class RevenueIngestionService {
     // 查询 TDengine 中已有的营收聚合数据作为近似值
     for (const user of users) {
       try {
-        const sql = `SELECT SUM(val) AS total FROM water_iot.revenue_meters_1d
-                     WHERE user_no = '${user.userNo}'
-                     AND ts >= '${startDate}' AND ts <= '${endDate}'`;
-        const data = await this.tdengineService.querySql(sql);
+        const safeUserNo = user.userNo.replace(/'/g, "''");
+        const data = await this.tdengineService.querySql(
+          `SELECT SUM(val) AS total FROM water_iot.revenue_meters_1d WHERE user_no = '${safeUserNo}' AND ts >= '${startDate}' AND ts <= '${endDate}'`);
         if (data && (data as any).data && (data as any).data.length > 0) {
           const total = parseFloat((data as any).data[0][0]) || 0;
           if (total > 0) result.set(user.userNo, total);
@@ -251,6 +250,11 @@ export class RevenueIngestionService {
       }
 
       if (calcStrategy === 'month_to_day') {
+        this.logger.warn(
+          `month_to_day 策略采用均分算法，日产销差将失实。` +
+          `建议配置营收数据源(revenue.source.id)提供逐日数据，或将策略改为 single_point。` +
+          `用户 ${user.userNo}: 月度总额=${monthlyTotal} 均分到日。`
+        );
         const days = dayjs(endDate).diff(dayjs(startDate), 'day') + 1;
         const dailyAvg = monthlyTotal / days;
 

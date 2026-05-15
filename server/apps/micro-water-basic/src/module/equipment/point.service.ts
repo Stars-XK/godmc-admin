@@ -62,8 +62,8 @@ export class PointService {
     const entity = this.rep.createQueryBuilder('point');
     entity.where('point.delFlag = :delFlag', { delFlag: '0' });
 
-    if (query.name) entity.andWhere(`point.name LIKE "%${query.name}%"`);
-    if (query.code) entity.andWhere(`point.code LIKE "%${query.code}%"`);
+    if (query.name) entity.andWhere('point.name LIKE :name', { name: `%${query.name}%` });
+    if (query.code) entity.andWhere('point.code LIKE :code', { code: `%${query.code}%` });
     if (query.type) entity.andWhere('point.type = :type', { type: query.type });
     if (query.status) entity.andWhere('point.status = :status', { status: query.status });
     if (query.deviceCode) entity.andWhere('point.deviceCode = :deviceCode', { deviceCode: query.deviceCode });

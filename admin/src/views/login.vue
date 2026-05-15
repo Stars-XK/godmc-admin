@@ -84,7 +84,9 @@
                     <el-icon><Key /></el-icon>
                   </template>
                 </el-input>
-                <div class="captcha-img" v-html="authCodeInfo.imgUrl" @click="useAuthCode.getValidateCode(loginForm.model, true)" />
+                <div class="captcha-img" @click="useAuthCode.getValidateCode(loginForm.model, true)">
+                  <img v-if="authCodeInfo.imgUrl" :src="authCodeInfo.imgUrl.startsWith('data:') ? authCodeInfo.imgUrl : `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(authCodeInfo.imgUrl)))}`" alt="验证码" />
+                </div>
               </div>
             </el-form-item>
 
@@ -131,8 +133,8 @@ const showRegisterUser = ref()
 
 const loginForm = reactive({
   model: {
-    userName: 'admin',
-    password: '123456',
+    userName: '',
+    password: '',
     rememberMe: false,
     code: '',
     uuid: ''
@@ -157,6 +159,7 @@ function getRegisterUserAllow() {
 }
 
 function handleLogin() {
+  if (authCodeInfo.loading) return // 防止重复提交
   loginRef.value.validate((valid) => {
     if (valid) {
       authCodeInfo.loading = true
@@ -164,7 +167,7 @@ function handleLogin() {
       useAuthCode.setUserCookie(loginForm.model)
       userStore.login(loginForm.model).then(() => {
         router.push({ path: redirect.value || '/' })
-      }).catch(() => {
+      }).catch((err) => {
         if (authCodeInfo.captchaEnabled) {
           useAuthCode.getValidateCode(loginForm.model, true)
         }

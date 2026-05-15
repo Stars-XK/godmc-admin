@@ -34,7 +34,7 @@ export class RevenueUserService {
     return ResultData.ok({ list, total });
   }
 
-  async findOne(id: string) {
+  async findOne(id: number) {
     const data = await this.rep.findOne({ where: { id, delFlag: '0' } });
     return ResultData.ok(data);
   }
@@ -55,7 +55,7 @@ export class RevenueUserService {
     return ResultData.ok();
   }
 
-  async remove(ids: string[]) {
+  async remove(ids: number[]) {
     await this.rep.update(ids, { delFlag: '1' });
     return ResultData.ok();
   }

@@ -93,7 +93,8 @@ export class OperlogService {
       'entity.status',
       'entity.costTime',
     ]);
-    if (query.orderByColumn && query.isAsc) {
+    const ALLOWED_COLUMNS = ['operId', 'title', 'businessType', 'operName', 'deptName', 'operUrl', 'operIp', 'operTime', 'status', 'costTime'];
+    if (query.orderByColumn && ALLOWED_COLUMNS.includes(query.orderByColumn) && query.isAsc) {
       const key = query.isAsc === 'ascending' ? 'ASC' : 'DESC';
       entity.orderBy(`entity.${query.orderByColumn}`, key);
     }

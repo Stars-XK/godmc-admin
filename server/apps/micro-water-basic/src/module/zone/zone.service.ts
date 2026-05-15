@@ -30,10 +30,9 @@ export class ZoneService {
     createDto.createBy = user.userName;
     createDto.deptId = user.deptId;
     if (createDto.parentId && createDto.parentId !== 0) {
-      const parentCode = String(createDto.parentId);
       const parent = await this.zoneRep.findOne({
         where: {
-          code: parentCode,
+          id: createDto.parentId,
           delFlag: '0',
         },
         select: ['ancestors', 'level', 'code'],
@@ -60,10 +59,10 @@ export class ZoneService {
       entity.andWhere('zone.type = :type', { type: query.type });
     }
     if (query.name) {
-      entity.andWhere(`zone.name LIKE "%${query.name}%"`);
+      entity.andWhere('zone.name LIKE :name', { name: `%${query.name}%` });
     }
     if (query.code) {
-      entity.andWhere(`zone.code LIKE "%${query.code}%"`);
+      entity.andWhere('zone.code LIKE :code', { code: `%${query.code}%` });
     }
     if (query.status) {
       entity.andWhere('zone.status = :status', { status: query.status });
@@ -88,10 +87,10 @@ export class ZoneService {
       entity.andWhere('zone.type = :type', { type: query.type });
     }
     if (query.name) {
-      entity.andWhere(`zone.name LIKE "%${query.name}%"`);
+      entity.andWhere('zone.name LIKE :name', { name: `%${query.name}%` });
     }
     if (query.code) {
-      entity.andWhere(`zone.code LIKE "%${query.code}%"`);
+      entity.andWhere('zone.code LIKE :code', { code: `%${query.code}%` });
     }
     if (query.status) {
       entity.andWhere('zone.status = :status', { status: query.status });
@@ -150,8 +149,8 @@ export class ZoneService {
     // 只查询当前父节点的所有子孙节点，或者直接在内存中做？
     // 为了保证 count 和权限过滤的一致性，我们仍然查出符合条件的所有数据
     if (query.type) entity.andWhere('zone.type = :type', { type: query.type });
-    if (query.name) entity.andWhere(`zone.name LIKE "%${query.name}%"`);
-    if (query.code) entity.andWhere(`zone.code LIKE "%${query.code}%"`);
+    if (query.name) entity.andWhere('zone.name LIKE :name', { name: `%${query.name}%` });
+    if (query.code) entity.andWhere('zone.code LIKE :code', { code: `%${query.code}%` });
     if (query.status) entity.andWhere('zone.status = :status', { status: query.status });
 
     const isAdmin = user.roles?.includes('admin') || user.user?.roles?.some((r) => r.roleKey === 'admin' || r.roleId === 1);
@@ -199,10 +198,9 @@ export class ZoneService {
   async update(updateDto: any, user: any) {
     updateDto.updateBy = user.userName;
     if (updateDto.parentId && updateDto.parentId !== 0) {
-      const parentCode = String(updateDto.parentId);
       const parent = await this.zoneRep.findOne({
         where: {
-          code: parentCode,
+          id: updateDto.parentId,
           delFlag: '0',
         },
         select: ['ancestors', 'level', 'code'],
@@ -459,7 +457,7 @@ export class ZoneService {
     const hasChild = await this.zoneRep
       .createQueryBuilder('zone')
       .where('zone.delFlag = :delFlag', { delFlag: '0' })
-      .andWhere('zone.parentId = :parentId', { parentId: current.code })
+      .andWhere('zone.parentId = :parentId', { parentId: current.id })
       .getCount();
     if (hasChild > 0) {
       return ResultData.fail(500, '存在子级分区,不允许删除');
@@ -483,8 +481,8 @@ export class ZoneService {
       .where('device.delFlag = :delFlag', { delFlag: '0' })
       .andWhere('device.zoneCode IS NULL');
 
-    if (name) qb.andWhere(`device.name LIKE "%${name}%"`);
-    if (code) qb.andWhere(`device.code LIKE "%${code}%"`);
+    if (name) qb.andWhere('device.name LIKE :name', { name: `%${name}%` });
+    if (code) qb.andWhere('device.code LIKE :code', { code: `%${code}%` });
     if (type) qb.andWhere('device.type = :type', { type });
 
     const [list, total] = await qb
@@ -570,8 +568,8 @@ export class ZoneService {
       .where('user.delFlag = :delFlag', { delFlag: '0' })
       .andWhere('user.zoneCode IS NULL');
 
-    if (name) qb.andWhere(`user.userName LIKE "%${name}%"`);
-    if (userNo) qb.andWhere(`user.userNo LIKE "%${userNo}%"`);
+    if (name) qb.andWhere('user.userName LIKE :name', { name: `%${name}%` });
+    if (userNo) qb.andWhere('user.userNo LIKE :userNo', { userNo: `%${userNo}%` });
     if (userCategory) qb.andWhere('user.userCategory = :userCategory', { userCategory });
 
     const [list, total] = await qb
@@ -945,10 +943,10 @@ export class ZoneService {
       const batchSize = 500;
       for (let i = 0; i < metricCalcUpserts.length; i += batchSize) {
         const chunk = metricCalcUpserts.slice(i, i + batchSize);
-        // 先删除后插入实现Upsert效果
-        const zCodes = chunk.map(c => c.zoneCode);
-        const pCodes = chunk.map(c => c.pointCode);
-        await this.metricCalcRep.delete({ zoneCode: In(zCodes), pointCode: In(pCodes) });
+        // 逐条精确删除配对记录，避免 IN + IN 笛卡尔积误删
+        for (const item of chunk) {
+          await this.metricCalcRep.delete({ zoneCode: item.zoneCode, pointCode: item.pointCode });
+        }
         await this.metricCalcRep.insert(chunk);
       }
     }
