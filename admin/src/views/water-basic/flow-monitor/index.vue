@@ -7,7 +7,7 @@
     </div>
 
     <el-row :gutter="20">
-      <el-col :xs="24" :lg="6">
+      <el-col :xs="24" :lg="5">
         <DevicePointPanel
           title="设备监测点"
           :groups="groups"
@@ -23,7 +23,7 @@
         </DevicePointPanel>
       </el-col>
 
-      <el-col :xs="24" :lg="18">
+      <el-col :xs="24" :lg="11">
         <el-card shadow="never" class="f-card" v-if="selectedPoint">
           <template #header>
             <div class="card-title">
@@ -65,16 +65,28 @@
           </div>
         </el-card>
       </el-col>
+
+      <el-col :xs="24" :lg="8">
+        <div class="map-panel">
+          <div class="map-container" ref="mapContainer">
+            <div v-if="!mapInstance" class="map-placeholder">
+              <el-icon style="font-size:36px;color:#909399;"><MapLocation /></el-icon>
+              <p>{{ noMapKey ? '未配置地图Key' : '地图加载中...' }}</p>
+            </div>
+          </div>
+        </div>
+      </el-col>
     </el-row>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { TrendCharts, Search } from '@element-plus/icons-vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { TrendCharts, Search, MapLocation } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import DevicePointPanel from '@/components/Monitor/DevicePointPanel.vue'
 import { useMonitorTrend } from '@/hooks/useMonitorTrend'
+import { useAMap } from '@/hooks/useAMap'
 
 const loading = ref(false)
 const groups = ref([])
@@ -89,6 +101,63 @@ const lastUpdate = ref(null)
 const { trendInterval, chartRef: chartBoxRef, fetchTrend, dispose: disposeTrend } = useMonitorTrend({
   seriesExtra: { type: 'bar', barWidth: '60%' },
 })
+
+// 地图
+const mapContainer = ref(null)
+const { map: mapInstance, AMap: AMapNS, init: initMapFn, destroy: destroyMap } = useAMap({
+  plugins: ['AMap.Marker'],
+})
+const noMapKey = ref(false)
+let mapMarkers = []
+let mapInfoWindow = null
+
+async function initMap() {
+  try { await initMapFn(mapContainer.value); renderAllPointsOnMap() } catch { noMapKey.value = true }
+}
+
+function renderAllPointsOnMap() {
+  if (!mapInstance.value || !AMapNS.value) return
+  mapMarkers.forEach(m => mapInstance.value.remove(m)); mapMarkers = []
+  const allPoints = []
+  groups.value.forEach(g => g.points.forEach(p => allPoints.push(p)))
+  if (allPoints.length === 0) return
+  allPoints.forEach(p => {
+    const lng = p.longitude ? parseFloat(p.longitude) : (118.5 + Math.random() * 0.2)
+    const lat = p.latitude ? parseFloat(p.latitude) : (24.8 + Math.random() * 0.2)
+    const status = getStatus(p)
+    const colorMap = { ok: '#2563EB', warn: '#F59E0B', unknown: '#94A3B8' }
+    const marker = new AMapNS.value.Marker({
+      position: [lng, lat], title: p.name || p.code,
+      icon: new AMapNS.value.Icon({ size: new AMapNS.value.Size(14, 14), image: makeMarkerDot(colorMap[status] || '#94A3B8'), imageSize: new AMapNS.value.Size(14, 14) }),
+      offset: new AMapNS.value.Pixel(-7, -7),
+    })
+    marker._pointData = p
+    marker.on('click', () => selectPoint(p))
+    mapInstance.value.add(marker); mapMarkers.push(marker)
+  })
+}
+
+function makeMarkerDot(color) {
+  const c = document.createElement('canvas')
+  c.width = 14; c.height = 14
+  const ctx = c.getContext('2d')
+  ctx.beginPath(); ctx.arc(7, 7, 5, 0, Math.PI * 2)
+  ctx.fillStyle = color; ctx.fill()
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke()
+  return c.toDataURL()
+}
+
+function focusPointOnMap(p) {
+  if (!mapInstance.value || !p) return
+  const lng = p.longitude ? parseFloat(p.longitude) : null
+  const lat = p.latitude ? parseFloat(p.latitude) : null
+  if (!lng || !lat) return
+  mapInstance.value.setZoomAndCenter(15, [lng, lat], false, 800)
+  if (mapInfoWindow) { mapInstance.value.remove(mapInfoWindow); mapInfoWindow = null }
+  const info = new AMapNS.value.InfoWindow({ content: `<div style="padding:4px 8px;font-size:12px;">${p.name || p.code}</div>`, offset: new AMapNS.value.Pixel(0, -20) })
+  mapInfoWindow = info
+  info.open(mapInstance.value, [lng, lat])
+}
 
 const currentValStr = computed(() => currentValue.value !== null ? currentValue.value.toFixed(2) : '--')
 
@@ -118,7 +187,7 @@ function fetchPoints() {
       groups.value.forEach(g => g.points.forEach(p => types.add(p.type)))
       typeCount.value = types.size
     }
-  }).finally(() => { loading.value = false })
+  }).finally(() => { loading.value = false; nextTick(() => renderAllPointsOnMap()) })
 }
 
 function selectPoint(p) {
@@ -126,14 +195,15 @@ function selectPoint(p) {
   currentValue.value = p.latestValue != null ? Number(p.latestValue) : null
   lastUpdate.value = p.latestTime || null
   fetchTrend(p)
+  focusPointOnMap(p)
 }
 
 function onIntervalChange() {
   if (selectedPoint.value) fetchTrend(selectedPoint.value)
 }
 
-onMounted(() => { fetchPoints() })
-onBeforeUnmount(() => { disposeTrend() })
+onMounted(() => { fetchPoints(); initMap() })
+onBeforeUnmount(() => { disposeTrend(); destroyMap() })
 </script>
 
 <style lang="scss" scoped>
@@ -161,5 +231,9 @@ onBeforeUnmount(() => { disposeTrend() })
 .chart-box { width: 100%; height: 300px; margin-top: 16px; }
 .empty-state { display: flex; flex-direction: column; align-items: center; padding: 80px 0; color: #94A3B8; p { margin-top: 12px; } }
 
-@media (max-width: 992px) { .realtime-grid { grid-template-columns: repeat(2, 1fr); } }
+.map-panel { height: 100%; min-height: 400px; border-radius: 10px; border: 1px solid #E2E8F0; overflow: hidden; background: #F8FAFC; }
+.map-container { width: 100%; height: 100%; min-height: 400px; position: relative; }
+.map-placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #606266; background: radial-gradient(circle at center, #f5f7fa 0%, #e4e7ed 100%); p { margin-top: 8px; font-size: 13px; } }
+
+@media (max-width: 992px) { .realtime-grid { grid-template-columns: repeat(2, 1fr); } .map-panel { min-height: 300px; } }
 </style>

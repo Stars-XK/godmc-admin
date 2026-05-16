@@ -48,18 +48,18 @@ db:
 
 # redis 配置
 redis:
-  host: 'localhost'
-  password: '*********'
-  port: 6379
+  host: ${REDIS_HOST:-localhost}
+  password: ${REDIS_PASSWORD:-}
+  port: ${REDIS_PORT:-6379}
   db: 2
   keyPrefix: ''
 
 # TDengine 配置
 tdengine:
-  host: '127.0.0.1'
-  port: 6041
-  user: 'root'
-  password: 'taosdata'
+  host: ${TDENGINE_HOST:-127.0.0.1}
+  port: ${TDENGINE_PORT:-6041}
+  user: ${TDENGINE_USER:-root}
+  password: ${TDENGINE_PASSWORD:-taosdata}
 
 # jwt 配置 (生产环境务必通过环境变量 JWT_SECRET 设置强密钥)
 jwt:

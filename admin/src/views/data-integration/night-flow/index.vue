@@ -85,7 +85,7 @@
             <h2>GIS 地图区域</h2>
             <p v-if="activeZone">当前定位分区: <strong>{{ activeZone.zoneName }}</strong></p>
             <p v-else>请点击左侧分区列表定位</p>
-            <p v-if="!amapKey" style="color:#F56C6C; margin-top: 10px; font-size: 12px;">（需在系统参数中配置高德地图Key）</p>
+            <p v-if="noMapKey" style="color:#F56C6C; margin-top: 10px; font-size: 12px;">（需在系统参数中配置高德地图Key）</p>
           </div>
         </div>
       </div>
@@ -178,7 +178,6 @@ import { ref, shallowRef, reactive, computed, onMounted, onBeforeUnmount, nextTi
 import { Search, LocationInformation, Setting, FullScreen, Location, Guide, TrendCharts, Clock, Moon, MagicStick, BellFilled } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { listZoneTree, lazyZoneChildren } from '@/api/water-basic/zone'
-import { getConfigKey } from '@/api/system/config'
 import * as echarts from 'echarts'
 import { useAMap } from '@/hooks/useAMap'
 import DataFlowDialog from '@/components/Monitor/DataFlowDialog.vue'
@@ -296,7 +295,7 @@ const visibleData = computed(() => {
 const drawerTitle = computed(() => activeZone.value ? `分区详情 - ${activeZone.value.zoneName}` : '分区详情')
 
 onMounted(async () => {
-  await initMapKey()
+  await initMap()
   initData()
 })
 
@@ -304,7 +303,7 @@ onBeforeUnmount(() => {
   clearAllTimers()
   if (chart30Day) chart30Day.dispose()
   if (chart10Day) chart10Day.dispose()
-  if (mapInstance.value) mapInstance.value.destroy()
+  destroyMap()
   window.removeEventListener('resize', handleResize)
 })
 
@@ -320,7 +319,7 @@ async function initMap() {
 function renderZoneOnMap(zone) {
   if (!mapInstance.value || !zone) return
   
-  const AMap = window.AMap
+  const AMap = AMapNS.value
   if (!AMap) return
 
   // 清除旧的图形

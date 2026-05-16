@@ -158,7 +158,7 @@
             <div v-if="!mapInstance" class="map-placeholder">
               <div class="map-content">
                 <el-icon style="font-size:36px;color:#909399;"><MapLocation /></el-icon>
-                <p>{{ amapKey ? '定位中...' : '未配置地图Key' }}</p>
+                <p>{{ noMapKey ? '未配置地图Key' : '定位中...' }}</p>
               </div>
             </div>
           </div>
@@ -177,9 +177,8 @@ import { ElMessage } from 'element-plus'
 import { Search, Refresh, DataLine, MapLocation, FolderOpened, Guide, TrendCharts, MagicStick, PieChart, Connection } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { listZoneTree, lazyZoneChildren } from '@/api/water-basic/zone'
-import { getConfigKey } from '@/api/system/config'
 import * as echarts from 'echarts'
-import AMapLoader from '@amap/amap-jsapi-loader'
+import { useAMap } from '@/hooks/useAMap'
 import DataFlowDialog from '@/components/Monitor/DataFlowDialog.vue'
 
 const loading = ref(false)
@@ -249,11 +248,10 @@ let chartInstance = null
 
 // 地图
 const mapContainer = ref(null)
-const amapKey = ref('')
-const amapSecurity = ref('')
-const amapStyle = ref('amap://styles/light')
-const mapInstance = shallowRef(null)
-const mapReady = ref(false)
+const { map: mapInstance, AMap: AMapNS, init: initMapFn, destroy: destroyMap } = useAMap({
+  plugins: ['AMap.Marker'],
+})
+const noMapKey = ref(false)
 let markers = []
 
 const queryParams = reactive({
@@ -549,42 +547,17 @@ function renderEmptyChart(range) {
 }
 
 // ==== 地图 ====
-async function initMapKey() {
+async function initMap() {
   try {
-    const results = await Promise.all([
-      getConfigKey('gis.map.amap.key'),
-      getConfigKey('gis.map.amap.security'),
-      getConfigKey('gis.map.style')
-    ])
-    if (results[0] && results[0].data) {
-      amapKey.value = results[0].data
-      amapSecurity.value = (results[1] && results[1].data) || ''
-      amapStyle.value = (results[2] && results[2].data) || 'amap://styles/light'
-      initAMap()
-    }
-  } catch (e) { console.error('获取地图Key失败', e) }
-}
-
-function initAMap() {
-  if (!amapKey.value || !mapContainer.value) return
-  if (amapSecurity.value) {
-    window._AMapSecurityConfig = { securityJsCode: amapSecurity.value }
+    await initMapFn(mapContainer.value)
+  } catch {
+    noMapKey.value = true
   }
-  AMapLoader.load({ key: amapKey.value, version: '2.0', plugins: ['AMap.Marker'] })
-    .then((AMap) => {
-      mapInstance.value = new AMap.Map(mapContainer.value, {
-        viewMode: '2D', zoom: 12, center: [118.6, 24.9],
-        mapStyle: amapStyle.value
-      })
-      mapReady.value = true
-      if (selectedZone.value) locateZoneOnMap(selectedZone.value)
-    })
-    .catch(e => { console.error('高德地图加载失败', e) })
 }
 
 function locateZoneOnMap(zone) {
   if (!mapInstance.value || !zone) return
-  const AMap = window.AMap
+  const AMap = AMapNS.value
   if (!AMap) return
 
   markers.forEach(m => mapInstance.value.remove(m))
@@ -605,7 +578,7 @@ function handleResize() {
 
 onMounted(() => {
   getList()
-  initMapKey()
+  initMap()
   window.addEventListener('resize', handleResize)
   setTimeout(() => renderEmptyChart(), 200)
 })
@@ -613,7 +586,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
   if (chartInstance) chartInstance.dispose()
-  if (mapInstance.value) mapInstance.value.destroy()
+  destroyMap()
 })
 </script>
 
