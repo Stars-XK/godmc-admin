@@ -12,6 +12,7 @@
             @input="handleSearch"
           ></el-input>
         </div>
+        <el-button type="warning" plain size="small" icon="Guide" @click="showDataFlow = true">数据流转</el-button>
       </div>
       <div class="list-container" ref="listContainer" @scroll="handleScroll">
         <div class="list-phantom" :style="{ height: totalHeight + 'px' }"></div>
@@ -166,24 +167,88 @@
         </div>
       </div>
     </el-drawer>
+
+    <!-- 数据流转弹窗 -->
+    <DataFlowDialog v-model="showDataFlow" title="夜间最小流量数据流转" :stages="nightFlowStages" />
   </div>
 </template>
 
 <script setup name="ZoneNightFlow">
 import { ref, shallowRef, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { Search, LocationInformation, Setting, FullScreen, Location } from '@element-plus/icons-vue'
+import { Search, LocationInformation, Setting, FullScreen, Location, Guide, TrendCharts, Clock, Moon, MagicStick, BellFilled } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { listZoneTree, lazyZoneChildren } from '@/api/water-basic/zone'
 import { getConfigKey } from '@/api/system/config'
 import * as echarts from 'echarts'
-import AMapLoader from '@amap/amap-jsapi-loader'
+import { useAMap } from '@/hooks/useAMap'
+import DataFlowDialog from '@/components/Monitor/DataFlowDialog.vue'
 
 // 树形列表展平后的全部数据
 const flatData = ref([])
 const renderData = ref([])
 
 const searchQuery = ref('')
-const itemHeight = 88
+
+// 数据流转弹窗
+const showDataFlow = ref(false)
+const nightFlowStages = [
+  {
+    key: 'zone_tree', label: '分区树加载', shortLabel: '分区树',
+    icon: Location, color: '#3B82F6',
+    description: '前端调用 listZoneTree API 获取分区层级树，虚拟滚动渲染（itemHeight=88, visibleCount=18），按展开/折叠状态构建可见列表',
+    tech: 'Vue3 + 虚拟滚动', input: 'water_zone 表', output: '分区树形卡片列表',
+    frequency: '页面加载 / 展开折叠', method: 'buildTree() + handleScroll()', file: 'admin/src/views/data-integration/night-flow/index.vue',
+    active: true, count: '—',
+  },
+  {
+    key: 'tdengine_night', label: 'TDengine夜间查询', shortLabel: '夜间查询',
+    icon: Moon, color: '#6366F1',
+    description: 'QueryService.getZoneNightFlowBatch() 批量查询所有分区的 zone_meters_5m，夜间时段(02:00-04:00)内 MIN(total_val) 作为夜间最小流量',
+    tech: 'TDengine REST API', input: 'zone_meters_5m 超表', output: '各分区今日/昨日夜小值',
+    frequency: '页面加载 / 定时刷新', method: 'QueryService.getZoneNightFlowBatch()', file: 'micro-data-integration/query/query.service.ts',
+    active: true, count: '—',
+  },
+  {
+    key: 'today_min', label: '今日夜小计算', shortLabel: '今日MIN',
+    icon: Clock, color: '#0D9488',
+    description: 'SELECT MIN(total_val) FROM zone_meters_5m WHERE zoneCode = ? AND time BETWEEN today_night_start AND today_night_end，返回今日夜间最小流量值',
+    tech: 'TDengine SQL', input: '今日凌晨 02:00-04:00 数据', output: 'todayVal (m³/h)',
+    frequency: '每次刷新', method: 'getZoneNightFlowBatch() today分支', file: 'micro-data-integration/query/query.service.ts',
+    active: true, count: '—',
+  },
+  {
+    key: 'yesterday_min', label: '昨日夜小对比', shortLabel: '昨日MIN',
+    icon: TrendCharts, color: '#D97706',
+    description: '同样查询昨日同一时段 MIN(total_val)，与今日值对比。夜小上升通常意味着漏损增加或非法用水',
+    tech: 'TDengine SQL', input: '昨日凌晨 02:00-04:00 数据', output: 'yesterdayVal (m³/h)',
+    frequency: '每次刷新', method: 'getZoneNightFlowBatch() yesterday分支', file: 'micro-data-integration/query/query.service.ts',
+    active: true, count: '—',
+  },
+  {
+    key: 'diff_ratio', label: '差值/比率计算', shortLabel: '差值比率',
+    icon: MagicStick, color: '#8B5CF6',
+    description: 'diffVal = todayVal - yesterdayVal; ratio = (diffVal / yesterdayVal) * 100。正值表示夜小上升(漏损恶化)，负值表示下降',
+    tech: '前端计算', input: 'todayVal + yesterdayVal', output: 'diffVal + ratio + isAlarm',
+    frequency: '每次数据加载后', method: 'compute in getList()', file: 'admin/src/views/data-integration/night-flow/index.vue',
+    active: true, count: '—',
+  },
+  {
+    key: 'alarm_check', label: '报警判定', shortLabel: '报警判定',
+    icon: BellFilled, color: '#EF4444',
+    description: 'ratio 超过阈值(默认 >30%) 标记 isAlarm = true，卡片显示红色报警标签。点击可查看详情抽屉中的30天趋势和10天小时表',
+    tech: '阈值比较', input: 'ratio + 阈值配置', output: 'isAlarm 布尔标记',
+    frequency: '每次计算后', method: 'alarm threshold compare', file: 'admin/src/views/data-integration/night-flow/index.vue',
+    active: false, count: '—',
+  },
+  {
+    key: 'trend_drawer', label: '趋势详情展示', shortLabel: '趋势展示',
+    icon: Setting, color: '#EC4899',
+    description: '点击分区详情按钮 → drawer 中 ECharts 渲染30天夜间最小流量趋势图 + 10天小时数据表 + 最新测点数据 + 报警记录',
+    tech: 'ECharts 5.x + Drawer', input: '30天/10天历史数据', output: '趋势图 + 小时表 + 报警记录',
+    frequency: '点击详情时', method: 'handleDrawerOpen()', file: 'admin/src/views/data-integration/night-flow/index.vue',
+    active: false, count: '—',
+  },
+]
 const visibleCount = 18
 const startIndex = ref(0)
 
@@ -210,11 +275,11 @@ const alarmList = ref([])
 const listContainer = ref(null)
 
 // 地图相关
-const amapKey = ref('')
-const amapSecurity = ref('')
-const amapStyle = ref('amap://styles/light')
-const mapInstance = shallowRef(null)
 const mapContainer = ref(null)
+const { map: mapInstance, AMap: AMapNS, init: initMapFn, destroy: destroyMap } = useAMap({
+  plugins: ['AMap.Polygon', 'AMap.Marker'],
+})
+const noMapKey = ref(false)
 let markers = []
 let currentPolygon = null
 
@@ -243,52 +308,12 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
 })
 
-async function initMapKey() {
+async function initMap() {
   try {
-    const results = await Promise.all([
-      getConfigKey('gis.map.amap.key'),
-      getConfigKey('gis.map.amap.security'),
-      getConfigKey('gis.map.style')
-    ])
-    
-    const resKey = results[0]
-    const resSecurity = results[1]
-    const resStyle = results[2]
-
-    if (resKey && resKey.data) {
-      amapKey.value = resKey.data
-      amapSecurity.value = (resSecurity && resSecurity.data) || ''
-      amapStyle.value = (resStyle && resStyle.data) || 'amap://styles/light'
-      initAMap()
-    }
-  } catch (error) {
-    console.error('获取高德地图Key失败', error)
+    await initMapFn(mapContainer.value)
+  } catch {
+    noMapKey.value = true
   }
-}
-
-function initAMap() {
-  if (!amapKey.value) return
-  
-  if (amapSecurity.value) {
-    window._AMapSecurityConfig = {
-      securityJsCode: amapSecurity.value,
-    }
-  }
-
-  AMapLoader.load({
-    key: amapKey.value,
-    version: '2.0',
-    plugins: ['AMap.Polygon', 'AMap.Marker']
-  }).then((AMap) => {
-    mapInstance.value = new AMap.Map(mapContainer.value, {
-      viewMode: '2D',
-      zoom: 11,
-      center: [118.6, 24.9], // 默认福建泉州附近
-      mapStyle: amapStyle.value
-    })
-  }).catch(e => {
-    console.error('高德地图加载失败', e)
-  })
 }
 
 // 在地图上绘制分区边界或打点

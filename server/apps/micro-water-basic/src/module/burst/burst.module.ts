@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
 import {
@@ -16,10 +16,12 @@ import { BurstController } from './burst.controller';
 import { BurstService } from './burst.service';
 import { BurstAreaService } from './burst-area.service';
 import { BurstAlertService } from './burst-alert.service';
+import { GatewayModule } from '../../gateway/events.module';
 
 @Module({
   imports: [
     HttpModule,
+    forwardRef(() => GatewayModule),
     TypeOrmModule.forFeature([
       WaterZoneEntity,
       WaterPipeEntity,

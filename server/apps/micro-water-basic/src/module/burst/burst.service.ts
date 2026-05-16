@@ -11,6 +11,7 @@ import {
   WaterBurstEventEntity,
 } from '@app/common';
 import { BurstAreaService } from './burst-area.service';
+import { EventsGateway } from '../../gateway/events.gateway';
 
 @Injectable()
 export class BurstService {
@@ -30,6 +31,7 @@ export class BurstService {
     private readonly burstEventRep: Repository<WaterBurstEventEntity>,
     private readonly httpService: HttpService,
     private readonly burstAreaService: BurstAreaService,
+    private readonly eventsGateway: EventsGateway,
   ) {}
 
   // ============ 核心分析入口 ============
@@ -77,6 +79,18 @@ export class BurstService {
       if (event.confidence >= 50) {
         await this.burstAreaService.calculateAffectedArea(event.id, zoneCode, item.pipeCode);
       }
+
+      // WebSocket 实时推送爆管事件
+      this.eventsGateway.pushBurstEvent({
+        eventId: event.id,
+        zoneCode: event.zoneCode,
+        pipeCode: event.pipeCode,
+        burstType: event.burstType,
+        confidence: event.confidence,
+        severity: event.severity,
+        description: event.description,
+        anomalyTime: event.anomalyTime,
+      });
     }
 
     return ResultData.ok({
@@ -113,42 +127,40 @@ export class BurstService {
   // ============ 算法1: 流量突变检测 ============
 
   private async detectFlowAnomaly(zoneCode: string): Promise<any[]> {
-    // 获取该分区下所有流量测点（type 1-7）
+    // 获取该分区下所有设备的流量测点
+    const devices = await this.deviceRep.find({
+      where: { zoneCode, delFlag: '0' },
+      select: ['code'],
+    });
+    if (devices.length === 0) return [];
+    const deviceCodes = devices.map(d => d.code);
+
     const flowPoints = await this.pointRep.find({
-      where: { type: In(['1', '2', '3', '4', '5', '6', '7']), delFlag: '0' },
+      where: { deviceCode: In(deviceCodes), type: In(['1', '3', '4', '5']), delFlag: '0' },
       select: ['code', 'deviceCode', 'name', 'type'],
     });
     if (flowPoints.length === 0) return [];
 
-    const deviceCodes = [...new Set(flowPoints.map(p => p.deviceCode))];
-    const devices = await this.deviceRep.find({
-      where: { code: In(deviceCodes), zoneCode, delFlag: '0' },
-      select: ['code', 'name'],
-    });
-    const zoneDeviceCodes = new Set(devices.map(d => d.code));
-    const zoneFlowPoints = flowPoints.filter(p => zoneDeviceCodes.has(p.deviceCode));
-    if (zoneFlowPoints.length === 0) return [];
-
     const results: any[] = [];
 
-    for (const point of zoneFlowPoints) {
+    for (const point of flowPoints) {
       try {
         const now = new Date();
         const endTime = this.formatTime(now);
-        const startTime = this.formatTime(new Date(now.getTime() - 75 * 60000)); // 75 分钟
+        const startTime = this.formatTime(new Date(now.getTime() - 75 * 60000));
 
         const res = await this.httpService.axiosRef.get(
           `${this.dataIntegrationUrl}/query/aggregated`,
           { params: { deviceCode: point.deviceCode, pointCode: point.code, startTime, endTime, interval: '5m', pointType: 'instantaneous' } }
         );
-        const data = res.data?.data || [];
+        const data: { ts: string; val: number; max: number; min: number }[] = res.data?.data || [];
         if (data.length < 12) continue;
 
         // 最近3个点(15min) vs 前9个点(45min)
         const recent = data.slice(-3);
         const baseline = data.slice(-12, -3);
-        const recentAvg = recent.reduce((s: number, d: any) => s + (d.avg_val || 0), 0) / recent.length;
-        const baselineAvg = baseline.reduce((s: number, d: any) => s + (d.avg_val || 0), 0) / baseline.length;
+        const recentAvg = recent.reduce((s, d) => s + d.val, 0) / recent.length;
+        const baselineAvg = baseline.reduce((s, d) => s + d.val, 0) / baseline.length;
         if (baselineAvg === 0) continue;
 
         const changePct = ((recentAvg - baselineAvg) / baselineAvg) * 100;
@@ -183,25 +195,23 @@ export class BurstService {
   // ============ 算法2: 压降检测 ============
 
   private async detectPressureAnomaly(zoneCode: string): Promise<any[]> {
+    const devices = await this.deviceRep.find({
+      where: { zoneCode, delFlag: '0' },
+      select: ['code'],
+    });
+    if (devices.length === 0) return [];
+    const deviceCodes = devices.map(d => d.code);
+
     const pressurePoints = await this.pointRep.find({
-      where: { type: In(['8', '9', '10', '11', '12']), delFlag: '0' },
+      where: { deviceCode: In(deviceCodes), type: In(['8', '9', '10', '11', '12']), delFlag: '0' },
       select: ['code', 'deviceCode', 'name', 'type'],
     });
     if (pressurePoints.length === 0) return [];
 
-    const deviceCodes = [...new Set(pressurePoints.map(p => p.deviceCode))];
-    const devices = await this.deviceRep.find({
-      where: { code: In(deviceCodes), zoneCode, delFlag: '0' },
-      select: ['code', 'name'],
-    });
-    const zoneDeviceCodes = new Set(devices.map(d => d.code));
-    const zonePressurePoints = pressurePoints.filter(p => zoneDeviceCodes.has(p.deviceCode));
-    if (zonePressurePoints.length === 0) return [];
-
     const results: any[] = [];
     const anomalyPoints: any[] = [];
 
-    for (const point of zonePressurePoints) {
+    for (const point of pressurePoints) {
       try {
         const now = new Date();
         const endTime = this.formatTime(now);
@@ -211,13 +221,13 @@ export class BurstService {
           `${this.dataIntegrationUrl}/query/aggregated`,
           { params: { deviceCode: point.deviceCode, pointCode: point.code, startTime, endTime, interval: '5m', pointType: 'instantaneous' } }
         );
-        const data = res.data?.data || [];
+        const data: { ts: string; val: number; max: number; min: number }[] = res.data?.data || [];
         if (data.length < 6) continue;
 
         const recent = data.slice(-2);
         const baseline = data.slice(-12, -2);
-        const recentAvg = recent.reduce((s: number, d: any) => s + (d.avg_val || 0), 0) / recent.length;
-        const baselineAvg = baseline.reduce((s: number, d: any) => s + (d.avg_val || 0), 0) / baseline.length;
+        const recentAvg = recent.reduce((s, d) => s + d.val, 0) / recent.length;
+        const baselineAvg = baseline.reduce((s, d) => s + d.val, 0) / baseline.length;
         if (baselineAvg === 0) continue;
 
         const dropPct = ((baselineAvg - recentAvg) / baselineAvg) * 100;
@@ -267,33 +277,22 @@ export class BurstService {
 
   private async analyzeSupplyDiff(zoneCode: string): Promise<any[]> {
     try {
-      const now = new Date();
-      const endTime = this.formatTime(now);
-      const startTime = this.formatTime(new Date(now.getTime() - 24 * 3600000));
-
-      // 查询分区小时进水/出水数据
       const res = await this.httpService.axiosRef.get(
-        `${this.dataIntegrationUrl}/query/zone-hourly/trend`,
-        { params: { zoneCode } }
+        `${this.dataIntegrationUrl}/query/zone-supply-diff`,
+        { params: { zoneCode, hours: 24 } }
       );
-      const hourlyData = res.data?.data || [];
-      if (hourlyData.length === 0) return [];
+      const diffData = res.data?.data;
+      if (!diffData || diffData.totalInflow === 0) return [];
 
-      // 取最近3小时
-      const recent = hourlyData.slice(-3);
-      let totalInflow = 0, totalOutflow = 0;
-      for (const h of recent) {
-        totalInflow += h.total_inflow || h.totalIn || 0;
-        totalOutflow += h.total_outflow || h.totalOut || 0;
-      }
+      const { totalInflow, totalOutflow } = diffData;
 
-      if (totalInflow === 0) return [];
-
-      const diffRate = ((totalInflow - totalOutflow) / totalInflow) * 100;
       const diffAbs = totalInflow - totalOutflow;
+      const diffRate = (diffAbs / totalInflow) * 100;
 
-      // 差率 >40% 且绝对值 >50m³/h
-      if (diffRate > 40 && diffAbs > 50) {
+      // 差率 >40% 且绝对值 >50m³/h (每小时)
+      const hourlyDiff = diffAbs / 24;
+
+      if (diffRate > 40 && hourlyDiff > 50) {
         const pipe = await this.findSuspiciousPipe(zoneCode);
         const confidence = Math.min(90, Math.round(diffRate * 1.2));
         return [{
@@ -303,12 +302,12 @@ export class BurstService {
           severity: confidence >= 70 ? 3 : 2,
           flowBefore: totalInflow,
           flowAfter: totalOutflow,
-          anomalyTime: now,
-          description: `产销差率${diffRate.toFixed(1)}% (进水${totalInflow.toFixed(1)}m³, 出水${totalOutflow.toFixed(1)}m³, 差值${diffAbs.toFixed(1)}m³)`,
+          anomalyTime: new Date(),
+          description: `产销差率${diffRate.toFixed(1)}% (进水${totalInflow.toFixed(1)}m³, 出水${totalOutflow.toFixed(1)}m³, 差值${diffAbs.toFixed(1)}m³/24h)`,
         }];
       }
     } catch (e) {
-      this.logger.debug(`产销差分析跳过 (${zoneCode}): ${e.message}`);
+      this.logger.warn(`产销差分析失败 (${zoneCode}): ${e.message}`);
     }
     return [];
   }
@@ -416,11 +415,14 @@ export class BurstService {
       .orderBy('maxConfidence', 'DESC')
       .getRawMany();
 
-    const zones = await this.zoneRep.find({ where: { delFlag: '0' }, select: ['code', 'name'] });
-    const zoneMap = new Map(zones.map(z => [z.code, z.name]));
+    const zones = await this.zoneRep.find({ where: { delFlag: '0' }, select: ['code', 'name', 'longitude', 'latitude', 'boundary'] });
+    const zoneMap = new Map(zones.map(z => [z.code, z]));
     const result = events.map(e => ({
       zoneCode: e.zoneCode,
-      zoneName: zoneMap.get(e.zoneCode) || e.zoneCode,
+      zoneName: zoneMap.get(e.zoneCode)?.name || e.zoneCode,
+      longitude: zoneMap.get(e.zoneCode)?.longitude || '',
+      latitude: zoneMap.get(e.zoneCode)?.latitude || '',
+      boundary: zoneMap.get(e.zoneCode)?.boundary || null,
       maxConfidence: Number(e.maxConfidence),
       eventCount: Number(e.eventCount),
       riskLevel: Number(e.maxConfidence) >= 70 ? 'high' : Number(e.maxConfidence) >= 50 ? 'medium' : 'low',
@@ -429,7 +431,7 @@ export class BurstService {
     // 补充没有事件的分区
     for (const z of zones) {
       if (!result.find(r => r.zoneCode === z.code)) {
-        result.push({ zoneCode: z.code, zoneName: z.name, maxConfidence: 0, eventCount: 0, riskLevel: 'low' });
+        result.push({ zoneCode: z.code, zoneName: z.name, longitude: z.longitude, latitude: z.latitude, boundary: z.boundary, maxConfidence: 0, eventCount: 0, riskLevel: 'low' });
       }
     }
     return ResultData.ok(result);

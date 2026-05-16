@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { TdengineService } from '../tdengine/tdengine.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -7,6 +7,32 @@ import { WaterPointEntity } from '@app/common/entities/water-basic/water-point.e
 import { WaterDeviceEntity } from '@app/common/entities/water-basic/water-device.entity';
 import { SysAlarmHistoryEntity } from '@app/common/entities/alarm/sys-alarm-history.entity';
 import dayjs = require('dayjs');
+
+const VALID_INTERVALS = new Set(['5m', '1h', '1d', 'raw']);
+const DATETIME_RE = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+const SAFE_CODE_RE = /^[a-zA-Z0-9_\-./]+$/;
+
+function validateCode(label: string, value: string) {
+  if (!value || !SAFE_CODE_RE.test(value)) {
+    throw new BadRequestException(`无效参数 ${label}: ${value}`);
+  }
+}
+
+function validateDatetime(label: string, value: string) {
+  if (!value || !DATETIME_RE.test(value)) {
+    throw new BadRequestException(`无效时间格式 ${label}: ${value}`);
+  }
+}
+
+function validateInterval(value: string) {
+  if (value !== 'raw' && !VALID_INTERVALS.has(value)) {
+    throw new BadRequestException(`无效时间窗口: ${value}`);
+  }
+}
+
+function sanitizeCode(value: string): string {
+  return value.replace(/[^a-zA-Z0-9_\-./]/g, '');
+}
 
 @Injectable()
 export class QueryService {
@@ -41,55 +67,76 @@ export class QueryService {
     interval: '5m' | '1h' | '1d',
     pointType: 'instantaneous' | 'cumulative' | 'incremental',
   ) {
-    const safeDeviceCode = deviceCode.replace(/-/g, '_').toLowerCase();
-    const safePointCode = pointCode.replace(/-/g, '_').toLowerCase();
-    
-    // 直接查询对应的流计算聚合超级表
+    validateCode('deviceCode', deviceCode);
+    validateCode('pointCode', pointCode);
+    validateDatetime('startTime', startTime);
+    validateDatetime('endTime', endTime);
+    validateInterval(interval);
+
+    const safeDeviceCode = sanitizeCode(deviceCode.replace(/-/g, '_').toLowerCase());
+    const safePointCode = sanitizeCode(pointCode.replace(/-/g, '_').toLowerCase());
+
     const tableName = `water_iot.meters_${interval}`;
 
-    // 因为 TdengineAggService 中，对于 cumulative 类型，我们将 LAST(val) 存入了 avg_val，
-    // 对于 incremental 类型，我们将 SUM(val) 存入了 avg_val，
-    // 对于 instantaneous 类型，存入了 AVG(val)。所以统一取 avg_val 作为代表值。
     let selectFields = 'avg_val AS val, max_val, min_val';
 
-    // 利用 device_code 和 point_code 作为 TAGS 进行快速查询
     const sql = `
       SELECT ts, ${selectFields}
       FROM ${tableName}
-      WHERE ts >= '${startTime}' AND ts <= '${endTime}' 
-        AND device_code = '${deviceCode}' 
-        AND point_code = '${pointCode}'
+      WHERE ts >= '${startTime}' AND ts <= '${endTime}'
+        AND device_code = '${safeDeviceCode}'
+        AND point_code = '${safePointCode}'
       ORDER BY ts ASC
     `;
 
     try {
       const res = await this.tdengineService.querySql(sql);
-      return res;
+      // 规范化为 [{ts, val, max, min}] 数组，便于调用方直接遍历
+      const result: { ts: string; val: number; max: number; min: number }[] = [];
+      if (res?.data && Array.isArray(res.data)) {
+        for (const row of res.data) {
+          result.push({
+            ts: row[0],
+            val: row[1] != null ? Number(row[1]) : 0,
+            max: row[2] != null ? Number(row[2]) : 0,
+            min: row[3] != null ? Number(row[3]) : 0,
+          });
+        }
+      }
+      return result;
     } catch (error) {
       if (error?.response?.data?.code === 896 || String(error.message).includes('Table does not exist')) {
         this.logger.warn(`查询失败，表 ${tableName} 不存在 (暂无数据)`);
-        return { head: [], data: [], rows: 0 };
+        return [];
       }
       throw error;
     }
   }
 
   /**
-   * 获取设备最新实时数据
+   * 获取设备最新实时数据，返回规范化 {ts, val} 或 null
    */
-  async getLatestData(deviceCode: string, pointCode: string) {
+  async getLatestData(deviceCode: string, pointCode: string): Promise<{ ts: string; val: number } | null> {
+    validateCode('deviceCode', deviceCode);
+    validateCode('pointCode', pointCode);
+    const safeDeviceCode = sanitizeCode(deviceCode.replace(/-/g, '_').toLowerCase());
+    const safePointCode = sanitizeCode(pointCode.replace(/-/g, '_').toLowerCase());
+
     const tableName = `water_iot.meters`;
 
-    // 从原始数据的超级表利用 tag 查找最新数据
     const sql = `
       SELECT LAST_ROW(ts, val)
       FROM ${tableName}
-      WHERE device_code = '${deviceCode}'
-        AND point_code = '${pointCode}'
+      WHERE device_code = '${safeDeviceCode}'
+        AND point_code = '${safePointCode}'
     `;
     try {
       const res = await this.tdengineService.querySql(sql);
-      return res;
+      if (res?.data?.[0]) {
+        const row = res.data[0];
+        return { ts: row[0], val: row[1] != null ? Number(row[1]) : 0 };
+      }
+      return null;
     } catch (error) {
       return null;
     }
@@ -101,10 +148,16 @@ export class QueryService {
   async getLatestDataBatch(deviceCode?: string, pointCodes?: string) {
     let sql = `SELECT LAST_ROW(ts, val), device_code, point_code FROM water_iot.meters WHERE 1=1`;
     if (deviceCode) {
-      sql += ` AND device_code = '${deviceCode}'`;
+      validateCode('deviceCode', deviceCode);
+      const safeDeviceCode = sanitizeCode(deviceCode.replace(/-/g, '_').toLowerCase());
+      sql += ` AND device_code = '${safeDeviceCode}'`;
     }
     if (pointCodes) {
-      const codes = pointCodes.split(',').map(c => `'${c}'`).join(',');
+      const codes = pointCodes.split(',').map(c => {
+        const sc = sanitizeCode(c.trim().replace(/-/g, '_').toLowerCase());
+        if (!sc || !SAFE_CODE_RE.test(sc)) throw new BadRequestException(`无效测点编码: ${c}`);
+        return `'${sc}'`;
+      }).join(',');
       sql += ` AND point_code IN (${codes})`;
     }
     sql += ` GROUP BY device_code, point_code`;
@@ -129,6 +182,15 @@ export class QueryService {
   }
 
   async getHistoryData(deviceCode: string, pointCode: string, startTime: string, endTime: string, interval: string = 'raw') {
+    validateCode('deviceCode', deviceCode);
+    validateCode('pointCode', pointCode);
+    validateDatetime('startTime', startTime);
+    validateDatetime('endTime', endTime);
+    validateInterval(interval);
+
+    const safeDeviceCode = sanitizeCode(deviceCode.replace(/-/g, '_').toLowerCase());
+    const safePointCode = sanitizeCode(pointCode.replace(/-/g, '_').toLowerCase());
+
     let tableName = `water_iot.meters`;
     let valColumn = 'val';
 
@@ -144,7 +206,7 @@ export class QueryService {
     }
 
     let sql = `SELECT ts, ${valColumn} as val FROM ${tableName} WHERE ts >= '${startTime}' AND ts <= '${endTime}'`;
-    sql += ` AND device_code = '${deviceCode}' AND point_code = '${pointCode}'`;
+    sql += ` AND device_code = '${safeDeviceCode}' AND point_code = '${safePointCode}'`;
     sql += ` ORDER BY ts ASC LIMIT 10000`;
 
     try {
@@ -168,6 +230,11 @@ export class QueryService {
   async getZoneNightFlowBatch(zoneCodes: string[]) {
     if (!zoneCodes || zoneCodes.length === 0) return [];
 
+    const safeCodes = zoneCodes.map(c => {
+      validateCode('zoneCode', c);
+      return sanitizeCode(c);
+    });
+
     // 1. 获取系统配置中的夜间流量起止时间，默认 02:00 - 04:00
     let startStr = '02:00';
     let endStr = '04:00';
@@ -190,7 +257,9 @@ export class QueryService {
     const yesterdayStart = `${yesterdayStr} 00:00:00`;
     const yesterdayEnd = `${yesterdayStr} 23:59:59`;
 
-    const codesStr = zoneCodes.map(c => `'${c}'`).join(',');
+    const safeToOriginal = new Map<string, string>();
+    zoneCodes.forEach((c, i) => safeToOriginal.set(safeCodes[i], c));
+    const codesStr = safeCodes.map(c => `'${c}'`).join(',');
     
     // 查询今日夜间最小流量
     const sqlToday = `
@@ -225,6 +294,8 @@ export class QueryService {
       });
     });
 
+    const resolveCode = (raw: string) => safeToOriginal.get(raw) || raw;
+
     try {
       const [resToday, resYesterday] = await Promise.all([
         this.tdengineService.querySql(sqlToday).catch(() => ({ data: [] })),
@@ -233,20 +304,20 @@ export class QueryService {
 
       if (resToday && resToday.data) {
         resToday.data.forEach(row => {
-          const zCode = row[0];
+          const originalCode = resolveCode(row[0]);
           const minFlow = row[1];
-          if (resultMap.has(zCode)) {
-            resultMap.get(zCode).todayVal = minFlow;
+          if (resultMap.has(originalCode)) {
+            resultMap.get(originalCode).todayVal = minFlow;
           }
         });
       }
 
       if (resYesterday && resYesterday.data) {
         resYesterday.data.forEach(row => {
-          const zCode = row[0];
+          const originalCode = resolveCode(row[0]);
           const minFlow = row[1];
-          if (resultMap.has(zCode)) {
-            resultMap.get(zCode).yesterdayVal = minFlow;
+          if (resultMap.has(originalCode)) {
+            resultMap.get(originalCode).yesterdayVal = minFlow;
           }
         });
       }
@@ -283,6 +354,8 @@ export class QueryService {
    */
   async getZoneNightFlowTrend(zoneCode: string) {
     if (!zoneCode) return [];
+    validateCode('zoneCode', zoneCode);
+    const safeZoneCode = sanitizeCode(zoneCode);
 
     let startStr = '02:00';
     let endStr = '04:00';
@@ -306,7 +379,7 @@ export class QueryService {
       WHERE metric_type = 'min_flow' 
         AND ts >= '${startTimeStr} 00:00:00' 
         AND ts <= '${endTimeStr} 23:59:59'
-        AND zone_code = '${zoneCode}' 
+        AND zone_code = '${safeZoneCode}'
       INTERVAL(1d)
     `;
 
@@ -333,6 +406,8 @@ export class QueryService {
    */
   async getZoneHourlyTrend(zoneCode: string) {
     if (!zoneCode) return [];
+    validateCode('zoneCode', zoneCode);
+    const safeZoneCode = sanitizeCode(zoneCode);
 
     const today = dayjs();
     const startTimeStr = today.subtract(10, 'day').format('YYYY-MM-DD');
@@ -344,7 +419,7 @@ export class QueryService {
       WHERE metric_type = 'water_supply' 
         AND ts >= '${startTimeStr} 00:00:00' 
         AND ts <= '${endTimeStr} 23:59:59'
-        AND zone_code = '${zoneCode}' 
+        AND zone_code = '${safeZoneCode}'
       ORDER BY ts ASC
     `;
 
@@ -403,10 +478,13 @@ export class QueryService {
     });
 
     // 3. 从 TDengine 查询这些设备测点的最新值
-    const codesStr = deviceCodes.map(c => `'${c}'`).join(',');
+    const safeDeviceCodes = deviceCodes.map(c => sanitizeCode(c.replace(/-/g, '_').toLowerCase()));
+    const dcSafeToOrig = new Map<string, string>();
+    deviceCodes.forEach((c, i) => dcSafeToOrig.set(safeDeviceCodes[i], c));
+    const codesStr = safeDeviceCodes.map(c => `'${c}'`).join(',');
     const sql = `
-      SELECT LAST_ROW(ts, val), device_code, point_code 
-      FROM water_iot.meters 
+      SELECT LAST_ROW(ts, val), device_code, point_code
+      FROM water_iot.meters
       WHERE device_code IN (${codesStr})
       GROUP BY device_code, point_code
     `;
@@ -417,9 +495,9 @@ export class QueryService {
         res.data.forEach(row => {
           const ts = row[0];
           const val = row[1];
-          const dCode = row[2];
+          const dCode = dcSafeToOrig.get(row[2]) || row[2];
           const pCode = row[3];
-          
+
           const key = `${dCode}_${pCode}`;
           if (pointDict.has(key)) {
             const item = pointDict.get(key);
@@ -436,6 +514,78 @@ export class QueryService {
     const result = Array.from(pointDict.values()).filter(p => p.val !== null);
     // 按时间倒序或设备排序
     return result;
+  }
+
+  /**
+   * 获取分区产销差数据 — 查询最近 N 小时的进水/出水总量
+   * 用于爆管分析的产销差检测
+   */
+  async getZoneSupplyDiff(zoneCode: string, hours: number = 24) {
+    if (!zoneCode) return { totalInflow: 0, totalOutflow: 0, supplyData: [], salesData: [] };
+    validateCode('zoneCode', zoneCode);
+    const safeZoneCode = sanitizeCode(zoneCode);
+
+    const startTime = dayjs().subtract(hours, 'hour').format('YYYY-MM-DD HH:mm:ss');
+    const endTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
+
+    // 进水 (water_supply)
+    const sqlSupply = `
+      SELECT ts, total_val
+      FROM water_iot.zone_meters_1h
+      WHERE metric_type = 'water_supply'
+        AND ts >= '${startTime}'
+        AND ts <= '${endTime}'
+        AND zone_code = '${safeZoneCode}'
+      ORDER BY ts ASC
+    `;
+
+    // 出水/售水 (water_sales)
+    const sqlSales = `
+      SELECT ts, total_val
+      FROM water_iot.zone_meters_1h
+      WHERE metric_type = 'water_sales'
+        AND ts >= '${startTime}'
+        AND ts <= '${endTime}'
+        AND zone_code = '${safeZoneCode}'
+      ORDER BY ts ASC
+    `;
+
+    try {
+      const [resSupply, resSales] = await Promise.all([
+        this.tdengineService.querySql(sqlSupply).catch(() => ({ data: [] })),
+        this.tdengineService.querySql(sqlSales).catch(() => ({ data: [] })),
+      ]);
+
+      const supplyData: { ts: string; val: number }[] = [];
+      const salesData: { ts: string; val: number }[] = [];
+
+      if (resSupply?.data) {
+        resSupply.data.forEach((row: any) => supplyData.push({
+          ts: row[0], val: row[1] != null ? Number(row[1]) : 0,
+        }));
+      }
+      if (resSales?.data) {
+        resSales.data.forEach((row: any) => salesData.push({
+          ts: row[0], val: row[1] != null ? Number(row[1]) : 0,
+        }));
+      }
+
+      // 汇总最近 3 小时
+      const recentSupply = supplyData.slice(-3);
+      const recentSales = salesData.slice(-3);
+      const totalInflow = recentSupply.reduce((s, d) => s + d.val, 0);
+      const totalOutflow = recentSales.reduce((s, d) => s + d.val, 0);
+
+      return {
+        totalInflow: Number(totalInflow.toFixed(2)),
+        totalOutflow: Number(totalOutflow.toFixed(2)),
+        supplyData,
+        salesData,
+      };
+    } catch (e) {
+      this.logger.warn(`获取分区产销差数据失败 (${zoneCode}): ${e?.message || e}`);
+      return { totalInflow: 0, totalOutflow: 0, supplyData: [], salesData: [] };
+    }
   }
 
   /**

@@ -5,8 +5,12 @@
       <div class="panel-header">
         <el-icon :size="18"><Warning /></el-icon>
         <span>分区风险</span>
+        <span class="ws-indicator" :class="{ on: ws.connected.value }" title="实时推送状态"></span>
         <el-button size="small" type="primary" link @click="analyzeAll" :loading="analyzingAll">
           一键分析
+        </el-button>
+        <el-button size="small" type="warning" link @click="showDataFlow = true">
+          <el-icon :size="14"><Guide /></el-icon> 数据流转
         </el-button>
       </div>
 
@@ -16,12 +20,14 @@
           v-for="z in riskZones"
           :key="z.zoneCode"
           :class="{ active: selectedZone === z.zoneCode, ['risk-' + z.riskLevel]: true }"
-          @click="selectZone(z)"
         >
-          <span class="risk-dot" :class="z.riskLevel"></span>
-          <span class="zone-name">{{ z.zoneName || z.zoneCode }}</span>
+          <span class="risk-dot" :class="z.riskLevel" @click="selectZone(z)"></span>
+          <span class="zone-name" @click="selectZone(z)">{{ z.zoneName || z.zoneCode }}</span>
           <span class="zone-badge" v-if="z.eventCount > 0">{{ z.eventCount }}</span>
           <el-icon v-if="z.riskLevel === 'high'" class="risk-icon" color="#EF4444"><WarningFilled /></el-icon>
+          <el-button class="analyze-btn" size="small" type="primary" link @click.stop="runZoneAnalyze(z)" :loading="analyzingZone === z.zoneCode">
+            <el-icon :size="14"><Search /></el-icon>
+          </el-button>
         </div>
         <div v-if="riskZones.length === 0" class="empty-hint">暂无数据，请先执行分析</div>
       </div>
@@ -151,33 +157,116 @@
         <p>选择左侧分区执行爆管分析<br/>或点击历史事件查看详情</p>
       </div>
     </div>
+
+    <!-- 数据流转弹窗 -->
+    <DataFlowDialog v-model="showDataFlow" title="爆管分析数据流转" :stages="burstStages" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import {
-  Warning, WarningFilled, Loading, Search, Check, Close, CircleCheck
+  Warning, WarningFilled, Loading, Search, Check, Close, CircleCheck,
+  Guide, TrendCharts, Odometer, DataLine, MagicStick, MapLocation, DocumentCopy, Message,
 } from '@element-plus/icons-vue'
 import {
   getRiskZones, analyzeZone, analyzeAllZones, listBurstEvents,
   getBurstEvent, updateBurstEventStatus, getBurstArea, getBurstHistory
 } from '@/api/water-basic/burst'
 import { getConfigKey } from '@/api/system/config'
+import { useWebSocket } from '@/hooks/useWebSocket'
+import { useAMap } from '@/hooks/useAMap'
+import GisLayerPanel from '@/components/GisLayerPanel/index.vue'
 import request from '@/utils/request'
-import AMapLoader from '@amap/amap-jsapi-loader'
+import DataFlowDialog from '@/components/Monitor/DataFlowDialog.vue'
+
+// WebSocket 实时推送
+const ws = useWebSocket({ autoConnect: true })
 
 const analyzingAll = ref(false)
+const analyzingZone = ref('')
 const selectedZone = ref('')
+const selectedZoneInfo = ref(null)
 const riskZones = ref([])
 const historyEvents = ref([])
 const selectedEvent = ref(null)
 const burstArea = ref(null)
 const mapLoading = ref(false)
 
+// 数据流转弹窗
+const showDataFlow = ref(false)
+const burstStages = [
+  {
+    key: 'zone_select', label: '分区选择', shortLabel: '选分区',
+    icon: Guide, color: '#3B82F6',
+    description: '用户在左侧面板选择目标分区，系统加载分区内所有管段、流量计、压力计的实时数据',
+    tech: 'Vue3 + AMap', input: '分区编码 zoneCode', output: '该分区下管线+设备列表',
+    frequency: '手动触发', method: 'selectZone()', file: 'admin/src/views/water-basic/burst-analysis/index.vue',
+    active: true, count: '—',
+  },
+  {
+    key: 'flow_drop', label: '流量突变检测', shortLabel: '流量检测',
+    icon: TrendCharts, color: '#6366F1',
+    description: '算法1 — 从 TDengine 获取最近1小时5分钟聚合值，对比近15分钟 vs 前45分钟均值，下游流量突降 >30% 标记异常',
+    tech: 'TDengine REST API', input: 'zone_meters_5m 流量测点', output: '流量异常评分 (0-100)',
+    frequency: '每次分析', method: 'burst.service.flowDropDetection()', file: 'micro-water-basic/burst/burst.service.ts',
+    active: true, count: '—',
+  },
+  {
+    key: 'pressure_drop', label: '压降检测', shortLabel: '压降检测',
+    icon: Odometer, color: '#0D9488',
+    description: '算法2 — 获取分区内所有压力测点最新值，对比历史同期均值，降幅 >25% 标记异常，空间聚类2+相邻点提高置信度',
+    tech: 'TDengine + 空间聚类', input: 'meters 压力测点 (type 8-12)', output: '压降异常评分 (0-100)',
+    frequency: '每次分析', method: 'burst.service.pressureDropDetection()', file: 'micro-water-basic/burst/burst.service.ts',
+    active: true, count: '—',
+  },
+  {
+    key: 'supply_diff', label: '产销差分析', shortLabel: '产销差',
+    icon: DataLine, color: '#D97706',
+    description: '算法3 — 查询 zone_meters_1h 该分区进水总量 vs 出水总量，差率 >40% 且绝对值 >50m³/h 标记异常，交叉验证夜间最小流量',
+    tech: 'TDengine 聚合查询', input: 'zone_meters_1h 供/售水数据', output: '产销差异常评分 (0-100)',
+    frequency: '每次分析', method: 'burst.service.supplyDiffAnalysis()', file: 'micro-water-basic/burst/burst.service.ts',
+    active: true, count: '—',
+  },
+  {
+    key: 'fusion', label: '综合判定', shortLabel: '综合判定',
+    icon: MagicStick, color: '#8B5CF6',
+    description: '三算法结果加权合并（流量40% + 压降35% + 产销差25%），结合管龄、管材、埋深计算最终置信度和严重等级(1-4)',
+    tech: '加权评分算法', input: '三种异常评分 + 管道属性', output: 'confidence + severity',
+    frequency: '每次分析', method: 'burst.service.fuseResults()', file: 'micro-water-basic/burst/burst.service.ts',
+    active: true, count: '—',
+  },
+  {
+    key: 'gis_area', label: 'GIS影响面计算', shortLabel: '影响面',
+    icon: MapLocation, color: '#F59E0B',
+    description: '沿可疑管段坐标做 buffer（管径越大 buffer 越宽），叠加分区边界裁剪，统计影响面内管段数、设备数、用户数，输出 GeoJSON Polygon',
+    tech: 'Turf.js GIS 计算', input: '管段坐标 + 管径 + 分区边界', output: 'GeoJSON Polygon + 统计',
+    frequency: '每次分析', method: 'burst-area.service.computeAffectedArea()', file: 'micro-water-basic/burst/burst-area.service.ts',
+    active: false, count: '—',
+  },
+  {
+    key: 'save_event', label: '事件保存', shortLabel: '保存',
+    icon: DocumentCopy, color: '#EF4444',
+    description: 'water_burst_event 写入爆管事件记录（可疑管段、置信度、严重等级、异常前后值、影响面 GeoJSON），同时写入 water_burst_area 影响面表',
+    tech: 'TypeORM + MySQL', input: '分析结果对象', output: 'water_burst_event + water_burst_area 记录',
+    frequency: '检测到爆管时', method: 'burst.service.saveEvent()', file: 'micro-water-basic/burst/burst.service.ts',
+    active: false, count: '—',
+  },
+  {
+    key: 'alert_push', label: '报警推送', shortLabel: '推送',
+    icon: Message, color: '#EC4899',
+    description: 'burst-alert.service 检测 confidence > 70 且 severity >= 3 时自动调用 AlarmHistoryService 创建报警，WebSocket 推送前端地图实时更新',
+    tech: 'Socket.IO + 报警联动', input: '高置信度爆管事件', output: '报警记录 + WebSocket 推送',
+    frequency: '事件保存后触发', method: 'burst-alert.service.triggerAlert()', file: 'micro-water-basic/burst/burst-alert.service.ts',
+    active: false, count: '—',
+  },
+]
+
 // ============ 地图 ============
 const mapRef = ref(null)
-let map = null
+const { map, AMap, init: initMapFn, destroy: destroyMap } = useAMap({
+  plugins: ['AMap.Polygon', 'AMap.Marker', 'AMap.Polyline', 'AMap.MarkerCluster'],
+})
 let pipeLines = []
 let areaPolygon = null
 let burstMarker = null
@@ -185,11 +274,15 @@ let burstMarker = null
 // ============ 分区选择 ============
 async function selectZone(z) {
   selectedZone.value = z.zoneCode
+  selectedZoneInfo.value = z
   mapLoading.value = true
   selectedEvent.value = null
   burstArea.value = null
 
   try {
+    // 定位地图到分区
+    centerMapOnZone(z)
+
     // 加载该分区历史
     const hRes = await getBurstHistory(z.zoneCode)
     historyEvents.value = hRes.data || []
@@ -203,6 +296,37 @@ async function selectZone(z) {
     }
   } finally {
     mapLoading.value = false
+  }
+}
+
+function centerMapOnZone(z) {
+  if (!map.value || !AMap.value) return
+  if (z.longitude && z.latitude) {
+    map.value.setZoomAndCenter(14, [Number(z.longitude), Number(z.latitude)])
+    return
+  }
+  if (z.boundary) {
+    try {
+      const b = JSON.parse(z.boundary)
+      if (b.geometry?.coordinates?.[0]) {
+        const coords = b.geometry.coordinates[0].map(c => [c[0], c[1]])
+        map.value.setFitView(coords)
+      }
+    } catch {}
+  }
+}
+
+async function runZoneAnalyze(z) {
+  analyzingZone.value = z.zoneCode
+  try {
+    await analyzeZone(z.zoneCode)
+    // 刷新风险列表和当前分区数据
+    await loadRiskZones()
+    await selectZone({ ...z, zoneCode: z.zoneCode, zoneName: z.zoneName })
+  } catch {
+    // analyzeZone already handles errors
+  } finally {
+    analyzingZone.value = ''
   }
 }
 
@@ -222,11 +346,11 @@ async function selectEvent(event) {
 }
 
 async function renderBurstOnMap(event) {
-  if (!map || !window.AMap) return
+  if (!map.value || !AMap.value) return
 
   // 清除旧标注
-  if (areaPolygon) { map.remove(areaPolygon); areaPolygon = null }
-  if (burstMarker) { map.remove(burstMarker); burstMarker = null }
+  if (areaPolygon) { map.value.remove(areaPolygon); areaPolygon = null }
+  if (burstMarker) { map.value.remove(burstMarker); burstMarker = null }
 
   // 绘制影响面
   try {
@@ -235,7 +359,7 @@ async function renderBurstOnMap(event) {
     if (geojson && geojson.geometry) {
       const coords = geojson.geometry.coordinates[0]
       const path = coords.map(c => [c[0], c[1]])
-      areaPolygon = new window.AMap.Polygon({
+      areaPolygon = new AMap.value.Polygon({
         path,
         fillColor: 'rgba(239,68,68,0.2)',
         strokeColor: '#EF4444',
@@ -243,33 +367,28 @@ async function renderBurstOnMap(event) {
         strokeStyle: 'dashed',
         zIndex: 10,
       })
-      map.add(areaPolygon)
-      map.setFitView([areaPolygon])
+      map.value.add(areaPolygon)
+      map.value.setFitView([areaPolygon])
+
+      // 标记爆管位置
+      if (geojson.properties?.center) {
+        const [lng, lat] = geojson.properties.center
+        burstMarker = new AMap.value.Marker({
+          position: [lng, lat],
+          offset: new AMap.value.Pixel(-16, -16),
+          zIndex: 100,
+        })
+        burstMarker.setContent('<div class="burst-marker"><div class="burst-ripple"></div><div class="burst-core"></div></div>')
+        map.value.add(burstMarker)
+      }
     }
   } catch {}
-
-  // 标记爆管位置
-  if (geojson?.properties?.center) {
-    const [lng, lat] = geojson.properties.center
-    burstMarker = new window.AMap.Marker({
-      position: [lng, lat],
-      offset: new window.AMap.Pixel(-16, -16),
-      zIndex: 100,
-    })
-    burstMarker.setContent(`
-      <div class="burst-marker">
-        <div class="burst-ripple"></div>
-        <div class="burst-core"></div>
-      </div>`)
-    map.add(burstMarker)
-    map.setZoomAndCenter(14, [lng, lat])
-  }
 }
 
 // ============ 管线加载 ============
 async function loadZonePipes(zoneCode) {
   // 清除旧管线
-  pipeLines.forEach(l => map && map.remove(l))
+  pipeLines.forEach(l => map && map.value.remove(l))
   pipeLines = []
 
   try {
@@ -281,16 +400,16 @@ async function loadZonePipes(zoneCode) {
 
     // 绘制设备标记
     const zoneDevices = devices.filter(d => d.zoneCode === zoneCode)
-    if (zoneDevices.length > 0 && window.AMap) {
+    if (zoneDevices.length > 0 && AMap.value) {
       zoneDevices.forEach(d => {
         if (d.longitude && d.latitude) {
-          const m = new window.AMap.Marker({
+          const m = new AMap.value.Marker({
             position: [Number(d.longitude), Number(d.latitude)],
-            offset: new window.AMap.Pixel(-6, -6),
+            offset: new AMap.value.Pixel(-6, -6),
           })
           m.setContent(`<div style="width:12px;height:12px;border-radius:50%;background:#60A5FA;border:2px solid #fff;"></div>`)
           m.setTitle(d.name || d.code)
-          map.add(m)
+          map.value.add(m)
           pipeLines.push(m)
         }
       })
@@ -298,16 +417,16 @@ async function loadZonePipes(zoneCode) {
 
     // 绘制站点标记
     const zoneStations = stations.filter(s => s.zoneCode === zoneCode)
-    if (zoneStations.length > 0 && window.AMap) {
+    if (zoneStations.length > 0 && AMap.value) {
       zoneStations.forEach(s => {
         if (s.longitude && s.latitude) {
-          const m = new window.AMap.Marker({
+          const m = new AMap.value.Marker({
             position: [Number(s.longitude), Number(s.latitude)],
-            offset: new window.AMap.Pixel(-8, -8),
+            offset: new AMap.value.Pixel(-8, -8),
           })
           m.setContent(`<div style="width:16px;height:16px;border-radius:4px;background:#34D399;border:2px solid #fff;"></div>`)
           m.setTitle(s.name || s.code)
-          map.add(m)
+          map.value.add(m)
           pipeLines.push(m)
         }
       })
@@ -319,11 +438,11 @@ async function loadZonePipes(zoneCode) {
         ...zoneStations.filter(s => s.longitude && s.latitude).map(s => [Number(s.longitude), Number(s.latitude)]),
       ]
       if (allPoints.length > 0) {
-        map.setFitView(allPoints)
+        map.value.setFitView(allPoints)
       }
     }
-  } catch (e) {
-    console.warn('加载管线失败', e)
+  } catch {
+    // silently ignore load failures
   }
 }
 
@@ -331,10 +450,12 @@ async function loadZonePipes(zoneCode) {
 async function analyzeAll() {
   analyzingAll.value = true
   try {
-    const res = await analyzeAllZones()
-    if (res.code === 200) {
-      // 刷新风险分区列表
-      await loadRiskZones()
+    await analyzeAllZones()
+    // 刷新风险分区列表
+    await loadRiskZones()
+    // 如果当前选中了分区，刷新该分区数据
+    if (selectedZone.value && selectedZoneInfo.value) {
+      await selectZone(selectedZoneInfo.value)
     }
   } finally {
     analyzingAll.value = false
@@ -348,49 +469,49 @@ async function loadRiskZones() {
   } catch {}
 }
 
+// WebSocket: 当收到新的爆管事件时，自动刷新
+watch(() => ws.lastBurstEvent.value, (evt) => {
+  if (!evt) return
+  // 刷新分区风险列表
+  loadRiskZones()
+  // 如果匹配当前选中分区，刷新历史事件
+  if (selectedZone.value && evt.zoneCode === selectedZone.value) {
+    getBurstHistory(selectedZone.value).then(res => {
+      historyEvents.value = res.data || []
+    })
+  }
+})
+
+// WebSocket: 选中分区变化时自动订阅
+watch(selectedZone, (zone) => {
+  ws.subscribedZone.value = zone || ''
+})
+
 async function confirmEvent() {
-  await updateBurstEventStatus(selectedEvent.value.id, '1')
-  selectedEvent.value.status = '1'
+  try {
+    await updateBurstEventStatus(selectedEvent.value.id, '1')
+    selectedEvent.value.status = '1'
+  } catch {}
 }
 
 async function falseAlarm() {
-  await updateBurstEventStatus(selectedEvent.value.id, '2')
-  selectedEvent.value.status = '2'
+  try {
+    await updateBurstEventStatus(selectedEvent.value.id, '2')
+    selectedEvent.value.status = '2'
+  } catch {}
 }
 
 async function markFixed() {
-  await updateBurstEventStatus(selectedEvent.value.id, '3')
-  selectedEvent.value.status = '3'
+  try {
+    await updateBurstEventStatus(selectedEvent.value.id, '3')
+    selectedEvent.value.status = '3'
+  } catch {}
 }
 
 // ============ 地图初始化 ============
 async function initMap() {
-  let amapKey = ''
-  try {
-    const res = await getConfigKey('gis.map.amap.key')
-    if (res?.data) amapKey = res.data
-  } catch {}
-
-  if (!amapKey) return
-
-  try {
-    const AMap = await AMapLoader.load({
-      key: amapKey,
-      version: '2.0',
-      plugins: ['AMap.Polygon', 'AMap.Marker']
-    })
-    window.AMap = AMap
-
-    await nextTick()
-    map = new AMap.Map(mapRef.value, {
-      zoom: 12,
-      center: [118.6, 24.9],
-      viewMode: '2D',
-      resizeEnable: true,
-    })
-  } catch (e) {
-    console.error('地图加载失败', e)
-  }
+  await nextTick()
+  return initMapFn(mapRef.value)
 }
 
 // ============ 辅助 ============
@@ -424,10 +545,10 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  pipeLines.forEach(l => map && map.remove(l))
-  if (areaPolygon) map.remove(areaPolygon)
-  if (burstMarker) map.remove(burstMarker)
-  if (map) { map.destroy(); map = null }
+  pipeLines.forEach(l => map.value?.remove(l))
+  if (areaPolygon) map.value?.remove(areaPolygon)
+  if (burstMarker) map.value?.remove(burstMarker)
+  destroyMap()
 })
 </script>
 
@@ -453,6 +574,11 @@ onBeforeUnmount(() => {
   padding: 14px 16px; font-size: 14px; font-weight: 600;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
+.ws-indicator {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: #EF4444; transition: background 0.3s;
+  &.on { background: #10B981; box-shadow: 0 0 0 3px rgba(16,185,129,0.15); }
+}
 .panel-divider { border-top: 1px solid rgba(255,255,255,0.05); margin: 8px 0; }
 
 /* ========== 分区列表 ========== */
@@ -469,11 +595,13 @@ onBeforeUnmount(() => {
   &.medium { background: #F59E0B; box-shadow: 0 0 6px #F59E0B; }
   &.low    { background: #10B981; }
 }
-.zone-name { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zone-name { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
 .zone-badge {
   font-size: 11px; padding: 1px 7px; border-radius: 10px;
   background: rgba(239,68,68,0.2); color: #F87171; font-weight: 600;
 }
+.analyze-btn { flex-shrink: 0; opacity: 0; transition: opacity 0.15s; }
+.zone-row:hover .analyze-btn { opacity: 1; }
 .empty-hint { text-align: center; padding: 24px; font-size: 13px; color: #64748B; }
 
 /* ========== 历史列表 ========== */

@@ -12,6 +12,9 @@
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
         <el-button type="success" icon="DataLine" :loading="triggering" @click="handleTriggerAgg">触发重新计算</el-button>
       </div>
+      <div class="query-bar-right">
+        <el-button type="warning" plain icon="Guide" @click="showDataFlow = true">数据流转</el-button>
+      </div>
     </div>
 
     <!-- 汇总统计卡片 -->
@@ -162,18 +165,22 @@
         </div>
       </el-col>
     </el-row>
+
+    <!-- 数据流转弹窗 -->
+    <DataFlowDialog v-model="showDataFlow" title="月报产销差数据流转" :stages="monthlyStages" />
   </div>
 </template>
 
 <script setup name="DmaMonthlyReport">
 import { ref, shallowRef, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search, Refresh, DataLine, MapLocation, FolderOpened } from '@element-plus/icons-vue'
+import { Search, Refresh, DataLine, MapLocation, FolderOpened, Guide, TrendCharts, MagicStick, PieChart, Connection, Calendar } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { listZoneTree, lazyZoneChildren } from '@/api/water-basic/zone'
 import { getConfigKey } from '@/api/system/config'
 import * as echarts from 'echarts'
 import AMapLoader from '@amap/amap-jsapi-loader'
+import DataFlowDialog from '@/components/Monitor/DataFlowDialog.vue'
 import dayjs from 'dayjs'
 
 const loading = ref(false)
@@ -187,6 +194,59 @@ const expandedRowKeys = ref([])
 const userExpandedKeys = ref(new Set())
 const chartRef = ref(null)
 let chartInstance = null
+
+// 数据流转弹窗
+const showDataFlow = ref(false)
+const monthlyStages = [
+  {
+    key: 'zone_tree', label: '分区树加载', shortLabel: '分区树',
+    icon: FolderOpened, color: '#3B82F6',
+    description: '前端调用 listZoneTree API 获取分区层级，el-table lazy + load 逐级展开子分区，构建树形表格',
+    tech: 'Vue3 + Element Plus', input: 'water_zone 表', output: '分区树形列表',
+    frequency: '页面加载 / 展开节点', method: 'handleLoadNode()', file: 'admin/src/views/dma/report/monthly.vue',
+    active: true, count: '—',
+  },
+  {
+    key: 'month_query', label: '月度数据查询', shortLabel: '月查询',
+    icon: Calendar, color: '#6366F1',
+    description: 'QueryService → zone_revenue_1mo 查询所选月份的供水量和售水量，按 zoneCode 分组聚合，数据由月度定时任务预先计算',
+    tech: 'TDengine REST API', input: 'zone_revenue_1mo 超表', output: '各分区月供水量/售水量',
+    frequency: '每次查询 / 展开节点', method: 'QueryService.getZoneMonthlyReport()', file: 'micro-data-integration/query/query.service.ts',
+    active: true, count: '—',
+  },
+  {
+    key: 'supply_sales', label: '供水量/售水量', shortLabel: '供水售水',
+    icon: DataLine, color: '#0D9488',
+    description: '后端返回各分区的 supply(供水量)、sales(售水量)，前端填充到树形表格的对应列，月度数据通常量级更大',
+    tech: 'NestJS API', input: 'TDengine 聚合结果', output: '{supply, sales} per zone',
+    frequency: '每次查询', method: 'monthlyReport()', file: 'micro-water-basic/dma/dma-report.service.ts',
+    active: true, count: '—',
+  },
+  {
+    key: 'nrw_calc', label: '产销差计算', shortLabel: 'NRW计算',
+    icon: TrendCharts, color: '#D97706',
+    description: 'nrwDiff = supply - sales（产销差水量）; nrwRatio = (nrwDiff / supply) * 100（产销差率%）。月度NRW反映长期漏损趋势，是管网健康核心指标',
+    tech: '前端计算', input: '各分区 supply/sales', output: 'nrwDiff + nrwRatio',
+    frequency: '每次查询后计算', method: 'compute NRW in getList()', file: 'admin/src/views/dma/report/monthly.vue',
+    active: true, count: '—',
+  },
+  {
+    key: 'summary', label: '统计汇总', shortLabel: '汇总',
+    icon: PieChart, color: '#8B5CF6',
+    description: '根分区汇总全部子分区的供水量/售水量，计算月度总产销差率。el-tag 根据差率显示绿(<15%)/黄(15-30%)/红(>30%)',
+    tech: 'computed 响应式', input: '树形列表数据', output: 'rootStats + ratioClass',
+    frequency: '数据更新时', method: 'summary card computed', file: 'admin/src/views/dma/report/monthly.vue',
+    active: true, count: '—',
+  },
+  {
+    key: 'trend_chart', label: '月度趋势图表', shortLabel: '趋势图',
+    icon: MagicStick, color: '#F59E0B',
+    description: '点击分区后查询过去 12 个月的 NRW 趋势数据，ECharts 渲染月度对比图，辅助分析季节性漏损规律和年度变化趋势',
+    tech: 'ECharts 5.x', input: '12个月历史趋势数据', output: '月度趋势图表',
+    frequency: '点击分区时', method: 'drawTrendChart()', file: 'admin/src/views/dma/report/monthly.vue',
+    active: false, count: '—',
+  },
+]
 
 // 地图
 const mapContainer = ref(null)
@@ -566,6 +626,7 @@ onBeforeUnmount(() => {
 
 .dma-report-page .query-bar { display: flex; align-items: center; flex-shrink: 0; }
 .dma-report-page .query-bar-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dma-report-page .query-bar-right { margin-left: auto; }
 
 /* 汇总卡片 */
 .dma-report-page .summary-row { flex-shrink: 0; }

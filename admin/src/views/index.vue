@@ -44,6 +44,20 @@
           <span class="kpi-label">待处理报警</span>
         </div>
       </div>
+      <div class="kpi-card burst-card">
+        <div class="kpi-icon" style="background: #FEE2E2;"><el-icon :size="22" color="#EF4444"><WarningFilled /></el-icon></div>
+        <div class="kpi-body">
+          <span class="kpi-num">{{ burstStats.highRiskCount ?? '--' }}</span>
+          <span class="kpi-label">高风险分区</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background: #FEF3C7;"><el-icon :size="22" color="#F59E0B"><TrendCharts /></el-icon></div>
+        <div class="kpi-body">
+          <span class="kpi-num">{{ burstStats.totalEvents ?? '--' }}</span>
+          <span class="kpi-label">爆管事件</span>
+        </div>
+      </div>
     </div>
 
     <!-- 图表区 -->
@@ -103,9 +117,37 @@
       </el-col>
     </el-row>
 
-    <!-- 服务状态 -->
+    <!-- 爆管风险 + 服务状态 -->
     <el-row :gutter="20">
-      <el-col :span="24">
+      <el-col :xs="24" :lg="14">
+        <el-card class="iot-card" shadow="never">
+          <template #header>
+            <div class="card-title"><el-icon :size="18"><WarningFilled /></el-icon><span>爆管风险分区</span>
+              <span class="ws-dot" :class="{ on: wsConnected }" title="实时推送"></span>
+            </div>
+          </template>
+          <el-table :data="burstRiskZones" size="small" stripe max-height="260">
+            <el-table-column prop="zoneName" label="分区名称" min-width="120" show-overflow-tooltip />
+            <el-table-column prop="riskLevel" label="风险等级" width="90">
+              <template #default="{ row }">
+                <el-tag :type="row.riskLevel === 'high' ? 'danger' : row.riskLevel === 'medium' ? 'warning' : 'success'" size="small">
+                  {{ row.riskLevel === 'high' ? '高' : row.riskLevel === 'medium' ? '中' : '低' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="maxConfidence" label="最大置信度" width="100">
+              <template #default="{ row }">
+                <span :style="{ color: row.maxConfidence >= 70 ? '#EF4444' : row.maxConfidence >= 50 ? '#F59E0B' : '#10B981', fontWeight: 600 }">
+                  {{ row.maxConfidence }}%
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="eventCount" label="事件数" width="70" />
+          </el-table>
+          <div v-if="burstRiskZones.length === 0" class="empty-hint">暂无数据，请先执行爆管分析</div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :lg="10">
         <el-card class="iot-card" shadow="never">
           <template #header>
             <div class="card-title"><el-icon :size="18"><Monitor /></el-icon><span>微服务状态</span></div>
@@ -131,7 +173,13 @@ import {
 } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import request from '@/utils/request'
+import { useWebSocket } from '@/hooks/useWebSocket'
+import { getRiskZones } from '@/api/water-basic/burst'
 import dayjs from 'dayjs'
+
+// WebSocket
+const ws = useWebSocket({ autoConnect: true })
+const wsConnected = ws.connected
 
 const stats = ref({
   zoneCount: 0,
@@ -146,6 +194,9 @@ const stats = ref({
   alarmTrend: [],
   recentAlarms: [],
 })
+
+const burstStats = ref({ highRiskCount: 0, totalEvents: 0 })
+const burstRiskZones = ref([])
 
 const services = ref([
   { name: 'API 网关', port: '8080', online: true },
@@ -185,6 +236,49 @@ function fetchStats() {
     }
   }).catch(() => {})
 }
+
+function fetchBurstStats() {
+  getRiskZones().then(res => {
+    const zones = res.data || []
+    burstRiskZones.value = zones.filter(z => z.riskLevel !== 'low').sort((a, b) => b.maxConfidence - a.maxConfidence)
+    burstStats.value = {
+      highRiskCount: zones.filter(z => z.riskLevel === 'high').length,
+      totalEvents: zones.reduce((s, z) => s + (z.eventCount || 0), 0),
+    }
+    // 健康检测: 标记对应服务状态
+    checkServiceHealth()
+  }).catch(() => {})
+}
+
+function checkServiceHealth() {
+  // 通过 API 调用来检测服务是否在线
+  const endpoints = [
+    { name: '鉴权服务', port: '3001', url: '/auth' },
+    { name: '系统服务', port: '3002', url: '/system/home/stats' },
+    { name: '水务台账', port: '3006', url: '/water-basic/burst/risk-zones' },
+    { name: '数据集成', port: '3007', url: '/data-integration/query/latest-batch' },
+    { name: '报警中心', port: '3008', url: '/alarm' },
+  ]
+  endpoints.forEach(ep => {
+    request({ url: ep.url, method: 'get', timeout: 3000 }).then(() => {
+      const svc = services.value.find(s => s.name === ep.name)
+      if (svc) svc.online = true
+    }).catch(() => {
+      const svc = services.value.find(s => s.name === ep.name)
+      if (svc) svc.online = false
+    })
+  })
+}
+
+// WebSocket: 新爆管事件自动刷新
+watch(() => ws.lastBurstEvent.value, () => {
+  fetchBurstStats()
+})
+
+// WebSocket: 新报警自动刷新统计数据
+watch(() => ws.lastAlarm.value, () => {
+  fetchStats()
+})
 
 function renderTrendChart() {
   if (!alarmTrendRef.value) return
@@ -273,6 +367,7 @@ function handleResize() {
 onMounted(() => {
   document.title = '智慧水务 IoT 管理平台'
   fetchStats()
+  fetchBurstStats()
   window.addEventListener('resize', handleResize)
 })
 </script>
@@ -370,6 +465,12 @@ onMounted(() => {
   font-weight: 600;
   color: #0F172A;
   .el-icon { color: #0D9488; }
+}
+
+.ws-dot {
+  width: 8px; height: 8px; border-radius: 50%; margin-left: auto;
+  background: #EF4444; transition: background 0.3s;
+  &.on { background: #10B981; box-shadow: 0 0 0 3px rgba(16,185,129,0.2); }
 }
 
 .chart-box {

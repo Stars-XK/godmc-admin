@@ -8,36 +8,15 @@
 
     <el-row :gutter="20">
       <el-col :xs="24" :lg="6">
-        <el-card shadow="never" class="p-card">
-          <template #header><div class="card-title"><el-icon><Grid /></el-icon><span>设备监测点</span></div></template>
-          <div style="display:flex;gap:8px;margin-bottom:12px">
-            <el-input v-model="searchKey" placeholder="搜索设备/测点" size="small" clearable style="flex:1" />
-            <el-button text size="small" @click="Object.keys(collapsed).length ? expandAll() : collapseAll()">
-              {{ Object.keys(collapsed).length ? '展开全部' : '收起全部' }}
-            </el-button>
-          </div>
-          <div v-loading="loading" class="point-list">
-            <div v-for="g in filteredGroups" :key="g.deviceCode" class="device-group">
-              <div class="dg-header" @click="toggleGroup(g.deviceCode)">
-                <el-icon class="dg-arrow" :class="{ collapsed: collapsed[g.deviceCode] }"><ArrowDown /></el-icon>
-                <span class="dg-name">{{ g.deviceName }}</span>
-                <el-tag size="small">{{ g.points.length }}</el-tag>
-              </div>
-              <template v-for="p in g.points" :key="p.id">
-                <div v-if="searchKey || !collapsed[g.deviceCode]"
-                  class="point-row" :class="{ active: selectedPoint?.id === p.id }"
-                  @click="selectPoint(p)">
-                  <div class="p-info">
-                    <span class="p-name">{{ p.name || p.code }}</span>
-                    <span class="p-type">{{ p.typeLabel }}</span>
-                  </div>
-                  <span class="p-status" :class="getStatus(p.code)"></span>
-                </div>
-              </template>
-            </div>
-            <div v-if="groups.length === 0 && !loading" class="empty-hint">暂未配置压力监测点</div>
-          </div>
-        </el-card>
+        <DevicePointPanel
+          title="设备监测点"
+          :groups="groups"
+          :loading="loading"
+          :selected-id="selectedPoint?.id"
+          :status-fn="getStatus"
+          empty-text="暂未配置压力监测点"
+          @select="selectPoint"
+        />
       </el-col>
 
       <el-col :xs="24" :lg="18">
@@ -45,7 +24,7 @@
           <template #header>
             <div class="card-title">
               <el-icon><Odometer /></el-icon><span>实时压力 — {{ selectedPoint.name || selectedPoint.code }}</span>
-              <el-radio-group v-model="trendInterval" size="small" style="margin-left:auto" @change="fetchTrend">
+              <el-radio-group v-model="trendInterval" size="small" style="margin-left:auto" @change="onIntervalChange">
                 <el-radio-button value="5m">6h</el-radio-button>
                 <el-radio-button value="1h">24h</el-radio-button>
                 <el-radio-button value="1d">7d</el-radio-button>
@@ -61,7 +40,7 @@
               <div class="gi-item"><span class="gi-label">测点编码</span><span class="gi-value code">{{ selectedPoint.code }}</span></div>
             </div>
           </div>
-          <div ref="trendChartRef" class="chart-box"></div>
+          <div ref="chartBoxRef" class="chart-box"></div>
         </el-card>
 
         <el-card shadow="never" class="p-card" v-if="!selectedPoint">
@@ -76,67 +55,45 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
-import { Grid, Odometer, Search, ArrowDown } from '@element-plus/icons-vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { Odometer, Search } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import request from '@/utils/request'
-import { getLatestDataBatch } from '@/api/data-integration/query'
-import dayjs from 'dayjs'
+import DevicePointPanel from '@/components/Monitor/DevicePointPanel.vue'
+import { useMonitorTrend } from '@/hooks/useMonitorTrend'
 
 const loading = ref(false)
-const searchKey = ref('')
 const groups = ref([])
-const collapsed = ref({})
 const totalPoints = ref(0)
 const deviceCount = ref(0)
 const typeCount = ref(0)
 
-function toggleGroup(code) {
-  collapsed.value[code] = !collapsed.value[code]
-}
-function collapseAll() {
-  groups.value.forEach(g => { collapsed.value[g.deviceCode] = true })
-}
-function expandAll() {
-  collapsed.value = {}
-}
-
 const selectedPoint = ref(null)
 const currentValue = ref(null)
 const lastUpdate = ref(null)
-const trendInterval = ref('1h')
 
 const gaugeRef = ref(null)
-const trendChartRef = ref(null)
 let gaugeChart = null
-let trendChart = null
-const statusMap = ref({})
 
-const filteredGroups = computed(() => {
-  if (!searchKey.value) return groups.value
-  const kw = searchKey.value.toLowerCase()
-  return groups.value
-    .map(g => ({
-      ...g,
-      points: g.points.filter(p =>
-        (p.name || '').toLowerCase().includes(kw) ||
-        (p.code || '').toLowerCase().includes(kw) ||
-        (g.deviceName || '').toLowerCase().includes(kw)
-      ),
-    }))
-    .filter(g => g.points.length > 0 || g.deviceName.toLowerCase().includes(kw))
-})
+const { trendInterval, chartRef: chartBoxRef, fetchTrend, dispose: disposeTrend } = useMonitorTrend({ unit: 'MPa' })
 
 const currentValStr = computed(() => currentValue.value !== null ? currentValue.value.toFixed(3) : '--')
 
 function pressureColor(val, max) {
-  if (val === null) return '#94A3B8'
+  if (val === null || val === undefined) return '#94A3B8'
   if (val > max) return '#EF4444'
   if (val > max * 0.9) return '#F59E0B'
   return '#10B981'
 }
 
-function getStatus(code) { return statusMap.value[code] || 'unknown' }
+function getStatus(p) {
+  const v = p.latestValue
+  if (v === null || v === undefined) return 'unknown'
+  const max = p.rangeMax || 1.6
+  if (v > max) return 'bad'
+  if (v > max * 0.9) return 'warn'
+  return 'ok'
+}
 
 function fetchPoints() {
   loading.value = true
@@ -148,31 +105,26 @@ function fetchPoints() {
       const types = new Set()
       groups.value.forEach(g => g.points.forEach(p => types.add(p.type)))
       typeCount.value = types.size
-      collapsed.value = {}
-      groups.value.forEach(g => { collapsed.value[g.deviceCode] = true })
     }
   }).finally(() => { loading.value = false })
 }
 
 function selectPoint(p) {
   selectedPoint.value = p
-  currentValue.value = null
-  lastUpdate.value = null
-  getLatestDataBatch({ pointCodes: p.code }).then(res => {
-    if (res.data?.[p.code]) {
-      const d = res.data[p.code]
-      currentValue.value = Number(d.value || d.val || 0)
-      lastUpdate.value = d.ts ? dayjs(d.ts).format('MM-DD HH:mm:ss') : dayjs().format('MM-DD HH:mm:ss')
-    }
-    nextTick(() => { renderGauge(); fetchTrend() })
-  })
+  currentValue.value = p.latestValue != null ? Number(p.latestValue) : null
+  lastUpdate.value = p.latestTime || null
+  nextTick(() => { renderGauge(); fetchTrend(p) })
+}
+
+function onIntervalChange() {
+  if (selectedPoint.value) fetchTrend(selectedPoint.value)
 }
 
 function renderGauge() {
   if (!gaugeRef.value || !selectedPoint.value) return
   if (!gaugeChart) gaugeChart = echarts.init(gaugeRef.value)
   const max = selectedPoint.value.rangeMax || 1.6
-  const val = currentValue.value || 0
+  const val = currentValue.value ?? 0
   gaugeChart.setOption({
     series: [{
       type: 'gauge', radius: '90%', center: ['50%', '55%'],
@@ -189,36 +141,8 @@ function renderGauge() {
   }, true)
 }
 
-const timeRanges = { '5m': [6, 'hour'], '1h': [24, 'hour'], '1d': [7, 'day'] }
-
-function fetchTrend() {
-  if (!selectedPoint.value || !trendChartRef.value) return
-  const [n, unit] = timeRanges[trendInterval.value] || [24, 'hour']
-  const end = dayjs().format('YYYY-MM-DD HH:mm:ss')
-  const start = dayjs().subtract(n, unit).format('YYYY-MM-DD HH:mm:ss')
-  request({ url: '/data-integration/query/history', method: 'get', params: { pointCode: selectedPoint.value.code, startDate: start, endDate: end, interval: trendInterval.value } })
-    .then(res => {
-      const data = res.data?.data || res.data || []
-      const dates = data.map(d => d.ts || d[0])
-      const vals = data.map(d => d.val ?? d[1] ?? 0)
-      if (!trendChart) trendChart = echarts.init(trendChartRef.value)
-      const max = selectedPoint.value.rangeMax || 1.6
-      trendChart.setOption({
-        tooltip: { trigger: 'axis' },
-        grid: { left: 50, right: 20, top: 20, bottom: 30 },
-        xAxis: { type: 'category', data: dates.map(d => dayjs(d).format(trendInterval.value === '1d' ? 'MM-DD' : 'HH:mm')), axisLabel: { fontSize: 10 } },
-        yAxis: { type: 'value', name: 'MPa', axisLabel: { fontSize: 10 } },
-        series: [{
-          type: 'line', data: vals, smooth: true, symbol: 'none',
-          lineStyle: { width: 2, color: '#2563EB' },
-          areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(37,99,235,0.15)' }, { offset: 1, color: 'rgba(37,99,235,0.02)' }]) },
-          markLine: { silent: true, symbol: 'none', lineStyle: { type: 'dashed', color: '#EF4444' }, data: [{ yAxis: max, label: { formatter: `上限${max}`, fontSize: 10 } }] },
-        }],
-      }, true)
-    }).catch(() => {})
-}
-
 onMounted(() => { fetchPoints() })
+onBeforeUnmount(() => { disposeTrend(); if (gaugeChart) gaugeChart.dispose() })
 </script>
 
 <style lang="scss" scoped>
@@ -231,24 +155,6 @@ onMounted(() => { fetchPoints() })
 
 .p-card { border-radius: 10px; border: 1px solid #E2E8F0; box-shadow: none; margin-bottom: 0; height: 100%; }
 .card-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #0F172A; .el-icon { color: #0D9488; } }
-
-.point-list { max-height: calc(100vh - 320px); overflow-y: auto; }
-
-.device-group { margin-bottom: 10px; }
-.dg-header { display: flex; align-items: center; gap: 4px; padding: 4px 0; border-bottom: 1px solid #F1F5F9; margin-bottom: 3px; cursor: pointer; user-select: none; }
-.dg-arrow { font-size: 12px; color: #94A3B8; transition: transform .2s; flex-shrink: 0; &.collapsed { transform: rotate(-90deg); } }
-.dg-name { font-size: 13px; font-weight: 600; color: #475569; flex: 1; }
-.dg-header .el-tag { --el-tag-bg-color: rgba(13,148,136,.1); --el-tag-text-color: #0D9488; --el-tag-border-color: rgba(13,148,136,.2); }
-
-.point-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; border-radius: 6px; cursor: pointer; margin: 2px 0; border: 1px solid transparent; &:hover { background: #F0FDFA; } &.active { background: #F0FDFA; border-color: #0D9488; } }
-.p-info { display: flex; flex-direction: column; min-width: 0; }
-.p-name { font-size: 13px; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.p-type { font-size: 11px; color: #64748B; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 4px; padding: 1px 6px; }
-.p-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.p-status.ok { background: #10B981; }
-.p-status.warn { background: #F59E0B; }
-.p-status.bad { background: #EF4444; }
-.p-status.unknown { background: #CBD5E1; }
 
 .gauge-row { display: flex; gap: 24px; align-items: center; }
 .gauge-box { width: 200px; height: 200px; flex-shrink: 0; }
@@ -263,7 +169,6 @@ onMounted(() => { fetchPoints() })
 
 .chart-box { width: 100%; height: 260px; margin-top: 16px; }
 .empty-state { display: flex; flex-direction: column; align-items: center; padding: 80px 0; color: #94A3B8; p { margin-top: 12px; } }
-.empty-hint { text-align: center; color: #94A3B8; font-size: 13px; padding: 24px 0; }
 
 @media (max-width: 992px) { .gauge-row { flex-direction: column; } }
 </style>

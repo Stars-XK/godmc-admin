@@ -6,6 +6,7 @@ import {
   WaterZoneEntity,
   WaterStationEntity,
   WaterDeviceEntity,
+  WaterPipeEntity,
   SysAlarmHistoryEntity,
 } from '@app/common';
 
@@ -15,6 +16,7 @@ import {
       WaterZoneEntity,
       WaterStationEntity,
       WaterDeviceEntity,
+      WaterPipeEntity,
       SysAlarmHistoryEntity,
     ]),
   ],

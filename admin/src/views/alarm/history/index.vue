@@ -36,6 +36,14 @@
     </el-form>
 
     <el-row :gutter="10" class="mb8">
+      <el-col :span="1.5" style="float: right; margin-right: 10px;">
+        <el-button
+          type="primary"
+          plain
+          icon="Guide"
+          @click="showDataFlow = true"
+        >数据流转</el-button>
+      </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
@@ -111,13 +119,20 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 数据流转弹窗 -->
+    <DataFlowDialog v-model="showDataFlow" title="报警数据流转" :stages="alarmStages" />
   </div>
 </template>
 
 <script setup name="AlarmHistory">
 import { listHistory, resolveHistory } from "@/api/alarm/history";
 import { ref, reactive, toRefs, getCurrentInstance } from "vue";
-import { Edit } from '@element-plus/icons-vue';
+import {
+  Edit,
+  Cpu, Monitor, TrendCharts, Search, MagicStick, Switch, BellFilled, Message,
+} from '@element-plus/icons-vue';
+import DataFlowDialog from '@/components/Monitor/DataFlowDialog.vue';
 
 const { proxy } = getCurrentInstance();
 const { sys_alarm_level, sys_alarm_status } = proxy.useDict('sys_alarm_level', 'sys_alarm_status');
@@ -128,6 +143,75 @@ const loading = ref(true);
 const showSearch = ref(true);
 const title = ref("");
 const total = ref(0);
+
+// 数据流转弹窗
+const showDataFlow = ref(false);
+const alarmStages = [
+  {
+    key: 'collection', label: '数据采集', shortLabel: '采集',
+    icon: Cpu, color: '#3B82F6',
+    description: 'KafkaConsumerService 消费设备 MQTT/Kafka 消息，ReceiverService 解析 JSON → 写入 TDengine',
+    tech: 'Kafka / MQTT', input: '传感器原始信号', output: 'TDengine 子表数据行',
+    frequency: '实时 (秒级)', method: 'KafkaConsumerService.eachMessage()', file: 'micro-data-integration/engine/kafka-consumer.service.ts',
+    active: true, count: '—',
+  },
+  {
+    key: 'storage', label: '时序存储', shortLabel: '存储',
+    icon: Monitor, color: '#6366F1',
+    description: 'TDengine 超级表 water_iot.meters，按 device_code+point_code 自动建子表',
+    tech: 'TDengine 3.x', input: 'ReceiverService 写入请求', output: 'd_<device>_<point> 子表',
+    frequency: '实时写入', method: 'ReceiverService.receiveData()', file: 'micro-data-integration/receiver/receiver.service.ts',
+    active: true, count: '—',
+  },
+  {
+    key: 'aggregation', label: '流计算聚合', shortLabel: '聚合',
+    icon: TrendCharts, color: '#0D9488',
+    description: 'TdengineAggService 5分钟滚动窗口: AVG(val), MAX(val), MIN(val), SPREAD, DIFF → meters_5m/zone_meters_5m',
+    tech: 'TDengine 窗口 SQL', input: 'meters 原始数据', output: 'meters_5m + zone_meters_5m',
+    frequency: '5 分钟/次', method: 'TdengineAggService.rollup5m()', file: 'micro-data-integration/tdengine/tdengine-agg.service.ts',
+    active: true, count: '—',
+  },
+  {
+    key: 'polling', label: 'TMQ 轮询', shortLabel: '轮询',
+    icon: Search, color: '#D97706',
+    description: 'TmqService 每 30s 执行 pollAndEvaluate()，查最新 5min 数据，构建 {deviceCode, pointCode, avgVal, maxVal...} facts',
+    tech: 'REST API 轮询', input: 'meters_5m 最近 5 分钟', output: 'facts 事实对象数组',
+    frequency: '30 秒/次', method: 'TmqService.pollDeviceData()', file: 'micro-alarm/tmq/tmq.service.ts',
+    active: true, count: '—',
+  },
+  {
+    key: 'engine', label: '规则引擎', shortLabel: '引擎',
+    icon: MagicStick, color: '#8B5CF6',
+    description: 'EngineService.evaluate() → ruleIndex.get(targetKey) O(1) 查找规则 → json-rules-engine.run(facts) 执行条件树匹配',
+    tech: 'json-rules-engine', input: 'facts + IndexedRule[]', output: 'success/failure 事件',
+    frequency: '每条数据实时', method: 'EngineService.evaluate()', file: 'micro-alarm/engine/engine.service.ts',
+    active: true, count: '—',
+  },
+  {
+    key: 'debounce', label: '防抖判断', shortLabel: '防抖',
+    icon: Switch, color: '#F59E0B',
+    description: 'count 模式: Redis ZADD→ZCARD 窗口计数达阈值触发 | time 模式: SET NX EX → GET 检查持续时长',
+    tech: 'Redis ZSET / String', input: 'success 事件 + debounce 配置', output: '确认触发 / 暂不触发',
+    frequency: '每次命中评估', method: 'handleRuleMatch() debounce分支', file: 'micro-alarm/engine/engine.service.ts:277-325',
+    active: false, count: '—',
+  },
+  {
+    key: 'alarm', label: '报警生成', shortLabel: '报警',
+    icon: BellFilled, color: '#EF4444',
+    description: 'SETNX alarm:active:{ruleId}:{deviceId} 原子去重 → historyRep.save() 写入 sys_alarm_history → 更新 Redis 状态',
+    tech: 'TypeORM + Redis SETNX', input: '确认信号 + rule/device 信息', output: 'sys_alarm_history 记录',
+    frequency: '触发时', method: 'fireAlarm()', file: 'micro-alarm/engine/engine.service.ts:354-384',
+    active: false, count: '—',
+  },
+  {
+    key: 'notify', label: '通知推送', shortLabel: '推送',
+    icon: Message, color: '#EC4899',
+    description: 'Promise.allSettled([sendWebhook, sendEmail, sendSms]) 并行通知 + EventsGateway.pushAlarm() WebSocket 前端实时推送',
+    tech: 'Axios + Socket.IO', input: 'AlarmNotification 对象', output: 'Webhook POST / Email SMTP / SMS 阿里云',
+    frequency: '报警后异步', method: 'NotifyService.sendAlarmNotification()', file: 'micro-alarm/notify/notify.service.ts',
+    active: false, count: '—',
+  },
+];
 
 const data = reactive({
   form: {},

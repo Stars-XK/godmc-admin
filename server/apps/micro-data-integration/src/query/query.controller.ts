@@ -133,6 +133,22 @@ export class QueryController {
     return ResultData.ok(result);
   }
 
+  @ApiOperation({ summary: '获取分区产销差数据（进水/出水对比）' })
+  @ApiQuery({ name: 'zoneCode', required: true, description: '分区编码' })
+  @ApiQuery({ name: 'hours', required: false, description: '查询最近N小时，默认24' })
+  @Get('zone-supply-diff')
+  @NotRequireAuth()
+  async getZoneSupplyDiff(
+    @Query('zoneCode') zoneCode: string,
+    @Query('hours') hours?: string,
+  ) {
+    if (!zoneCode) {
+      return ResultData.fail(500, '缺少必要参数 zoneCode');
+    }
+    const result = await this.queryService.getZoneSupplyDiff(zoneCode, hours ? Number(hours) : 24);
+    return ResultData.ok(result);
+  }
+
   @ApiOperation({ summary: '获取分区实时报警数据' })
   @ApiQuery({ name: 'zoneCode', required: true, description: '分区编码' })
   @Get('zone-alarms')
