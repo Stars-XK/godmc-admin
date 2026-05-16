@@ -51,6 +51,8 @@ export * from './entities/water-basic/water-pipe.entity';
 export * from './entities/water-basic/water-bill.entity';
 export * from './entities/water-basic/water-zone-metric-calc.entity';
 export * from './entities/water-basic/water-energy.entity';
+export * from './entities/water-basic/water-burst-event.entity';
+export * from './entities/water-basic/water-burst-area.entity';
 
 export * from './entities/data-integration/data-source.entity';
 export * from './entities/data-integration/data-task.entity';

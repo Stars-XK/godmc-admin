@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataIntegrationSourceEntity, DataIntegrationTaskEntity } from '@app/common';
 import { TaskSchedulerService } from './task-scheduler.service';
 import { KafkaConsumerService } from './kafka-consumer.service';
+import { EngineService } from './engine.service';
 import { EngineController } from './engine.controller';
 import { ReceiverModule } from '../receiver/receiver.module';
 
@@ -12,7 +13,7 @@ import { ReceiverModule } from '../receiver/receiver.module';
     ReceiverModule,
   ],
   controllers: [EngineController],
-  providers: [TaskSchedulerService, KafkaConsumerService],
-  exports: [TaskSchedulerService],
+  providers: [TaskSchedulerService, KafkaConsumerService, EngineService],
+  exports: [TaskSchedulerService, EngineService],
 })
 export class EngineModule {}
