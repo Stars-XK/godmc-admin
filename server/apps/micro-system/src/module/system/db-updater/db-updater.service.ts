@@ -49,7 +49,16 @@ export class DbUpdaterService implements OnModuleInit {
 
         const sql = fs.readFileSync(filePath, 'utf8');
         if (sql && sql.trim()) {
-          await this.dbUpdateRepo.manager.query(sql);
+          const cleanSql = sql
+            .replace(/--[^\n]*/g, '')
+            .replace(/\/\*[\s\S]*?\*\//g, '');
+          const statements = cleanSql
+            .split(';')
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+          for (const stmt of statements) {
+            await this.dbUpdateRepo.manager.query(stmt);
+          }
         }
         
         const record = existing || new SysDbUpdateEntity();

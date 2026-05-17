@@ -49,4 +49,8 @@ export class SysAlarmHistoryEntity {
   @ApiProperty({ type: String, description: '处理备注' })
   @Column({ type: 'varchar', name: 'resolve_remark', length: 500, default: null, comment: '处理备注' })
   public resolveRemark: string;
+
+  @ApiProperty({ type: Date, description: '自动恢复时间' })
+  @Column({ type: 'datetime', name: 'recovery_time', default: null, transformer: dateTransformer, comment: '自动恢复时间' })
+  public recoveryTime: Date;
 }

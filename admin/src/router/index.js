@@ -149,6 +149,68 @@ export const dynamicRoutes = [
         meta: { title: '修改生成配置', activeMenu: '/tool/gen' }
       }
     ]
+  },
+  // 巡检管理 - 隐藏路由（详情/移动端页面）
+  {
+    path: '/inspection-mobile',
+    component: Layout,
+    hidden: true,
+    permissions: ['inspection:mobile:index'],
+    children: [
+      {
+        path: 'task/:taskId(\\d+)',
+        component: () => import('@/views/inspection/mobile/task-detail'),
+        name: 'MobileTaskDetail',
+        meta: { title: '移动巡检 - 任务详情' }
+      }
+    ]
+  },
+  {
+    path: '/inspection-task-detail',
+    component: Layout,
+    hidden: true,
+    permissions: ['inspection:task:query'],
+    children: [
+      {
+        path: ':taskId(\\d+)',
+        component: () => import('@/views/inspection/task/index'),
+        name: 'TaskDetail',
+        meta: { title: '任务详情', activeMenu: '/inspection/task' }
+      }
+    ]
+  },
+  // 移动端巡检页面（无侧边栏 Layout，移动端专用）
+  {
+    path: '/inspection/mobile',
+    component: Layout,
+    hidden: true,
+    permissions: ['inspection:mobile:index'],
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/inspection/mobile/index'),
+        name: 'MobileIndex',
+        meta: { title: '移动巡检' }
+      },
+      {
+        path: 'checkpoint/:checkpointId(\\d+)',
+        component: () => import('@/views/inspection/mobile/checkpoint-form'),
+        name: 'MobileCheckpointForm',
+        meta: { title: '检查点' }
+      },
+      {
+        path: 'camera',
+        component: () => import('@/views/inspection/mobile/photo-capture'),
+        name: 'MobileCamera',
+        meta: { title: '拍照' }
+      },
+      {
+        path: 'queue',
+        component: () => import('@/views/inspection/mobile/offline-queue'),
+        name: 'MobileOfflineQueue',
+        meta: { title: '离线同步' }
+      }
+    ]
   }
 ]
 

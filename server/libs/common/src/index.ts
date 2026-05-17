@@ -63,5 +63,7 @@ export * from './entities/alarm/sys-alarm-history.entity';
 
 export * from './entities/sys-report.entity';
 
+export * from './entities/inspection/index';
+
 export * from './registry/registry.module';
 export * from './registry/registry.service';

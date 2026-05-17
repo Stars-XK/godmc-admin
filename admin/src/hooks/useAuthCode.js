@@ -38,7 +38,12 @@ const getValidateCode = async (form, isClick) => {
     authCodeInfo.captchaEnabled = data.captchaEnabled
     authCodeInfo.uuid = data.uuid
     if (authCodeInfo.captchaEnabled) {
-      authCodeInfo.imgUrl = data.img
+      const raw = data.img
+      if (raw) {
+        const bytes = new TextEncoder().encode(raw)
+        const base64 = btoa(String.fromCharCode(...bytes))
+        authCodeInfo.imgUrl = `data:image/svg+xml;base64,${base64}`
+      }
     }
   } catch (err) {
     console.log('验证码获取错误:', err)

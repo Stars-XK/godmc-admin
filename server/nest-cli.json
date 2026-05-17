@@ -94,6 +94,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/micro-water-basic/tsconfig.app.json"
       }
+    },
+    "micro-inspection": {
+      "type": "application",
+      "root": "apps/micro-inspection",
+      "entryFile": "main",
+      "sourceRoot": "apps/micro-inspection/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/micro-inspection/tsconfig.app.json"
+      }
     }
   }
 }

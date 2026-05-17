@@ -85,7 +85,7 @@
                   </template>
                 </el-input>
                 <div class="captcha-img" @click="useAuthCode.getValidateCode(loginForm.model, true)">
-                  <img v-if="authCodeInfo.imgUrl" :src="authCodeInfo.imgUrl.startsWith('data:') ? authCodeInfo.imgUrl : `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(authCodeInfo.imgUrl)))}`" alt="验证码" />
+                  <img v-if="authCodeInfo.imgUrl" :src="authCodeInfo.imgUrl" alt="验证码" />
                 </div>
               </div>
             </el-form-item>

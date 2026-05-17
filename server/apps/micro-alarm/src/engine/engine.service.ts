@@ -299,7 +299,7 @@ export class EngineService implements OnModuleInit {
         const count = await this.redisService.getClient().zcard(key);
         if (count >= threshold) {
           // SETNX 防并发：同一规则+设备在窗口内只触发一次
-          const doFire = await this.redisService.getClient().set(firedKey, '1', 'NX', 'EX', 3600);
+          const doFire = await this.redisService.getClient().set(firedKey, '1', 'EX', 3600, 'NX' as any);
           if (!doFire) return;
           await this.redisService.getClient().del(key);
           await this.fireAlarm(ruleId, ruleName, deviceId, factValue);
@@ -355,7 +355,7 @@ export class EngineService implements OnModuleInit {
     const activeKey = `${this.ACTIVE_ALARM_PREFIX}${ruleId}:${deviceId}`;
 
     // 使用 SETNX 原子操作防竞态：先占位，防止并发创建重复报警记录
-    const acquired = await this.redisService.getClient().set(activeKey, 'pending', 'NX', 'EX', 10);
+    const acquired = await this.redisService.getClient().set(activeKey, 'pending', 'EX', 10, 'NX' as any);
     if (!acquired) {
       this.logger.debug(`跳过重复报警: rule=${ruleName}, target=${deviceId} (已有活跃报警)`);
       return;
@@ -375,7 +375,7 @@ export class EngineService implements OnModuleInit {
     const saved = await this.historyRep.save(history);
 
     // 更新占位符为真实的 alarmId
-    await this.redisService.getClient().set(activeKey, String(saved.alarmId), 'XX', 'EX', 86400 * 7);
+    await this.redisService.getClient().set(activeKey, String(saved.alarmId), 'EX', 86400 * 7, 'XX' as any);
 
     this.notifyService.sendAlarmNotification({
       ruleId, ruleName, alarmLevel: '2', alarmContent: saved.alarmContent,

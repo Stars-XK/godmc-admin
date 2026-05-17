@@ -89,4 +89,13 @@ app.use(ElementPlus, {
   size: Cookies.get('size') || 'default'
 })
 
+// PWA Service Worker 注册（巡检离线支持）
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  navigator.serviceWorker.register('/sw.js').then(() => {
+    console.log('[PWA] Service Worker 已注册')
+  }).catch(() => {
+    // 静默失败
+  })
+}
+
 app.mount('#app')

@@ -10,7 +10,6 @@ import { JwtStrategy } from '@app/common/guards/jwt.strategy';
 import { PermissionGuard } from '@app/common/guards/permission.guard';
 import { RolesGuard } from '@app/common/guards/roles.guard';
 import { JwtModule } from '@nestjs/jwt';
-import { ScheduleModule } from '@nestjs/schedule';
 import { RegistryModule } from '@app/common';
 import { SysAlarmRuleEntity, SysAlarmHistoryEntity } from '@app/common';
 import { RuleModule } from './rule/rule.module';
@@ -52,7 +51,6 @@ import { RevenueAlarmScheduler } from './scheduler/revenue-alarm.scheduler';
         };
       },
     }),
-    ScheduleModule.forRoot(),
     SharedModule,
     RegistryModule,
     RuleModule,

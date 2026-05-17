@@ -23,7 +23,7 @@ export class RevenueUserController {
   @RequirePermission('water-basic:revenue:query')
   @Get(':id')
   getInfo(@Param('id') id: string) {
-    return this.revenueUserService.findOne(id);
+    return this.revenueUserService.findOne(+id);
   }
 
   @ApiOperation({ summary: '新增营收用户' })
@@ -44,7 +44,7 @@ export class RevenueUserController {
   @RequirePermission('water-basic:revenue:remove')
   @Delete(':ids')
   remove(@Param('ids') ids: string) {
-    return this.revenueUserService.remove(ids.split(','));
+    return this.revenueUserService.remove(ids.split(',').map(Number));
   }
 
   @ApiOperation({ summary: '批量导入营收用户数据(前端解析)' })

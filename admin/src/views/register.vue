@@ -26,7 +26,7 @@
           <template #prefix><svg-icon icon-class="validCode" class="el-input__icon input-icon" /></template>
         </el-input>
         <div class="register-code" @click="useAuthCode.getValidateCode(registerForm.model, true)">
-          <img v-if="authCodeInfo.imgUrl" :src="authCodeInfo.imgUrl.startsWith('data:') ? authCodeInfo.imgUrl : `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(authCodeInfo.imgUrl)))}`" alt="验证码" />
+          <img v-if="authCodeInfo.imgUrl" :src="authCodeInfo.imgUrl" alt="验证码" />
         </div>
       </el-form-item>
       <el-form-item style="width: 100%">

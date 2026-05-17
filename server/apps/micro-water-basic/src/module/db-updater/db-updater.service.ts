@@ -120,11 +120,14 @@ export class DbUpdaterService implements OnModuleInit {
    * 执行 SQL（支持多语句）
    */
   private async executeSql(sql: string): Promise<void> {
-    // 移除注释行和空行
-    const statements = sql
+    // 先移除所有注释行和块注释，再按分号拆分
+    const cleanSql = sql
+      .replace(/--[^\n]*/g, '')       // 移除单行注释
+      .replace(/\/\*[\s\S]*?\*\//g, ''); // 移除块注释
+    const statements = cleanSql
       .split(';')
       .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--') && !s.startsWith('/*'));
+      .filter(s => s.length > 0);
 
     for (const stmt of statements) {
       try {

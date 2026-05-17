@@ -248,6 +248,7 @@ const nightFlowStages = [
     active: false, count: '—',
   },
 ]
+const itemHeight = 88
 const visibleCount = 18
 const startIndex = ref(0)
 

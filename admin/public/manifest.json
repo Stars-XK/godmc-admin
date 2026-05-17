@@ -1,0 +1,18 @@
+{
+  "name": "智慧水务巡检",
+  "short_name": "水务巡检",
+  "description": "智慧水务物联网平台 — 巡检上报管理系统",
+  "start_url": "/inspection/mobile",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0F172A",
+  "theme_color": "#0D9488",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

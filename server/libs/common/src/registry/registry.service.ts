@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '@app/shared';
 import { Cron } from '@nestjs/schedule';
@@ -6,6 +6,7 @@ import * as os from 'os';
 
 @Injectable()
 export class RegistryService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(RegistryService.name);
   private serviceName: string;
   private servicePort: number;
   private serviceHost: string;
@@ -16,21 +17,30 @@ export class RegistryService implements OnModuleInit, OnModuleDestroy {
     private readonly redisService: RedisService,
   ) {}
 
-  onModuleInit() {
-    // 优先从环境变量获取，如果没有则尝试从配置获取
+  async onModuleInit() {
     this.serviceName = process.env.SERVICE_NAME || this.configService.get<string>('app.name') || 'unknown-service';
     this.servicePort = parseInt(process.env.SERVICE_PORT || this.configService.get<string>('app.port') || '0', 10);
     this.serviceHost = this.getIpAddress();
     this.redisKey = `microservice:${this.serviceName}:${this.serviceHost}:${this.servicePort}`;
-    
-    // 启动时立即发送一次心跳
-    this.sendHeartbeat();
+
+    if (!this.servicePort) {
+      this.logger.warn(`Service ${this.serviceName} has no port configured, skipping heartbeat registration`);
+      return;
+    }
+
+    try {
+      await this.sendHeartbeat();
+      this.logger.log(`Initial heartbeat sent for ${this.serviceName} on ${this.serviceHost}:${this.servicePort}`);
+    } catch (error) {
+      this.logger.error(`Failed to send initial heartbeat for ${this.serviceName}: ${error.message}`, error.stack);
+    }
   }
 
   onModuleDestroy() {
-    // 服务关闭时主动删除注册信息
     if (this.redisKey) {
-      this.redisService.getClient().del(this.redisKey).catch(console.error);
+      this.redisService.getClient().del(this.redisKey).catch(err =>
+        this.logger.error(`Failed to delete registry key on destroy: ${err.message}`)
+      );
     }
   }
 
@@ -48,10 +58,9 @@ export class RegistryService implements OnModuleInit, OnModuleDestroy {
     };
 
     try {
-      // 写入 Redis 并设置 15 秒过期时间
       await this.redisService.getClient().set(this.redisKey, JSON.stringify(payload), 'EX', 15);
     } catch (error) {
-      console.error(`[RegistryService] Failed to send heartbeat for ${this.serviceName}`, error);
+      this.logger.error(`Failed to send heartbeat for ${this.serviceName}: ${error.message}`, error.stack);
     }
   }
 
