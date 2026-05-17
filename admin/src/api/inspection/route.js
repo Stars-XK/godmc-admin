@@ -29,3 +29,18 @@ export function delRoute(id) {
 export function getRouteGeoJson(id) {
   return request({ url: '/inspection/route/geojson/' + id, method: 'get' })
 }
+
+// 获取路线完整设计数据（含检查点和检查项）
+export function getRouteDesign(id) {
+  return request({ url: '/inspection/route/design/' + id, method: 'get' })
+}
+
+// 保存路线完整设计（含检查点和检查项）
+export function saveRouteDesign(data) {
+  return request({ url: '/inspection/route/design', method: 'post', data })
+}
+
+// 删除路线及其关联检查点
+export function delRouteDesign(id) {
+  return request({ url: '/inspection/route/design/' + id, method: 'delete' })
+}
